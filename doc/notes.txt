@@ -1,0 +1,309 @@
+- TO DO
+
+generalize management window on index
+
+open outside, show outside
+
+search function
+	function syntax -- counting objects that meet criteria, counting true expressions of a set of expressions -- treating these counts like a variable
+
+converting relative directories to normal -- checking if they exist and checking if there are even enough parent directories
+
+make breakpath support (or only use) forward slashes
+
+changing the list windows to be based on array -- making a special array for enumeration that are based on the first number
+
+removing associated files from removed directories
+
+tag creating toolbar that can hold tags to potentially add to multiple images or make batch actions -- applies to selected window (or tab)
+	tag categories to quickly add tags to toolbar or make collapsable tags in toolbar
+
+tagging multiple files -- only remove shared tags between files
+	selecting files in multiple pages in the gui
+
+scroll through images in image view mode
+	view only selected images
+
+sets functionality and set gui
+
+managing tags and aliases and sets
+
+GetKeyState 
+
+edit control by subwindow
+	or maybe just intercept pasting in the superprocedure
+	
+	drag and drop: https://stackoverflow.com/questions/18856514/setcursor-while-dragging-files-into-a-window
+
+tag sidebar to quickly remove tags and categorize them
+	sidebar for adding or excluding tags from search
+	
+creating aliases (and functionality for extra aliases)	
+
+implications
+
+complex implications
+
+extra tabs and windows
+	open new tab instead if program is already running (FindWindowExA )
+
+image interpolation and blur
+
+time registered for individual files
+
+save and load session data
+
+proper automatic reversals from back up if secondary functions fail
+
+trying to remove files from tag or tags from while that they don't have should probably fail the whole function
+
+tags from jpg files
+
+block adding same dir twice (it messes with reverse read)
+
+variables
+
+objects
+
+directory partial aliases -- maybe format "ALIAS:/{aliasname}/..."
+
+- - - optimizations
+
+informing of being pre-sorted
+
+buffer for image so it doesn't need to be constantly reallocated
+
+all the unfinished functions
+
+for read functions, have a function that keeps the record open until done
+
+OpenCL
+	clCreateCommandQueueWithProperties properties
+	
+	
+
+- - - little things
+
+make list column headers not overlap
+
+take list column header to account in default size
+
+change PrgDir to gPrgDir
+
+right clicking from context menu open needs to do a hover before opening a new context menu (thumbman)
+
+max thumbnail gap
+
+including the border line in page list after all
+	
+cursor position when pasting text
+
+don't readjust the zoom center until after moving image again -- to keep it centered on a single point when zooming multiple times
+
+implement rerouting multiple as a two-string chain
+
+gray different options with 0 selections
+
+entering page num via edit control
+
+arrow keys cursor in string list and thumb list
+	ctrl+arrow key to scroll instead
+
+hovering in string list
+
+notepad++ style undoing: undo until cursor last moved or new line made or pasted
+
+bmp and webp
+
+change WM_USERs to be more descriptive
+
+stop registering directories as file entries
+
+dealing with WHEEL_DELTA
+
+move header guards to the actual c files
+
+replace unsigned character compares with compares that return positive or negative
+
+overhaul the whole backup system
+
+replacing operator keywords for tags in search and managing tags
+
+disable select button when none selected
+
+reading in without sorting input
+
+maybe replace strcmp with a function that treats a null input as the lowest possible
+
+make the line of the bottom page list a part of the page list window
+
+disable apply button when no changes have been made
+
+add an option to register directories, ending them with '\'
+
+add an option to register files from child directories or all descendant directories ("whole hierarchy")
+
+maybe setting a client guid for different directory searches so the starting directory is different
+
+search returning a specified error (for example the alias that could not be matched)
+
+_get_pgmptr to get the path to the executable instead
+	
+- - - far off
+
+audio and video
+	player needs: fetchable duration and position, settable position, feedback when end is reached, maybe feedback when position changes
+		perhaps only feedback when end is reached and feedback when changing video forward or backward
+
+- - - debugging
+
+checking if things start to break when byte values rise to more than 1
+
+testing if functions properly react to adding and removing the same tags
+
+------
+
+- Controls
+
+String List
+	UP, DOWN, PGUP, PGDN, HOME, END - Scroll
+	Mouse Wheel - Scroll
+	
+	Clicking to select, ctrl clicking to add to selections, shift clicking to select from last selection to clicked point, ctrl shift clicking to add to selections from last selection to clicked point, right clicking for context menu and select if clicked point not selected, ctrl right click for context menu without changing selections
+	
+	DEL for deleting, F2 for rerouting, alt+F2 for rerouting relative path
+	
+Thumb List
+	UP, DOWN, PGUP, PGDN, HOME, END - Scrolling
+	Mouse Wheel - Scrolling
+	
+	Clicking to select, ctrl clicking to add to selections, shift clicking to select from last selection to clicked point, ctrl shift clicking to add to selections from last selection to clicked point, right clicking for context menu and select if clicked point not selected, ctrl right click for context menu without changing selections
+	
+Image Viewer
+	Mouse Wheel - Zoom
+	Drag - Move View
+
+------
+
+- Page number
+
+arrows if first page or last page not otherwise visible -- otherwise bordering that edge
+will the number reach the middle if starting from beginning
+	calculate the middle position and the width of the selected element to calculate the position of the middle element
+	add to the number 1 until reaching the selected page or its position otherwise
+will the last number reach the edge if starting from middle
+	add to the selected number until reaching the edge or the last page
+calculate the amount of pages that will fit
+	allocate room for the arrows if it doesn't reach one or both of the edges -- iterate from one of the edges or from the middle depending on it
+associate the page numbers with the location ranges and sort them
+	if all pages fit center them
+draw them
+register hovering over them
+
+------
+
+- Read Time
+
+sections * length
+s*l = n, s = n/l -- where n is total number of entries
+
+s+l = l + n/l
+D(l) (l + n/l) = 1 + (D(n)*l - n*D(l)) / (l^2) = 1 + (0 - n) / (l^2) = 1 - n/l^2
+1 + n/l^2 = 0 --> n/l^2 = 1 --> n = l^2 --> l = sqrt(n)
+
+t0 = n
+ab = n -- a = n/b
+t = a+b = b + n/b
+1 - n/b^2 = 0 -- n/b^2 = 1 -- b^2 = n -- b = sqrt(n)
+t = a+b = b + n/b = sqrt(n) + n / sqrt(n) = 2 * sqrt(n)
+a = n/b = n/sqrt(n) = sqrt(n) --> a=b
+
+ab = n -- a = n/b
+t = a+b*x = n/b + b*x = b*x + n/b
+x - n/b^2 = 0 -- n/b^2 = x -- b^2 = n/x -- b = sqrt(n/x)
+a = n /b = n / sqrt(n/x) = sqrt(nx)
+t = a+b*x = b*x + n/b = sqrt(n/x)*x + n / sqrt(n/x) = sqrt(nx) + sqrt(n/x) = sqrt(n)*sqrt(x) + sqrt(n)/sqrt(x) = sqrt(n) * (sqrt(x) + 1/sqrt(x))
+1/sqrt(x) - (1/sqrt(x))/x = 1/sqrt(x) - 1/sqrt(x^3) = 0 -- 1/sqrt(x) = 1/sqrt(x^3) -- sqrt(x) = sqrt(x^3) -- x = x^3 -- x^2 = 1 -- x = sqrt(1) = 1
+
+Assuming reading single entry from record takes as long as reading from file, recording positions of file with an interval of sqrt(n) would reduce max read time to 2*sqrt(n).
+Search time for entry x would be x / sqrt(n) + x % sqrt(n)
+
+By allocating every index number 8 bytes and every position 8 bytes (or just allocating positions 8 bytes), access time could be reduced to 1, but memory would go from sqrt(n) to n.
+The same could not be applied when the index is a string, but if every string is indexed to a number, access time could be reduced to log(n).
+
+---
+
+width and height before, width and height after
+ratio
+middle point in coordinates before (position + (float) half window) to middle point in coordinates after ((middle point before) * ratio)
+calculate top and bottom from middle point after (middle point after - half window)
+
+image from fullimage, ratio, width and height of window, position
+
+halve the dimensions -- if not truncated, may need to be rounded down on nearest neighbor
+
+downscaling -- halve until less than double for bilinear or less than quadruple for biquadratic -- alternatively take average of a square of power of two pixels -- that way every pixel is taken to account
+
+
+
+---
+
+for & max is the smaller max and min is 0
+for | max is sum of their max and min is the larger min
+for ! max is n-min and min is n-max
+
+De Morgan's laws
+	!(A & B) -> !A | !B
+	!(A | B) -> !A & !B
+	
+A & (B & C) -> A & B & C
+A | (B | C) -> A | B | C
+A & (B | C) and A | (B & C) can't be condensed
+
+A & !A -> 0
+A | !A -> 1
+
+(A & B & C) | D & E -> (A & B & C) | (D & E)
+
+A & B -> inclusion of shared elements -- A & !B -> B is reduced from A -- !A & !B -- combined into an exclusion
+A | B -> combined into an inclusion -- A | !B -> A is reduced from B into an exclusion -- !A | !B -> only shared elements are kept in the exclusive result
+	If either of a & expression is inclusive, the result is inclusive -- If either of a | expression is negative the result is exclusive
+	
+---
+AND and OR expansion
+	- keeping track of whether last added left or right will keep the top level balanced, but not the lower ones
+	- keeping track of how much expanded can work -- depending on whether the number is even or not then truncating by two and checking again
+	
+Multiple braces
+	- incrementing a number
+Encountering right brace
+	- go up stack to point where left braces exist
+	- guarantee that the expression will become the left expression if followed by an AND or OR expression
+	
+If first encountered alias make it the selected expression
+	if first negation make it the selected expression and await next expression
+	if first left brace
+	
+---
+
+l, r, ll, rl, lr, rr, lll, rll, lrl, rrl, llr, rlr, lrr, rrr
+l, r, ll, lr, rl, rr, lll, llr, lrl, lrr, rll, rlr, rrl, rrr
+
+0, 1 | 10, 11, 100, 101 | 110, 111, 1000, 1001, 1010 , 1011, 1100, 1101 |
+1110, 1111, 10000, 10001, 10010, 10011, 10100, 10101, 10110, 10111, 11000, 11001, 11010, 11011, 11100, 11101
+
+0, 1 | 2, 3, 4, 5 | 6, 7, 8, 9, 10, 11, 12, 13|
+
+divide by 2, subtract 1 to shave off the beginning-most level -- read last bit to get the beginning-most direction
+
+Jos vähennetään 2^n kunnes 2^n on suurempi kuin itse luku, bitit voidaan lukea suoraan ja päätellä vasen tai oikea
+
+Koska oikeanpuoliset bitit vaikuttavat lopulliseen merkkiin, merkkiä ei voida suoraan päätellä katsomalla vasemmasta päästä.
+
+to shave off the end-most level: when two levels, subtract the left most bit
+
+Jos aloitetaan loppupäästä (oikealta) mennään edestakaisin vasemmalle, jolloin molemmat juuret säilyy suht tasaisena
+
+Jos aloitetaan alkupäästä täytetään aina seuraava vasemmaisin lehti, jolla on pienin syvyys
+
+Balancing is pointless since the amount of nodes is the same (amount of parent nodes + 1) and tail calls can be done faster if asymmetric

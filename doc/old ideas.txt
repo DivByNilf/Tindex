@@ -1,0 +1,7 @@
+--- Old ideas from before I even started really working on the program
+Two possible methods of encoding
+	Reserving 0-bytes as terminators and using only values 1 to 255 to encode numeric values
+		would allow for binary searches
+	Preceding all numeric values with a byte specifying the length in bytes of the number
+
+Having a number specifying distance to next entry?
