@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
-void errorf(char *, ...);
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
 
 unsigned char *bsubtract(unsigned char*, unsigned char*);
 

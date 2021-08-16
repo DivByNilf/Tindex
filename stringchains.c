@@ -1,10 +1,12 @@
 #include "stringchains.h"
 
 #include <stdlib.h>
-#include "errorf.h"
 #include "dupstr.h"
 
 #define COPYCHN_STRLIM 10000
+
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
 
 char killoneschn(oneslnk *slink, unsigned char flag) { // 0 for string, 1 for ull
 	oneslnk *buf;

@@ -19,7 +19,7 @@
 #include "breakpath.h"
 #include "dirfiles.h"
 
-extern char *PrgDir;
+extern char *g_prgDir;
 
 #define RD_MAX_CLEN 1000
 #define RF_MAX_CLEN 1000
@@ -48,7 +48,9 @@ extern char *PrgDir;
 #define SRPAR_TYPE_ALIAS 6
 #define SRPAR_NO_EXPR 7
 
-void errorf(char *, ...);
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
+
 FILE *MBfopen(char*, char*);
 
 unsigned char raddtolastminum(long long num);
@@ -146,7 +148,7 @@ int cregformat1(oneslnk *inputchn, struct arg_struct1 *args) {
 	
 	char created = 0;
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, fileStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
 		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create indexF");
@@ -232,14 +234,14 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 	char *rrecStrBase = "rmiRec";
 	char *indexStrBase = "miIndex";
 
-	sprintf(buf, "%s\\%s.tmp", PrgDir, rrecStrBase);
+	sprintf(buf, "%s\\%s.tmp", g_prgDir, rrecStrBase);
 	if ((trirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create trirec (raddtolastminum)");
 		errorf("tried to create: %s", buf);
 		return 1;
 	}
-	sprintf(buf2, "%s\\%s.bin", PrgDir, rrecStrBase);
-	sprintf(buf3, "%s\\%s.bin", PrgDir, indexStrBase);
+	sprintf(buf2, "%s\\%s.bin", g_prgDir, rrecStrBase);
+	sprintf(buf3, "%s\\%s.bin", g_prgDir, indexStrBase);
 
 	if (((rirec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(rirec)) != EOF)) {
 		unsigned long long oldinum = 0;
@@ -346,7 +348,7 @@ unsigned long long rmiinitpos___(char *idir) {
 	unsigned long long dnum, pos = 0, lastdnum = 0, gotdnum;
 	FILE *rdirec;
 	
-	sprintf(buf, "%s\\rdiRec.bin", PrgDir);
+	sprintf(buf, "%s\\rdiRec.bin", g_prgDir);
 	
 	if (((rdirec = MBfopen(buf, "rb")) == NULL) || ((i = getc(rdirec)) == EOF)) {
 		if (rdirec != NULL)
@@ -433,12 +435,12 @@ char rmiinit() {
 	char *rrecStrBase = "rmiRec";
 	char *indexStrBase = "miIndex";
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, rindexStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, rindexStrBase);
 	MBremove(buf);
-	sprintf(buf, "%s\\%s.bin", PrgDir, rrecStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, rrecStrBase);
 	MBremove(buf);
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, indexStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, indexStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("indexF file not found");
 		errorf("looked for: %s", buf);
@@ -523,7 +525,7 @@ char rmiinit() {
 		ntfilesegs = 1;
 	}
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, rindexStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, rindexStrBase);
 	
 	if ((rindexF = MBfopen(buf, "wb")) == NULL) {
 		errorf("couldn't create rindexF");
@@ -560,7 +562,7 @@ char rmireg___(char *dpath, unsigned long long dnum) {
 		return 1;
 	}
 	
-	sprintf(buf, "%s\\rdIndex.bin", PrgDir);
+	sprintf(buf, "%s\\rdIndex.bin", g_prgDir);
 	
 	if (dpath) {
 		for (i = 0; dpath[i] != '\0' && i != MAX_PATH*4; i++);
@@ -580,7 +582,7 @@ char rmireg___(char *dpath, unsigned long long dnum) {
 			return 2;
 		return 0;
 	}
-	sprintf(baf, "%s\\trdIndex.bin", PrgDir);
+	sprintf(baf, "%s\\trdIndex.bin", g_prgDir);
 	if ((trdIndex = MBfopen(baf, "wb")) == NULL) {
 		fclose(rdIndex), MBremove(buf);
 		return 3;
@@ -636,7 +638,7 @@ unsigned long long rmiread___(char *dpath) {		// reverse dread  //! untested
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
 	
-	sprintf(buf, "%s\\rdIndex.bin", PrgDir);
+	sprintf(buf, "%s\\rdIndex.bin", g_prgDir);
 	if ((rdIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("dIndex file not found");
 		return 0;
@@ -679,7 +681,7 @@ char rmirmv___(char *dpath) {  //! untested
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], fin = 0;
 	int c, i;
 	
-	sprintf(buf, "%s\\rdIndex.bin", PrgDir);
+	sprintf(buf, "%s\\rdIndex.bin", g_prgDir);
 	
 	for (i = 0; dpath[i] != '\0' && i != MAX_PATH*4; i++);
 	if (i >= MAX_PATH*4) {
@@ -697,7 +699,7 @@ char rmirmv___(char *dpath) {  //! untested
 		errorf("rdIndex file not found");
 		return 1;
 	}
-	sprintf(baf, "%s\\trdIndex.bin", PrgDir);
+	sprintf(baf, "%s\\trdIndex.bin", g_prgDir);
 	if ((trdIndex = MBfopen(baf, "wb")) == NULL) {
 		fclose(rdIndex), MBremove(buf);
 		return 3;
@@ -745,7 +747,7 @@ char rmirer___(unsigned long long source, char *dest) {
 	int c, i;
 	unsigned long long dnum = 0;
 	
-	sprintf(bef, "%s\\rdIndex.bin", PrgDir);
+	sprintf(bef, "%s\\rdIndex.bin", g_prgDir);
 	
 	for (i = 0; dest[i] != '\0' && i != MAX_PATH*4; i++);
 	if (i >= MAX_PATH*4) {
@@ -763,7 +765,7 @@ char rmirer___(unsigned long long source, char *dest) {
 		errorf("rdIndex file not found");
 		return 1;
 	}
-	sprintf(baf, "%s\\trdIndex.bin", PrgDir);
+	sprintf(baf, "%s\\trdIndex.bin", g_prgDir);
 	if ((trdIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create trdIndex");
 		fclose(rdIndex), MBremove(bef);
@@ -879,14 +881,14 @@ char setmilastchecked___(unsigned long long dnum, unsigned long long ulltime) {	
 	}
 	ulltime = time(0);
 	
-	sprintf(buf, "%s\\dExtras.bin", PrgDir);
+	sprintf(buf, "%s\\dExtras.bin", g_prgDir);
 	if ((dExtras = MBfopen(buf, "rb")) == NULL) {
 		if ((dExtras = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create dExtras.bin");
 			return 1;
 		}
 	}
-	sprintf(buf2, "%s\\dExtras.tmp", PrgDir);
+	sprintf(buf2, "%s\\dExtras.tmp", g_prgDir);
 	if ((tdExtras = MBfopen(buf2, "wb+")) == NULL) {
 		errorf("couldn't create dExtras.tmp");
 		fclose(dExtras);
@@ -959,7 +961,7 @@ char setmilastchecked___(unsigned long long dnum, unsigned long long ulltime) {	
 	fclose(tdExtras);
 	
 	char buf3[MAX_PATH*4];
-	sprintf(buf3, "%s\\dExtras.bak", PrgDir);
+	sprintf(buf3, "%s\\dExtras.bak", g_prgDir);
 	MBremove(buf3);
 	if (MBrename(buf, buf3)) {
 		errorf("rename1 failed");
@@ -988,7 +990,7 @@ unsigned long long getmilastchecked___(unsigned long long dnum) {
 	}
 	ulltime = time(0);
 	
-	sprintf(buf, "%s\\dExtras.bin", PrgDir);
+	sprintf(buf, "%s\\dExtras.bin", g_prgDir);
 	if ((dExtras = MBfopen(buf, "rb")) == NULL) {
 		// errorf("couldn't open dExtras");
 		return 0;
@@ -1052,14 +1054,14 @@ unsigned char addtolastminum(long long num, unsigned long long spot) { // 0 as n
 	char *indexStrBase = "dIndex";
 	char *recStrBase = "diRec";
 
-	sprintf(buf, "%s\\%s.tmp", PrgDir, recStrBase);
+	sprintf(buf, "%s\\%s.tmp", g_prgDir, recStrBase);
 	if ((tirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create tirec");
 		errorf("tried to create: \"%s\"", buf);
 		return 1;
 	}
-	sprintf(buf2, "%s\\%s.bin", PrgDir, recStrBase); // rec
-	sprintf(buf3, "%s\\%s.bin", PrgDir, indexStrBase); // index
+	sprintf(buf2, "%s\\%s.bin", g_prgDir, recStrBase); // rec
+	sprintf(buf3, "%s\\%s.bin", g_prgDir, indexStrBase); // index
 	
 
 	if (((irec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(irec)) != EOF)) {
@@ -1280,7 +1282,7 @@ unsigned long long getlastminum(void) { //! generalize
 	char *fileStrBase = "miRec";
 	unsigned char (*addtolastinum)(long long num, unsigned long long spot) = addtolastminum;
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, fileStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	
 	if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
 		if (file != NULL) {
@@ -1322,7 +1324,7 @@ unsigned long long miinitpos(unsigned long long iinum) {
 	char *fileStrBase = "miRec";
 	unsigned char (*addtolastinum)(long long num, unsigned long long spot) = addtolastminum;
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, fileStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	
 	if (((irec = MBfopen(buf, "rb")) == NULL) || ((i = getc(irec)) == EOF)) {
 		if (irec != NULL)
@@ -1373,7 +1375,7 @@ char *miread(unsigned long long minum) {	// returns malloc memory
 	char *fileStrBase = "miIndex";
 	#define entryinitpos(entrynum) miinitpos(entrynum)
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, fileStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("index file not found (read)");
 		errorf("looked for: %s", buf);
@@ -1444,12 +1446,12 @@ char *miread(unsigned long long minum) {	// returns malloc memory
 		// return 3;
 	// }
 	
-	// sprintf(buf, "%s\\dIndex.bin", PrgDir);
+	// sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	// if ((dIndex = MBfopen(buf, "rb")) == NULL) {
 		// errorf("dIndex file not found");
 		// return 2;
 	// }
-	// sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+	// sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 	// if ((tIndex = MBfopen(baf, "wb")) == NULL) {
 		// errorf("couldn't create dIndex.tmp");
 		// fclose(dIndex);
@@ -1511,20 +1513,20 @@ char *miread(unsigned long long minum) {	// returns malloc memory
 	// fclose(dIndex), fclose(tIndex);
 	
 	// if (fin) {
-		// sprintf(buf, "%s\\dIndex.bin", PrgDir);
-		// sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		// sprintf(buf, "%s\\dIndex.bin", g_prgDir);
+		// sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		// MBremove(baf);
 		// if (MBrename(buf, baf)) {
 			// errorf("rename1 failed");
 			// return 3;
 		// }
-		// sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+		// sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 		// if (MBrename(baf, buf)) {
-			// sprintf(baf, "%s\\dIndex.bak", PrgDir), MBrename(baf, buf);
+			// sprintf(baf, "%s\\dIndex.bak", g_prgDir), MBrename(baf, buf);
 			// errorf("rename2 failed");
 			// return 3;
 		// }
-		// sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		// sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 
 		// rdrer(dnum, dpath);
 		
@@ -1589,7 +1591,7 @@ int cmireg(oneslnk *minamechn) {
 	FILE *indexF;
 	char created = 0;
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, fileStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
 		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create indexF");
@@ -1662,12 +1664,12 @@ int cmirmv___(oneslnk *dnumchn) {
 	oneslnk *flink;
 	unsigned long long nremoved = 0, tnum;
 	
-	sprintf(buf, "%s\\dIndex.bin", PrgDir);
+	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("dIndex file not found");
 		return 2;
 	}
-	sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+	sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 	if ((tIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create dIndex.tmp");
 		fclose(dIndex);
@@ -1741,22 +1743,22 @@ int cmirmv___(oneslnk *dnumchn) {
 	fclose(dIndex); fclose(tIndex);
 	
 	if (dnumchn == 0 && c == EOF) {
-		sprintf(buf, "%s\\dIndex.bin", PrgDir);
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(buf, "%s\\dIndex.bin", g_prgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		MBremove(baf);
 		if (MBrename(buf, baf)) {
 			errorf("rename1 failed");
 			killoneschn(flink, 1);
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+		sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 		if (MBrename(baf, buf)) {
 			killoneschn(flink, 1);
 			errorf("rename2 failed");
 			return 3;
 		}
 				
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		if (cdfrmv(flink)) {
 			MBremove(buf), MBrename(baf, buf);
 			errorf("cdfrmv failed");
@@ -1782,12 +1784,12 @@ int cmirer___(twoslnk *rerchn) {		//! untested
 	oneslnk *foslnk = 0, *oslnk;
 	unsigned long long tnum;
 	
-	sprintf(buf, "%s\\dIndex.bin", PrgDir);
+	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("dIndex file not found");
 		return 2;
 	}
-	sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+	sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 	if ((tIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create dIndex.tmp");
 		fclose(dIndex);
@@ -1874,21 +1876,21 @@ int cmirer___(twoslnk *rerchn) {		//! untested
 	fclose(dIndex); fclose(tIndex);
 	
 	if (rerchn == 0 && c == EOF) {
-		sprintf(buf, "%s\\dIndex.bin", PrgDir);
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(buf, "%s\\dIndex.bin", g_prgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		MBremove(baf);
 		if (MBrename(buf, baf)) {
 			errorf("rename1 failed");
 			killtwoschn(flink, 1), killoneschn(foslnk, 1);
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+		sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 		if (MBrename(baf, buf)) {
 			killtwoschn(flink, 1), killoneschn(foslnk, 1);
 			errorf("rename2 failed");
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		
 		oslnk = foslnk, foslnk = foslnk->next, free(oslnk);
 		crdrer(foslnk, flink);
@@ -1922,7 +1924,7 @@ oneslnk *imiread(unsigned long long start, unsigned long long intrvl) {	// retur
 	char *fileStrBase = "miIndex";
 	#define entryinitpos(ientrynum) miinitpos(ientrynum)
 	
-	sprintf(buf, "%s\\%s.bin", PrgDir, fileStrBase);
+	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		//errorf("indexF file not found (imiread)");
 		//errorf("looked for file: %s", buf);
@@ -2064,13 +2066,13 @@ unsigned char raddtolastdnum(unsigned long long minum, long long num) { // 0 to 
 	FILE *rdirec, *trdirec, *rdIndex;
 	unsigned long long dnum, gap, pos = 0;
 
-	sprintf(buf, "%s\\rdiRec.tmp", PrgDir);
+	sprintf(buf, "%s\\rdiRec.tmp", g_prgDir);
 	if ((trdirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create diRec.tmp");
 		return 1;
 	}
-	sprintf(buf2, "%s\\rdiRec.bin", PrgDir);
-	sprintf(buf3, "%s\\rdIndex.bin", PrgDir);
+	sprintf(buf2, "%s\\rdiRec.bin", g_prgDir);
+	sprintf(buf3, "%s\\rdIndex.bin", g_prgDir);
 
 	if (((rdirec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(rdirec)) != EOF)) {
 		unsigned long long olddnum = 0;
@@ -2181,7 +2183,7 @@ unsigned long long rdinitpos(unsigned long long minum, char *idir) {
 	unsigned long long dnum, pos = 0, lastdnum = 0, gotdnum;
 	FILE *rdirec;
 	
-	sprintf(buf, "%s\\rdiRec.bin", PrgDir);
+	sprintf(buf, "%s\\rdiRec.bin", g_prgDir);
 	
 	if (((rdirec = MBfopen(buf, "rb")) == NULL) || ((i = getc(rdirec)) == EOF)) {
 		if (rdirec != NULL)
@@ -2273,12 +2275,12 @@ char rdinit(unsigned long long minum) {
 	char *rrecStrBase = "rdiRec";
 	char *indexStrBase = "dIndex";
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, rindexStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, rindexStrBase);
 	MBremove(buf);
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, rrecStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, rrecStrBase);
 	MBremove(buf);
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, indexStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, indexStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("indexF file not found (rdinit)");
 		errorf("looked for: %s", buf);
@@ -2363,7 +2365,7 @@ char rdinit(unsigned long long minum) {
 		ntfilesegs = 1;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, rindexStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, rindexStrBase);
 	
 	if ((rindexF = MBfopen(buf, "wb")) == NULL) {
 		errorf("couldn't create rindexF");
@@ -2410,7 +2412,7 @@ unsigned long long rdread(unsigned long long minum, char *dpath) {		// reverse d
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
 	
-	sprintf(buf, "%s\\rdIndex.bin", PrgDir);
+	sprintf(buf, "%s\\rdIndex.bin", g_prgDir);
 	if ((rdIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("dIndex file not found");
 		return 0;
@@ -2458,7 +2460,7 @@ char rdrmv(unsigned long long minum, char *dpath) {  //! untested
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], fin = 0;
 	int c, i;
 	
-	sprintf(buf, "%s\\rdIndex.bin", PrgDir);
+	sprintf(buf, "%s\\rdIndex.bin", g_prgDir);
 	
 	for (i = 0; dpath[i] != '\0' && i != MAX_PATH*4; i++);
 	if (i >= MAX_PATH*4) {
@@ -2476,7 +2478,7 @@ char rdrmv(unsigned long long minum, char *dpath) {  //! untested
 		errorf("rdIndex file not found");
 		return 1;
 	}
-	sprintf(baf, "%s\\trdIndex.bin", PrgDir);
+	sprintf(baf, "%s\\trdIndex.bin", g_prgDir);
 	if ((trdIndex = MBfopen(baf, "wb")) == NULL) {
 		fclose(rdIndex), MBremove(buf);
 		return 3;
@@ -2529,7 +2531,7 @@ char rdrer(unsigned long long minum, unsigned long long source, char *dest) {
 	int c, i;
 	unsigned long long dnum = 0;
 	
-	sprintf(bef, "%s\\rdIndex.bin", PrgDir);
+	sprintf(bef, "%s\\rdIndex.bin", g_prgDir);
 	
 	for (i = 0; dest[i] != '\0' && i != MAX_PATH*4; i++);
 	if (i >= MAX_PATH*4) {
@@ -2547,7 +2549,7 @@ char rdrer(unsigned long long minum, unsigned long long source, char *dest) {
 		errorf("rdIndex file not found");
 		return 1;
 	}
-	sprintf(baf, "%s\\trdIndex.bin", PrgDir);
+	sprintf(baf, "%s\\trdIndex.bin", g_prgDir);
 	if ((trdIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create trdIndex");
 		fclose(rdIndex), MBremove(bef);
@@ -2703,14 +2705,14 @@ char setdlastchecked(unsigned long long minum, unsigned long long dnum, unsigned
 	}
 	ulltime = time(0);
 	
-	sprintf(buf, "%s\\dExtras.bin", PrgDir);
+	sprintf(buf, "%s\\dExtras.bin", g_prgDir);
 	if ((dExtras = MBfopen(buf, "rb")) == NULL) {
 		if ((dExtras = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create dExtras.bin");
 			return 1;
 		}
 	}
-	sprintf(buf2, "%s\\dExtras.tmp", PrgDir);
+	sprintf(buf2, "%s\\dExtras.tmp", g_prgDir);
 	if ((tdExtras = MBfopen(buf2, "wb+")) == NULL) {
 		errorf("couldn't create dExtras.tmp");
 		fclose(dExtras);
@@ -2783,7 +2785,7 @@ char setdlastchecked(unsigned long long minum, unsigned long long dnum, unsigned
 	fclose(tdExtras);
 	
 	char buf3[MAX_PATH*4];
-	sprintf(buf3, "%s\\dExtras.bak", PrgDir);
+	sprintf(buf3, "%s\\dExtras.bak", g_prgDir);
 	MBremove(buf3);
 	if (MBrename(buf, buf3)) {
 		errorf("rename1 failed");
@@ -2817,7 +2819,7 @@ unsigned long long getdlastchecked(unsigned long long minum, unsigned long long 
 	}
 	ulltime = time(0);
 	
-	sprintf(buf, "%s\\dExtras.bin", PrgDir);
+	sprintf(buf, "%s\\dExtras.bin", g_prgDir);
 	if ((dExtras = MBfopen(buf, "rb")) == NULL) {
 		// errorf("couldn't open dExtras");
 		return 0;
@@ -2886,14 +2888,14 @@ unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned lo
 	char *indexStrBase = "dIndex";
 	char *recStrBase = "diRec";
 
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, recStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase);
 	if ((tirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create tirec");
 		errorf("tried to create: \"%s\"", buf);
 		return 1;
 	}
-	sprintf(buf2, "%s\\i\\%llu\\%s.bin", PrgDir, minum, recStrBase); // rec
-	sprintf(buf3, "%s\\i\\%llu\\%s.bin", PrgDir, minum, indexStrBase); // index
+	sprintf(buf2, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase); // rec
+	sprintf(buf3, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, indexStrBase); // index
 	
 	unsigned long long inum = 0, gap = 0, pos = 0;
 	if (((irec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(irec)) != EOF)) {
@@ -3118,7 +3120,7 @@ unsigned long long getlastdnum(unsigned long long minum) {
 	char *fileStrBase = "diRec";
 	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastdnum;
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	
 	if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
 		if (file != NULL) {
@@ -3166,7 +3168,7 @@ unsigned long long dinitpos(unsigned long long minum, unsigned long long idnum) 
 	char *fileStrBase = "diRec";
 	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastdnum;
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, inum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, inum, fileStrBase);
 	
 	if (((irec = MBfopen(buf, "rb")) == NULL) || ((i = getc(irec)) == EOF)) {
 		if (irec != NULL)
@@ -3225,7 +3227,7 @@ char *dread(unsigned long long minum, unsigned long long dnum) {	// returns mall
 	unsigned long long entrynum = dnum;
 	char *fileStrBase = "dIndex";
 	#define entryinitpos(entrynum) dinitpos(minum, entrynum)
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("index file not found (read)");
 		errorf("looked for: %s", buf);
@@ -3308,12 +3310,12 @@ char drer(unsigned long long minum, unsigned long long dnum, char *dpath) {		// 
 		return 3;
 	}
 	
-	sprintf(buf, "%s\\dIndex.bin", PrgDir);
+	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("dIndex file not found");
 		return 2;
 	}
-	sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+	sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 	if ((tIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create dIndex.tmp");
 		fclose(dIndex);
@@ -3375,20 +3377,20 @@ char drer(unsigned long long minum, unsigned long long dnum, char *dpath) {		// 
 	fclose(dIndex), fclose(tIndex);
 	
 	if (fin) {
-		sprintf(buf, "%s\\dIndex.bin", PrgDir);
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(buf, "%s\\dIndex.bin", g_prgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		MBremove(baf);
 		if (MBrename(buf, baf)) {
 			errorf("rename1 failed");
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+		sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 		if (MBrename(baf, buf)) {
-			sprintf(baf, "%s\\dIndex.bak", PrgDir), MBrename(baf, buf);
+			sprintf(baf, "%s\\dIndex.bak", g_prgDir), MBrename(baf, buf);
 			errorf("rename2 failed");
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 
 		rdrer(dnum, dpath);
 		
@@ -3441,7 +3443,7 @@ int cdreg(unsigned long long minum, oneslnk *dpathchn) {
 	FILE *indexF;
 	char created = 0;
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
 		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create indexF");
@@ -3526,12 +3528,12 @@ int cdrmv(unsigned long long minum, oneslnk *dnumchn) {
 	oneslnk *flink;
 	unsigned long long nremoved = 0, tnum;
 	
-	sprintf(buf, "%s\\dIndex.bin", PrgDir);
+	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("dIndex file not found");
 		return 2;
 	}
-	sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+	sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 	if ((tIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create dIndex.tmp");
 		fclose(dIndex);
@@ -3605,22 +3607,22 @@ int cdrmv(unsigned long long minum, oneslnk *dnumchn) {
 	fclose(dIndex); fclose(tIndex);
 	
 	if (dnumchn == 0 && c == EOF) {
-		sprintf(buf, "%s\\dIndex.bin", PrgDir);
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(buf, "%s\\dIndex.bin", g_prgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		MBremove(baf);
 		if (MBrename(buf, baf)) {
 			errorf("rename1 failed");
 			killoneschn(flink, 1);
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+		sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 		if (MBrename(baf, buf)) {
 			killoneschn(flink, 1);
 			errorf("rename2 failed");
 			return 3;
 		}
 				
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		if (cdfrmv(flink)) {
 			MBremove(buf), MBrename(baf, buf);
 			errorf("cdfrmv failed");
@@ -3651,12 +3653,12 @@ int cdrer(unsigned long long minum, twoslnk *rerchn) {		//! untested
 	oneslnk *foslnk = 0, *oslnk;
 	unsigned long long tnum;
 	
-	sprintf(buf, "%s\\dIndex.bin", PrgDir);
+	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("dIndex file not found");
 		return 2;
 	}
-	sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+	sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 	if ((tIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create dIndex.tmp");
 		fclose(dIndex);
@@ -3743,21 +3745,21 @@ int cdrer(unsigned long long minum, twoslnk *rerchn) {		//! untested
 	fclose(dIndex); fclose(tIndex);
 	
 	if (rerchn == 0 && c == EOF) {
-		sprintf(buf, "%s\\dIndex.bin", PrgDir);
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(buf, "%s\\dIndex.bin", g_prgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		MBremove(baf);
 		if (MBrename(buf, baf)) {
 			errorf("rename1 failed");
 			killtwoschn(flink, 1), killoneschn(foslnk, 1);
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.tmp", PrgDir);
+		sprintf(baf, "%s\\dIndex.tmp", g_prgDir);
 		if (MBrename(baf, buf)) {
 			killtwoschn(flink, 1), killoneschn(foslnk, 1);
 			errorf("rename2 failed");
 			return 3;
 		}
-		sprintf(baf, "%s\\dIndex.bak", PrgDir);
+		sprintf(baf, "%s\\dIndex.bak", g_prgDir);
 		
 		oslnk = foslnk, foslnk = foslnk->next, free(oslnk);
 		crdrer(foslnk, flink);
@@ -3796,7 +3798,7 @@ oneslnk *idread(unsigned long long minum, unsigned long long start, unsigned lon
 	char *fileStrBase = "dIndex";
 	#define entryinitpos(ientrynum) dinitpos(minum, ientrynum)
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		//errorf("indexF file not found (imiread)");
 		//errorf("looked for file: %s", buf);
@@ -3934,14 +3936,14 @@ unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned l
 	char *indexStrBase = "dIndex";
 	char *recStrBase = "diRec";
 
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, recStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase);
 	if ((tirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create tirec");
 		errorf("tried to create: \"%s\"", buf);
 		return 1;
 	}
-	sprintf(buf2, "%s\\i\\%llu\\%s.bin", PrgDir, minum, recStrBase); // rec
-	sprintf(buf3, "%s\\i\\%llu\\%s.bin", PrgDir, minum, indexStrBase); // index
+	sprintf(buf2, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase); // rec
+	sprintf(buf3, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, indexStrBase); // index
 	
 	unsigned long long inum = 0, gap = 0, pos = 0;
 	if (((irec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(irec)) != EOF)) {
@@ -4166,7 +4168,7 @@ unsigned long long getlastsdnum(unsigned long long minum) {
 	char *fileStrBase = "sdiRec";
 	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastsdnum;
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	
 	if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
 		if (file != NULL) {
@@ -4215,7 +4217,7 @@ unsigned long long sdinitpos(unsigned long long minum, unsigned long long idnum)
 	char *fileStrBase = "sdiRec";
 	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastdnum;
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, inum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, inum, fileStrBase);
 	
 	if (((irec = MBfopen(buf, "rb")) == NULL) || ((i = getc(irec)) == EOF)) {
 		if (irec != NULL)
@@ -4266,7 +4268,7 @@ oneslnk *isdread(unsigned long long minum, unsigned long long start, unsigned lo
 	char *fileStrBase = "sdIndex";
 	#define entryinitpos(ientrynum) sdinitpos(minum, ientrynum)
 	
-	sprintf(buf, "%s\\i\\%llu\\%s.bin", PrgDir, minum, fileStrBase);
+	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		//errorf("indexF file not found (imiread)");
 		//errorf("looked for file: %s", buf);
@@ -4394,11 +4396,11 @@ char rfinit(unsigned long long dnum) { //! untested
 		errorf("dnum is zero in rfinit");
 		return 0;
 	}
-	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", g_prgDir, dnum);
 	MBremove(buf);
-	sprintf(buf, "%s\\i\\%llu\\rfiRec.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\rfiRec.bin", g_prgDir, dnum);
 	MBremove(buf);
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
 	//	errorf("fIndex file not found");
 		return 1;
@@ -4493,7 +4495,7 @@ char rfinit(unsigned long long dnum) { //! untested
 		ntfilesegs = 1;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", g_prgDir, dnum);
 	
 	if ((rfIndex = MBfopen(buf, "wb")) == NULL) {
 		errorf("couldn't create rfIndex");
@@ -4531,7 +4533,7 @@ char rfireg(unsigned long long dnum, char *fname, unsigned long long fnum) { //!
 		return 1;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", g_prgDir, dnum);
 	
 	if (fname) {
 		for (i = 0; fname[i] != '\0' && i != MAX_PATH*4; i++);
@@ -4551,7 +4553,7 @@ char rfireg(unsigned long long dnum, char *fname, unsigned long long fnum) { //!
 			return 2;
 		return 0;
 	}
-	sprintf(baf, "%s\\trfIndex.bin", PrgDir);
+	sprintf(baf, "%s\\trfIndex.bin", g_prgDir);
 	if ((trfIndex = MBfopen(baf, "wb")) == NULL) {
 		fclose(rfIndex), MBremove(buf);
 		return 3;
@@ -4658,11 +4660,11 @@ int regfiledates(unsigned long long dnum, oneslnk *fnums) {
 		lnk = lnk->next;
 	}
 	
-	sprintf(buf2, "%s\\i\\%llu\\fExtras.tmp", PrgDir, dnum);
+	sprintf(buf2, "%s\\i\\%llu\\fExtras.tmp", g_prgDir, dnum);
 	if (!(dst = MBfopen(buf2, "wb"))) {
 		errorf("failed to create fextras temp");
 	}
-	sprintf(buf, "%s\\i\\%llu\\fExtras.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fExtras.bin", g_prgDir, dnum);
 	fextras = MBfopen(buf, "rb");
 	if (!fextras) nofile = 1;
 	
@@ -4738,7 +4740,7 @@ int regfiledates(unsigned long long dnum, oneslnk *fnums) {
 	char buf3[MAX_PATH*4];
 	
 	if (!nofile) {
-		sprintf(buf3, "%s\\i\\%llu\\fExtras.bak", PrgDir, dnum);
+		sprintf(buf3, "%s\\i\\%llu\\fExtras.bak", g_prgDir, dnum);
 		MBremove(buf3);
 		if (MBrename(buf, buf3)) {
 			errorf("rename1 failed");
@@ -4767,13 +4769,13 @@ unsigned char addtolastfnum(unsigned long long dnum, long long num, unsigned lon
 	FILE *direc, *tdirec, *dIndex;
 	unsigned long long dnum, gap, pos = 0;
 
-	sprintf(buf, "%s\\diRec.tmp", PrgDir);
+	sprintf(buf, "%s\\diRec.tmp", g_prgDir);
 	if ((tdirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create diRec.tmp");
 		return 1;
 	}
-	sprintf(buf2, "%s\\diRec.bin", PrgDir);
-	sprintf(buf3, "%s\\dIndex.bin", PrgDir);
+	sprintf(buf2, "%s\\diRec.bin", g_prgDir);
+	sprintf(buf3, "%s\\dIndex.bin", g_prgDir);
 
 	if (((direc = MBfopen(buf2, "rb")) != NULL) && ((i = getc(direc)) != EOF)) {
 		unsigned long long olddnum = 0;
@@ -4983,7 +4985,7 @@ unsigned long long getlastfnum(unsigned long long dnum) {		//! not done
 	unsigned long long lastdnum = 0;
 	FILE *file;
 	
-	sprintf(buf, "%s\\diRec.bin", PrgDir);
+	sprintf(buf, "%s\\diRec.bin", g_prgDir);
 	
 	if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
 		if (file != NULL)
@@ -5017,7 +5019,7 @@ unsigned long long finitpos(unsigned long long dnum, unsigned long long ifnum) {
 	unsigned long long dnum, pos = 0;
 	FILE *direc;
 	
-	sprintf(buf, "%s\\diRec.bin", PrgDir);
+	sprintf(buf, "%s\\diRec.bin", g_prgDir);
 	
 	if (((direc = MBfopen(buf, "rb")) == NULL) || ((i = getc(direc)) == EOF)) {
 		if (direc != NULL)
@@ -5083,7 +5085,7 @@ unsigned long long fireg_old(unsigned long long dnum, char *fname) {
 		return 0;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb+")) == NULL) {
 		if ((fIndex = MBfopen(buf, "wb+")) == NULL) {
 			errorf("fIndex file not created");
@@ -5153,7 +5155,7 @@ char cfireadtag(unsigned long long dnum, oneslnk *fnums, oneslnk **retfname, one
 		return 1;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("fIndex file not found (firead)");
 		return 1;
@@ -5300,7 +5302,7 @@ char *firead(unsigned long long dnum, unsigned long long fnum) {	//! untested //
 		return 0;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("fIndex file not found (firead)");
 		return 0;
@@ -5405,7 +5407,7 @@ int cfireg(unsigned long long dnum, oneslnk *fnamechn) {
 		}
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb+")) == NULL) {
 		if ((fIndex = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create fIndex (3)");
@@ -5491,7 +5493,7 @@ oneslnk *ifiread(unsigned long long dnum, unsigned long long start, unsigned lon
 		return 0;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("fIndex file not found");
 		return 0;
@@ -5631,12 +5633,12 @@ unsigned char addremfnumctagc(unsigned long long dnum, oneslnk *fnums, oneslnk *
 		return 1;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("fIndex file not found (firead)");
 		return 1;
 	}
-	sprintf(baf, "%s\\i\\%llu\\fIndex.tmp", PrgDir, dnum);
+	sprintf(baf, "%s\\i\\%llu\\fIndex.tmp", g_prgDir, dnum);
 	if ((tfIndex = MBfopen(baf, "wb")) == NULL) {
 		errorf("couldn't create i\\%llu\\fIndex.tmp", dnum);
 		fclose(fIndex);
@@ -5787,7 +5789,7 @@ unsigned char addremfnumctagc(unsigned long long dnum, oneslnk *fnums, oneslnk *
 		return 1;
 	}
 	char bif[MAX_PATH*4];
-	sprintf(bif, "%s\\i\\%llu\\fIndex.bak", PrgDir, dnum);
+	sprintf(bif, "%s\\i\\%llu\\fIndex.bak", g_prgDir, dnum);
 	MBremove(bif);
 	if (MBrename(buf, bif)) {
 		errorf("rename1 failed");
@@ -5873,7 +5875,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 		}
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", g_prgDir, dnum);
 
 	if ((flag & 8) || !(rfIndex = MBfopen(buf, "rb"))) {
 		if (rfinit(dnum) == 1) {
@@ -5884,7 +5886,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 	}
 	
 	s = reservetfile();
-	sprintf(buf, "%s\\temp\\%s-0", PrgDir, s);
+	sprintf(buf, "%s\\temp\\%s-0", g_prgDir, s);
 	listfilesfilesorted(path, buf, skipdirs, recdirs);		//! add support for ignoring directories or otherwise add it when filtering files for type
 	
 	if (!(tfile = opentfile(s, 0, "rb"))) {
@@ -6671,7 +6673,7 @@ char *ffireadtagext(unsigned long long dnum, char *searchstr, char *exts) {	// r
 		return 0;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("fIndex file not found (ffireadtagext)");
 		endsearch(sstruct);
@@ -7015,10 +7017,10 @@ char crtreg(unsigned long long dnum, oneslnk *tagnames, oneslnk *tagnums) { //! 
 		}
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
 	
 	tAlias = MBfopen(buf, "rb");
-	sprintf(baf, "%s\\ttAlias.bin", PrgDir);
+	sprintf(baf, "%s\\ttAlias.bin", g_prgDir);
 	if ((ttAlias = MBfopen(baf, "wb")) == NULL) {
 		fclose(tAlias), killtwoschn(ftwolink, 3);
 		return 3;
@@ -7079,10 +7081,10 @@ char crtreg(unsigned long long dnum, oneslnk *tagnames, oneslnk *tagnums) { //! 
 	}
 	fclose(ttAlias), killtwoschn(ftwolink, 3);
 	
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
 	char bif[MAX_PATH*4];
 	if (tAlias) {
-		sprintf(bif, "%s\\i\\%llu\\tAlias.bak", PrgDir, dnum);
+		sprintf(bif, "%s\\i\\%llu\\tAlias.bak", g_prgDir, dnum);
 		MBremove(bif);
 		if (MBrename(buf, bif)) {
 			errorf("rename1 failed");
@@ -7154,7 +7156,7 @@ oneslnk *tnumfromalias(unsigned long long dnum, oneslnk *aliaschn, oneslnk **ret
 		return 0;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
 	tAlias = MBfopen(buf, "rb");
 	
 	if (!(flink = aliaschn = copyoneschn(aliaschn, 0))) {
@@ -7261,7 +7263,7 @@ int tnumfromalias2(unsigned long long dnum, twoslnk **sourcelist) {
 		return 1;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
 	tAlias = MBfopen(buf, "rb");
 	
 	if (sorttwoschn(sourcelist, (int(*)(void*,void*)) strcmp, 1, 0)) {
@@ -7343,7 +7345,7 @@ unsigned long long tinitpos(unsigned long long dnum, unsigned long long ifnum) {
 	unsigned long long dnum, pos = 0;
 	FILE *direc;
 	
-	sprintf(buf, "%s\\diRec.bin", PrgDir);
+	sprintf(buf, "%s\\diRec.bin", g_prgDir);
 	
 	if (((direc = MBfopen(buf, "rb")) == NULL) || ((i = getc(direc)) == EOF)) {
 		if (direc != NULL)
@@ -7388,7 +7390,7 @@ unsigned long long getlasttnum(unsigned long long dnum) {		//! not done
 	unsigned long long lastdnum = 0;
 	FILE *file;
 	
-	sprintf(buf, "%s\\diRec.bin", PrgDir);
+	sprintf(buf, "%s\\diRec.bin", g_prgDir);
 	
 	if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
 		if (file != NULL)
@@ -7491,7 +7493,7 @@ char tcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, o
 		fremtagnums = 0;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dnum);
 	if ((tIndex = MBfopen(buf, "rb+")) == NULL) {
 		if ((tIndex = MBfopen(buf, "wb+")) == NULL) {
 			errorf("tIndex file not created");
@@ -7499,7 +7501,7 @@ char tcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, o
 			return 1;
 		}
 	}
-	sprintf(baf, "%s\\i\\%llu\\tIndex.tmp", PrgDir, dnum);
+	sprintf(baf, "%s\\i\\%llu\\tIndex.tmp", g_prgDir, dnum);
 	if ((ttIndex = MBfopen(baf, "wb+")) == NULL) {
 		errorf("tIndex file not created");
 		fclose(tIndex), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
@@ -7677,7 +7679,7 @@ char tcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, o
 	link1->next = 0, link1 = fnewtagnums, fnewtagnums = fnewtagnums->next, free(link1);
 	
 	char bif[MAX_PATH*4];
-	sprintf(bif, "%s\\i\\%llu\\tIndex.bak", PrgDir, dnum);
+	sprintf(bif, "%s\\i\\%llu\\tIndex.bak", g_prgDir, dnum);
 	MBremove(bif);
 	if (MBrename(buf, bif)) {
 		errorf("rename1 failed");
@@ -7759,7 +7761,7 @@ char ctread(unsigned long long dnum, oneslnk *tagnums, oneslnk **rettagname, one
 		return 1;
 	}
 	
-	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", PrgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dnum);
 	if ((tIndex = MBfopen(buf, "rb")) == NULL) {
 		errorf("tIndex file not found (ctread)");
 		return 1;
@@ -7915,8 +7917,8 @@ char twowaytcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagn
 		return 1;
 	}
 
-	sprintf(buf1, "%s\\i\\%llu\\tIndex.bin", PrgDir, dnum);
-	sprintf(buf2, "%s\\i\\%llu\\tIndex.bak2", PrgDir, dnum);
+	sprintf(buf1, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dnum);
+	sprintf(buf2, "%s\\i\\%llu\\tIndex.bak2", g_prgDir, dnum);
 	
 	
 	if (file1 = MBfopen(buf1, "rb")) {
@@ -7931,8 +7933,8 @@ char twowaytcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagn
 		fclose(file1);
 	}
 
-	sprintf(buf3, "%s\\i\\%llu\\tAlias.bin", PrgDir, dnum);
-	sprintf(buf4, "%s\\i\\%llu\\tAlias.bak2", PrgDir, dnum);
+	sprintf(buf3, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
+	sprintf(buf4, "%s\\i\\%llu\\tAlias.bak2", g_prgDir, dnum);
 	
 	if (file1 = MBfopen(buf3, "rb")) {
 		if (file2 = MBfopen(buf4, "wb")) {

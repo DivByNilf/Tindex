@@ -1,5 +1,9 @@
 - TO DO
 
+replace malloc and calloc
+
+check if fstream actually supports multibyte directories
+
 generalize management window on index
 
 open outside, show outside

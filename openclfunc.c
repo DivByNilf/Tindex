@@ -6,10 +6,13 @@
 #include "errorf.h"
 #include "portables.h"
 
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
+
 cl_int report_and_mark_devices(cl_device_id *devices, cl_uint num_devices, int *a_cpu, int *a_gpu, int *an_accelerator);
 char *stringfromfile(char *filename);
 
-extern char *PrgDir;
+extern char *g_prgDir;
 
 static cl_kernel ScalechunkbilinKernel = 0;
 static cl_program ScalechunkbilinProgram = 0;
@@ -102,7 +105,7 @@ int initChunkBiLinKernel(void) {
 	
 	const char *clSourceFile = "openclkernels.cl";
     char source_path[MAX_PATH*4];
-	sprintf(source_path, "%s\\%s", PrgDir, clSourceFile);
+	sprintf(source_path, "%s\\%s", g_prgDir, clSourceFile);
 	
     size_t program_length;
 	

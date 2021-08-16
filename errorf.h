@@ -1,3 +1,3 @@
-void errorf(char *, ...);
+void g_errorf(const char *, ...);
 
-void derrorf(char *, ...);
+void g_errorfDialog(const char *, ...);

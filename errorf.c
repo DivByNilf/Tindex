@@ -4,25 +4,28 @@
 
 #include "portables.h"
 
-extern char *PrgDir;
+extern char *g_prgDir;
 
-void derrorf(char *, ...);
+#define MAX_LEN MAX_PATH*4 + 1000
+#define W_MAX_LEN MAX_PATH*2 + 1000
 
-void errorf(char *str, ...) {
-	char buf[MAX_PATH*4];
-	wchar_t wbuf[MAX_PATH*2];
+void g_errorfDialog(const char *, ...);
+
+void g_errorf(const char *str, ...) {
+	char buf[MAX_LEN];
+	wchar_t wbuf[W_MAX_LEN];
 	FILE *file;
 	va_list args;
 	static char firsterr;
 	
-	if (!PrgDir) {
-		MessageBoxW(0, L"PrgDir doesn't exist", L"Error", MB_OK); 
+	if (!g_prgDir) {
+		MessageBoxW(0, L"g_prgDir doesn't exist", L"Error", MB_OK); 
 		return;
 	}
-	sprintf(buf, "%s\\errorfile.log", PrgDir);
+	sprintf(buf, "%s\\errorfile.log", g_prgDir);
 	
 	if ((file = MBfopen(buf, "a")) == NULL) {
-		derrorf("Failed to create file, \"%s\"", buf);
+		g_errorfDialog("Failed to create file, \"%s\"", buf);
 		return;
 	}
 	if (!firsterr) {
@@ -39,7 +42,7 @@ void errorf(char *str, ...) {
 	fclose(file);
 }
 
-void derrorf(char *str, ...) {
+void g_errorfDialog(const char *str, ...) {
 	char buf[1001];
 	wchar_t *wbuf;
 	va_list args;

@@ -9,10 +9,12 @@
 #include <png.h>
 #include <gif_lib.h>
 
-#include "errorf.h"
 #include "portables.h"
 #include "breakpath.h"
 #include "openclfunc.h"
+
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
 
 typedef struct my_error_mgr {
 	struct jpeg_error_mgr pub;

@@ -10,6 +10,9 @@
 
 #define LF_MAX_CLEN 1000	//! should test with lower ones
 
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
+
 oneslnk *listfileschn(char *dir) {		// file name without dir path
 	int i;
 	oneslnk *first, *link;

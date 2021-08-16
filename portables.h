@@ -1,3 +1,5 @@
+#pragma once
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -28,8 +30,6 @@ FILE *MBfopen(char *buf, char *mode);
 int MBrename(char *oldname, char *newname);
 
 int MBremove(char *path);
-
-void errorf(char *, ...);
 
 int casestrcmp(char *str1, char *str2);
 

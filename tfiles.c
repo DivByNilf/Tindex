@@ -6,7 +6,10 @@
 #include "ioextras.h"
 #include "portables.h"
 
-extern char *PrgDir;
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
+
+extern char *g_prgDir;
 
 static char tempfolderfound;
 
@@ -84,7 +87,7 @@ int tempfoldercheck(void) {
 	int c;
 	
 	if (!tempfolderfound) {
-		sprintf(buf, "%s\\temp", PrgDir);
+		sprintf(buf, "%s\\temp", g_prgDir);
 		if (c = checkfiletype(buf)) {
 			if (c == 1) {
 				tempfolderfound = 1;
@@ -108,7 +111,7 @@ char *reservetfile(void) {
 	FILE *temp;
 	
 	tempfoldercheck();
-	sprintf(buf, "%s\\temp", PrgDir);
+	sprintf(buf, "%s\\temp", g_prgDir);
 	
 	DIRSTRUCT *dirp = diropen(buf);
 	
@@ -131,7 +134,7 @@ char *reservetfile(void) {
 	
 	str = numtotfilestr(largest+1);
 	str2 = numtotfilestr(0);
-	sprintf(buf, "%s\\temp\\%s-%s", PrgDir, str, str2);
+	sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, str2);
 	free(str2);
 	fclose(MBfopen(buf, "w"));
 	
@@ -145,9 +148,9 @@ char *reservetfileold(void) {
 	long long lastnsegment = -1, nsegment;
 	FILE *temp;
 	
-	sprintf(buf, "%s\\temp", PrgDir);
+	sprintf(buf, "%s\\temp", g_prgDir);
 	tempfoldercheck();
-	sprintf(baf, "%s\\temp\\-rtf", PrgDir);
+	sprintf(baf, "%s\\temp\\-rtf", g_prgDir);
 	if (listfilesfilesorted(buf, baf)) {
 		errorf("listfilesfilesorted failed");
 		return 0;
@@ -189,7 +192,7 @@ char *reservetfileold(void) {
 	
 	str = numtotfilestr(lastnsegment+1);
 	str2 = numtotfilestr(0);
-	sprintf(buf, "%s\\temp\\%s-%s", PrgDir, str, str2);
+	sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, str2);
 	free(str2);
 	fclose(MBfopen(buf, "w"));
 	
@@ -207,7 +210,7 @@ FILE *opentfile(char *str, unsigned long long nsegment, char *mode) {
 	if (!(segstr = numtotfilestr(nsegment))) {
 		return 0;
 	}
-	sprintf(buf, "%s\\temp\\%s-%s", PrgDir, str, segstr);
+	sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, segstr);
 	return MBfopen(buf, mode);
 }
 
@@ -218,7 +221,7 @@ char removetfile(char *str, unsigned long long nsegment) {
 		return 1;
 	}
 	segstr = numtotfilestr(nsegment);
-	sprintf(buf, "%s\\temp\\%s-%s", PrgDir, str, segstr);
+	sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, segstr);
 	free(segstr);
 	MBremove(buf);
 	
@@ -236,7 +239,7 @@ char releasetfile(char *str, unsigned long long nsegments) {
 		nsegments = 1;
 	while (nsegments-- > 0) {
 		segstr = numtotfilestr(nsegments);
-		sprintf(buf, "%s\\temp\\%s-%s", PrgDir, str, segstr);
+		sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, segstr);
 		free(segstr);
 		MBremove(buf);
 	}

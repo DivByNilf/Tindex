@@ -5,7 +5,8 @@
 
 #include "portables.h"
 
-void errorf(char *, ...);
+#include "errorf.h"
+#define errorf(...) g_errorf(__VA_ARGS__)
 
 int breakpath(char *path, char *edname, char *efname, char *eexname) {
 	char a[MAX_PATH*4], dname[MAX_PATH*4], fname[MAX_PATH*4], exname[MAX_PATH*4];
