@@ -10,7 +10,7 @@ CFLAGS = -ggdb -w
 CPPFLAGS = $(CFLAGS)
 
 # !! For C conversion:
-#CPPFLAGS += -fpermissive
+CPPFLAGS += -fpermissive
 
 #ICUARG = $(shell pkg-config --cflags --libs icu-uc)
 

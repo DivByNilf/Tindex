@@ -2,6 +2,8 @@
 
 replace malloc and calloc
 
+safes casting of windowclasses
+
 check if fstream actually supports multibyte directories
 
 generalize management window on index
