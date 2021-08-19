@@ -1274,7 +1274,6 @@ errorf("Dman get 3");
 					
 					SetFocus(GetDlgItem(hwnd, 3));
 					
-					SendMessage(hwnd, WM_SIZE, 0, 0);
 					SendMessage(hwnd, WM_USER+1, 0, 0);
 				}
 				break;
@@ -1829,7 +1828,6 @@ errorf("Dman get 3");
 					
 					SetFocus(GetDlgItem(hwnd, 3));
 					
-					SendMessage(hwnd, WM_SIZE, 0, 0);
 					SendMessage(hwnd, WM_USER+1, 0, 0);
 				}
 				break;
@@ -2417,9 +2415,6 @@ errorf("miman 4");
 errorf("miman 5");
 					
 					SetFocus(GetDlgItem(hwnd, 3));
-errorf("miman 5.1");
-					
-					SendMessage(hwnd, WM_SIZE, 0, 0);
 errorf("miman 6");
 					SendMessage(hwnd, WM_USER+1, 0, 0);
 errorf("miman 7");
@@ -3394,10 +3389,10 @@ errorf("MainIndex NCDESTROY 1");
 			case WM_USER:
 				/*
 				varp = (PAGELISTV*) SendMessage(GetParent(hwnd), WM_U_PLV, (WPARAM) GetMenu(hwnd), (LPARAM) 0);
+				*/
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
-				*/
 				
 				if (this->PageList) {
 					for (i = 0; ; i++) {
