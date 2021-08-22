@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+
 #include "ioextras.h"
 
 #include "bytearithmetic.h"
@@ -17,7 +19,7 @@ void pref_fputs(unsigned char *string, FILE *file) {
 	return;
 }
 
-void putull_pref(unsigned long long num, FILE *file) {
+void putull_pref(uint64_t num, FILE *file) {
 	unsigned char *str;
 	
 	str = utob(num);
@@ -26,7 +28,7 @@ void putull_pref(unsigned long long num, FILE *file) {
 	return;
 }
 
-char null_fgets(char *str, int n, FILE *stream) {
+char null_fgets(char *str, int32_t n, FILE *stream) {
 	int i, c;
 	
 	if (!str) {
@@ -58,8 +60,8 @@ char null_fgets(char *str, int n, FILE *stream) {
 	return 0;
 }
 
-char pref_fgets(char *str, int n, FILE *stream) {
-	int i, c, d;
+char pref_fgets(char *str, int32_t n, FILE *stream) {
+	int32_t i, c, d;
 	c = getc(stream);
 	if (c == EOF) {
 		return 1;
@@ -87,9 +89,9 @@ char pref_fgets(char *str, int n, FILE *stream) {
 	return 0;
 }
 
-unsigned long long fgetull_pref(FILE *stream, int *feedback) {
-	int c, i, d;
-	unsigned long long result = 0;
+uint64_t fgetull_pref(FILE *stream, int32_t *feedback) {
+	int32_t c, i, d;
+	uint64_t result = 0;
 	
 	c = getc(stream);
 	if (c == EOF) {
@@ -105,6 +107,23 @@ unsigned long long fgetull_pref(FILE *stream, int *feedback) {
 			*feedback = ULL_READ_NULL;
 		return 0;
 	}
+	for (i = 1; i <= c; i++) {
+		d = getc(stream);
+		if (d == EOF) {
+			if (feedback)
+				*feedback = 2;
+			return 0;
+		} result *= 256, result += d;
+	}
+	*feedback = 0;
+	return result;
+}
+
+uint64_t fgetull_len(FILE *stream, uint8_t len, int32_t *feedback) {
+	int32_t c, i, d;
+	uint64_t result = 0;
+	
+	c = len;
 	for (i = 1; i <= c; i++) {
 		d = getc(stream);
 		if (d == EOF) {

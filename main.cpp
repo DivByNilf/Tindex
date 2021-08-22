@@ -107,20 +107,20 @@ HBRUSH bgBrush1, bgBrush2, bgBrush3, bgBrush4, bgBrush5, selBrush;
 HBITMAP hListSliceBM, hThumbListBM;
 WNDPROC g_OldEditProc;
 struct wMemEntry **wMemArray;
-unsigned long long wMemArrLen, nwMemWnds;
+uint64_t wMemArrLen, nwMemWnds;
 
 HCURSOR hDefCrs, hCrsSideWE, hCrsHand;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-struct ListPage *GetPages(long, unsigned long long, unsigned long long);
-void DelRer(HWND, unsigned char, STRLISTV const*);
+struct ListPage *GetPages(int32_t, uint64_t, uint64_t);
+void DelRer(HWND, uint8_t, STRLISTV const*);
 int CleanEditText(HWND);
 HRESULT SeekDir(HWND, char *);
 
 void dialogf(HWND, char*, ...);
 
-char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, oneslnk **remaliaschn, unsigned char presort);
+char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, oneslnk **remaliaschn, uint8_t presort);
 
 int PrgDirInit(void);
 int CheckInitMutex(HANDLE *hMutex);
@@ -136,7 +136,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 		if (i == 2) { // mutex already reserved
 			return 0;
 		} else {
-			errorf_old("MainInit failed: %d", i);
+			errorf_old("Preinit: MainInit failed: %d", i);
 			return 1;
 		}
 	}
@@ -166,12 +166,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 
 int MainInit(struct MainInitStruct *ms) {
 	if (PrgDirInit() != 0) {
-		errorf("PrgDirInit failed");
+		errorf("Preinit: PrgDirInit failed");
 		return 1;
 	}
 	
 	if (CheckInitMutex(& ms->hMutex) != 0) { // requires PrgDir to be inited
-		errorf("CheckInitMutex failed");
+		errorf("Preinit: CheckInitMutex failed");
 	}
 	
 	if (ms->hMutex == NULL) {
@@ -191,46 +191,46 @@ int MainInit(struct MainInitStruct *ms) {
 	hFont2 = CreateFontW(16, 0, 0, 0, FW_MEDIUM, 0, 0, 0, 0, 0, 0, 0, 0, L"Helvetica");
 	color = GetSysColor(COLOR_BTNFACE);
 	if (!(hPen1 = CreatePen(PS_SOLID, 0, DL_BORDER_COL))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(bgPen1 = CreatePen(PS_SOLID, 0, color))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(bgPen2 = CreatePen(PS_SOLID, 0, DL_NUM_UE_COL))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(bgPen3 = CreatePen(PS_SOLID, 0, DL_NUM_E_COL))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(bgPen4 = CreatePen(PS_SOLID, 0, DL_DIR_UE_COL))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(bgPen5 = CreatePen(PS_SOLID, 0, DL_DIR_E_COL))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(selPen = CreatePen(PS_SOLID, 0, DL_SL_COL))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(selPen2 = CreatePen(PS_SOLID, 0, DL_SA_COL))) {
-		errorf("CreatePen failed");
+		errorf("Preinit: CreatePen failed");
 	}
 	if (!(bgBrush1 = CreateSolidBrush(color))) {
-		errorf("CreateSolidBrush failed");
+		errorf("Preinit: CreateSolidBrush failed");
 	}
 	if (!(bgBrush2 = CreateSolidBrush(DL_NUM_UE_COL))) {
-		errorf("CreateSolidBrush failed");
+		errorf("Preinit: CreateSolidBrush failed");
 	}
 	if (!(bgBrush3 = CreateSolidBrush(DL_NUM_E_COL))) {
-		errorf("CreateSolidBrush failed");
+		errorf("Preinit: CreateSolidBrush failed");
 	}
 	if (!(bgBrush4 = CreateSolidBrush(DL_DIR_UE_COL))) {
-		errorf("CreateSolidBrush failed");
+		errorf("Preinit: CreateSolidBrush failed");
 	}
 	if (!(bgBrush5 = CreateSolidBrush(DL_DIR_E_COL))) {
-		errorf("CreateSolidBrush failed");
+		errorf("Preinit: CreateSolidBrush failed");
 	}
 	if (!(selBrush = CreateSolidBrush(DL_SA_COL))) {
-		errorf("CreateSolidBrush failed");
+		errorf("Preinit: CreateSolidBrush failed");
 	}
 	
 	return 0;
@@ -250,7 +250,7 @@ int PrgDirInit(void) {
 		errorf("WideCharToMultiByte Failed");
 	}
 	if (LocalFree(argv) != 0) {
-		errorf("LocalFree Failed");
+		errorf("Preinit: LocalFree Failed");
 	}
 	
 	breakpath(arg0, g_prgDir, NULL, NULL);
@@ -284,7 +284,7 @@ int CheckInitMutex(HANDLE *hMutex) {
 	}
 	
 	if (*hMutex == NULL) {
-		errorf_old("CreateMutex error: %d\n", GetLastError());
+		errorf_old("Preinit: CreateMutex error: %d\n", GetLastError());
 		return 1;
 	}
 	
@@ -294,6 +294,8 @@ int CheckInitMutex(HANDLE *hMutex) {
 	
 	if (!disableMutexCheck && dwWaitResult != WAIT_OBJECT_0 && dwWaitResult != WAIT_ABANDONED) { // if mutex is already taken
 		CloseHandle(*hMutex);
+		
+		//! TODO:
 		wchar_t *file_map_name = 0;
 		
 		char buf[MAX_PATH*4];
@@ -315,14 +317,14 @@ int CheckInitMutex(HANDLE *hMutex) {
 		free(file_map_name);
 		
 		if (hMapFile == NULL) {
-			errorf_old("Could not open file mapping object (%d).\n", GetLastError());
+			errorf_old("Preinit: Could not open file mapping object (%d).\n", GetLastError());
 			return 1;
 		}
 
 		LPCTSTR pBuf = (LPTSTR) MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, HWND_BUF_SIZE);
 
 		if (pBuf == NULL) {
-			errorf_old("Could not map view of file (%d).\n", GetLastError());
+			errorf_old("Preinit: Could not map view of file (%d).\n", GetLastError());
 			CloseHandle(hMapFile);
 
 			return 1;
@@ -529,7 +531,6 @@ char *toRelativePath(char *cbuf) { // returns dynamic memory
 		if (!winPtr) {
 			// the subclassed RichEdit does initialization in WM_NCCREATE before WM_CREATE
 			if (msg == WM_NCCREATE) {
-errorf("WM_NCCREATE");
 				WinCreateArgs *winArgs = *(WinCreateArgs **) lParam;
 				if (winArgs == NULL) {
 					errorf("creating window class without lpParam");
@@ -537,7 +538,7 @@ errorf("WM_NCCREATE");
 				}
 				
 				winPtr = WindowClass::createWindowMemory(hwnd, *winArgs);
-				// modifying (*lParam) doesn't seem to carry over to WM_CREATE
+				// modifying (*lParam) here doesn't seem to carry over to WM_CREATE
 				*((void **)lParam) = 0;
 			} else if (msg == WM_CREATE) {
 				errorf("winPtr was null for WM_CREATE");
@@ -576,27 +577,6 @@ errorf("WM_NCCREATE");
 		return StoreWindowInstance(hwnd, this->constructor);
 	}
 	*/
-/*
-// WinInstancer	
-	WinInstancer::WinInstancer(std::shared_ptr<WinCreateArgs> winArgs_, const std::wstring &winClassName_) : winArgs{winArgs_}, winClassName{winClassName_} {
-		this->bUsedInstancer = false;
-	};
-	
-	HWND WinInstancer::create(DWORD dwExStyle, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam) {
-		this->bUsedInstancer = true;
-		const wchar_t *ws = winClassName.c_str();
-		
-		this->winArgs->lpParam = lpParam;
-		
-		return CreateWindowExW(dwExStyle, ws, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, this->winArgs.get());
-	}
-	
-	WinInstancer::~WinInstancer() {
-		if (!this->bUsedInstancer) {
-			errorf("unused WinInstancer");
-		}
-	}
-*/
 
 
 // WinInstancer
@@ -622,7 +602,8 @@ errorf("WM_NCCREATE");
 		wc.lpfnWndProc = WindowClass::generalWinProc;
 		wc.hInstance = ghInstance;
 		
-//errorf("registering; " + utf16_to_utf8(winClassName_));
+//errorf("registering: " + utf16_to_utf8(winClassName_));
+//errorf("registering: " + utf16_to_utf8(winClassName_));
 		int c = RegisterClassW(&wc);
 		if (!c) {
 //! TODO: add collision detection and crash on collision
@@ -687,7 +668,7 @@ errorf("WM_NCCREATE");
 
 		switch(msg) {
 
-			case WM_CREATE: //{
+			case WM_CREATE: {
 				thwnd = TabWindow::createWindowInstance(WinInstancer(0, L"FileTagIndex", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, NULL, NULL, ghInstance, NULL));
 				
 				if (!thwnd)	{
@@ -755,15 +736,16 @@ errorf("WM_NCCREATE");
 				}
 				
 				break;
-			//}
-			case WM_U_TOP: //{
-				errorf("received top");
-			//}
-			case WM_DESTROY: //{
+			}
+			case WM_U_TOP: {
+				errorf("received WM_U_TOP");
+				break;
+			}
+			case WM_DESTROY: {
 				PostQuitMessage(0);
 				
 				return 0;
-			//}
+			}
 		}
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
 	}
@@ -985,14 +967,13 @@ errorf("creating editsuperclass outer");
 				
 				if (HIWORD(wParam) == BN_CLICKED) {
 					if (LOWORD(wParam) == 1) {
+						
+						//! TODO: set to MIMANARGS
 						DIRMANARGS args = {};
 						args.option = 2;
 						args.parent = hwnd;
 						
-errorf("Dman get 1");
 						thwnd = MainIndexManClass::createWindowInstance(WinInstancer(0, L"Select Index", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, NULL, ghInstance, (LPVOID) &args));
-errorf("Dman get 2");
-errorf("Dman get 3");
 					}
 				}
 				
@@ -1132,10 +1113,10 @@ errorf("Dman get 3");
 		return 0;
 	};
 
-	int DmanClass::menuUse(HWND hwnd, long int menu_id) {
+	int DmanClass::menuUse(HWND hwnd, int32_t menu_id) {
 		errorf_old("menu_id is: %d", menu_id);
 		
-		unsigned long long fNum;
+		uint64_t fNum;
 		
 		switch (menu_id) {
 		case 1:
@@ -1155,130 +1136,137 @@ errorf("Dman get 3");
 
 	LRESULT CALLBACK DmanClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		
+		/*
 		char *p;
 		wchar_t *wp;
-		int i, j, x;
-		unsigned long long ll, lastlastpage, fNum;
+		int32_t i, j, x;
+		uint64_t ll, lastlastpage, fNum;
 		RECT rect;
 		HWND thwnd;
 		oneslnk *link, *link2;
+		*/
 
 		switch(msg) {
-			case WM_CREATE: //{
+			case WM_CREATE: {
+				DIRMANARGS *args = *(DIRMANARGS **) lParam;
 				
-				{
-					DIRMANARGS *args = *(DIRMANARGS **) lParam;
-					
+				if (args) {
 					if (args->inum == 0) {
 						errorf("args->inum is 0");
 						return -1;
-					}
-					
-					if (args) {
-						this->option = args->option;
-						this->parent = args->parent;
+					} else {
 						this->inum = args->inum;
-					} else {
-						errorf("args is NULL");
-						//DestroyWindow(hwnd);
-						//FreeWindowMem(hwnd);
-						return -1;
-						
-						// this->option = 0;
-						// this->parent = 0;
-					}
-				
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
 					}
 					
-					if (this->option != 2) {
-						x = rect.right / 2 - 100;
-						if (x < 5)
-							x = 5;
-						CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-						SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-						CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
-						SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
-						CheckDlgButton(hwnd, 2, BST_UNCHECKED);
-					} else {
-						x = (rect.right-80) / 2;
-						if (x < 5)
-							x = 5;
-						EnableWindow(this->parent, 0);
-						CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-						SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-					}
+					this->option = args->option;
+					this->parent = args->parent;
+				} else {
+					errorf("args is NULL");
+					//DestroyWindow(hwnd);
+					//FreeWindowMem(hwnd);
+					return -1;
 					
-					thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
-					if (!thwnd) {
-						errorf("failed to create PageListClass");
-						return -1;
-					}
-					
-					this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
-					if (!this->plv) {
-						errorf("failed to receive PageListClass pointer");
-						return -1;
-					}
-					
-					thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
-					if (!thwnd) {
-						errorf("failed to create StrListClass");
-						return -1;
-					}
-					
-					this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
-					if (!this->slv) {
-						errorf("failed to receive StrListClass pointer");
-						return -1;
-					}
-					
-					//! TODO: move this to the createWindowInstance arguments
-					if (this->option == 2) {
-						this->slv->option = 1;
-					}
-					
-					this->plv->CurPage = 1;
-					ll = getlastdnum(this->inum);
-					this->plv->LastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
-					if (this->plv->LastPage == 0) {
-						this->plv->LastPage = 1;
-					}
-					this->plv->PageList = 0;
-					
-					i = MAX_NROWS/8 + !!(MAX_NROWS%8);
-					if (!i) {
-						errorf("no space row selections");
-					}
-					this->slv->StrListSel = malloc(i);
-					while (--i >= 0) {
-						this->slv->StrListSel[i] = 0;
-					}
-					this->slv->nChns = 2;
-					this->slv->nRows = MAX_NROWS;
-					this->slv->lastsel = 0;
-					this->slv->strs = malloc(sizeof(char **)*this->slv->nChns);
-					for (i = 0; i < this->slv->nChns; i++) {
-						this->slv->strs[i] = malloc(sizeof(char *)*MAX_NROWS);
-						for (j = 0; j < MAX_NROWS; j++) this->slv->strs[i][j] = NULL;
-					}
-					this->slv->bpos = malloc(sizeof(short)*this->slv->nChns);
-					fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
-					i = log10(fNum+MAX_NROWS-1)+1;
-					this->slv->bpos[0] = CHAR_WIDTH*(i)+6;
-					this->slv->bpos[1] = 0;
-					this->slv->header = malloc(sizeof(char *)*this->slv->nChns);
-					this->slv->header[0] = dupstr("#", 5, 0);
-					this->slv->header[1] = dupstr("Path", 5, 0);
-					
-					SetFocus(GetDlgItem(hwnd, 3));
-					
-					SendMessage(hwnd, WM_USER+1, 0, 0);
+					// this->option = 0;
+					// this->parent = 0;
 				}
+			
+				RECT rect = {0};
+				if (GetClientRect(hwnd, &rect) == 0) {
+					errorf("GetClientRect failed");
+				}
+				HWND thwnd = NULL;
+				uint64_t ll = 0;
+				int32_t i = 0;
+				
+				if (this->option != 2) {
+					int32_t x = rect.right / 2 - 100;
+					if (x < 5)
+						x = 5;
+					CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+					SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+					CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
+					SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
+					CheckDlgButton(hwnd, 2, BST_UNCHECKED);
+				} else {
+					int32_t x = (rect.right-80) / 2;
+					if (x < 5)
+						x = 5;
+					EnableWindow(this->parent, 0);
+					CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+					SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+				}
+				
+				thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
+				if (!thwnd) {
+					errorf("failed to create PageListClass");
+					return -1;
+				}
+				
+				this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
+				if (!this->plv) {
+					errorf("failed to receive PageListClass pointer");
+					return -1;
+				}
+				
+				thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
+				if (!thwnd) {
+					errorf("failed to create StrListClass");
+					return -1;
+				}
+				
+				this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
+				if (!this->slv) {
+					errorf("failed to receive StrListClass pointer");
+					return -1;
+				}
+				
+				//! TODO: move this to the createWindowInstance arguments
+				if (this->option == 2) {
+					this->slv->option = 1;
+				}
+				
+				this->plv->CurPage = 1;
+				ll = getlastdnum(this->inum);
+				this->plv->LastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
+				if (this->plv->LastPage == 0) {
+					this->plv->LastPage = 1;
+				}
+				this->plv->PageList = 0;
+				
+				i = MAX_NROWS/8 + !!(MAX_NROWS%8);
+				if (!i) {
+					errorf("no space row selections");
+				}
+				this->slv->StrListSel = malloc(i);
+				while (--i >= 0) {
+					this->slv->StrListSel[i] = 0;
+				}
+				this->slv->nChns = 2;
+				this->slv->nRows = MAX_NROWS;
+				this->slv->lastsel = 0;
+				this->slv->strs = malloc(sizeof(char **)*this->slv->nChns);
+				for (int32_t i = 0; i < this->slv->nChns; i++) {
+					this->slv->strs[i] = malloc(sizeof(char *)*MAX_NROWS);
+					for (int32_t j = 0; j < MAX_NROWS; j++) this->slv->strs[i][j] = NULL;
+				}
+				this->slv->bpos = malloc(sizeof(int16_t)*this->slv->nChns);
+				uint64_t fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
+				i = log10(fNum+MAX_NROWS-1)+1;
+				this->slv->bpos[0] = CHAR_WIDTH*(i)+6;
+				this->slv->bpos[1] = 0;
+				this->slv->header = malloc(sizeof(char *)*this->slv->nChns);
+				this->slv->header[0] = dupstr("#", 5, 0);
+				this->slv->header[1] = dupstr("Path", 5, 0);
+				
+				//! TODO: more firm guarantee the values are updated in the windows specified above
+				
+				SetFocus(GetDlgItem(hwnd, 3));
+				
+				SendMessage(hwnd, WM_USER+1, 0, 0);
+					
 				break;
-			//}
-			case WM_COMMAND: //{	// add directory
+			}
+			case WM_COMMAND: {	// add directory
 				
 				if (this->option != 2) {
 					bool checked = !!(IsDlgButtonChecked(hwnd, 2));
@@ -1286,45 +1274,45 @@ errorf("Dman get 3");
 					if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
 						this->menuUse(hwnd, LOWORD(wParam));
 						break;
-					}				
+					} else if (HIWORD(wParam) == BN_CLICKED) {
+						if (LOWORD(wParam) == 1) {	// add listing
+							char *cbuf = malloc(MAX_PATH*4);
+							char abort = 0;
 
-					if (LOWORD(wParam) == 1) {
-						char *cbuf = malloc(MAX_PATH*4);
-						char abort = 0;
-
-						if (!SeekDir(hwnd, cbuf)) {
-							char *p;
+							if (!SeekDir(hwnd, cbuf)) {
+								char *p;
+								
+								if (checked) {
+									char *rbuf = toRelativePath(cbuf);
+									free(cbuf);
+									cbuf = rbuf;
+									
+								}
+								if (cbuf) {
+errorf("calling dreg");
+									dreg(this->inum, cbuf);
+									
+									SendMessage(hwnd, WM_USER, 0, 0);
+								}
+							}
 							
-							if (checked) {
-								char *rbuf = toRelativePath(cbuf);
-								free(cbuf);
-								cbuf = rbuf;
-								
-							}
 							if (cbuf) {
-								dreg(this->inum, cbuf);
-								
-								SendMessage(hwnd, WM_USER, 0, 0);
+								free(cbuf);
 							}
-						}
-						
-						if (cbuf) {
-							free(cbuf);
-						}
-					}
-					
-					if (LOWORD(wParam) == 2) {
-						if (checked) {
-							CheckDlgButton(hwnd, 2, BST_UNCHECKED);
-						} else {
-							CheckDlgButton(hwnd, 2, BST_CHECKED);
+						} else if (LOWORD(wParam) == 2) {	// relative-dir button
+							if (checked) {
+								CheckDlgButton(hwnd, 2, BST_UNCHECKED);
+							} else {
+								CheckDlgButton(hwnd, 2, BST_CHECKED);
+							}
 						}
 					}
 				} else {
-					if (LOWORD(wParam) == 1) {
+					if (HIWORD(wParam) == BN_CLICKED) {
 						EnableWindow(this->parent, 1);
 						
-						for (i = 0, ll = 0; i < this->slv->nRows; i++) {
+						int32_t i = 0, ll = 0;
+						for (; i < this->slv->nRows; i++) {
 							if (this->slv->StrListSel[(i)/8] & (1 << i%8)) {
 								ll = ctou(this->slv->strs[0][i]);
 								break;
@@ -1338,88 +1326,96 @@ errorf("Dman get 3");
 				}
 				
 				break;
-			//}
-			case WM_SIZE: //{
+			}
+			case WM_SIZE: {
+				RECT rect = {0};
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
 				if (this->option != 2) {
-					x = rect.right / 2 - 100;
+					int32_t x = rect.right / 2 - 100;
 					if (x < 5)
 						x = 5;
-				
-					thwnd = GetDlgItem(hwnd, 1);
-					MoveWindow(thwnd, x, 5, 80, 25, 0);
-					thwnd = GetDlgItem(hwnd, 2);
-					MoveWindow(thwnd, x+90, 2, 110, 35, 0);
+					
+					{
+						HWND thwnd = GetDlgItem(hwnd, 1);
+						MoveWindow(thwnd, x, 5, 80, 25, 0);
+					}
+					{
+						HWND thwnd = GetDlgItem(hwnd, 2);
+						MoveWindow(thwnd, x+90, 2, 110, 35, 0);
+					}
 				} else {
-					x = (rect.right-80) / 2;
+					int32_t x = (rect.right-80) / 2;
 					if (x < 5)
 						x = 5;
-					thwnd = GetDlgItem(hwnd, 1);
+					HWND thwnd = GetDlgItem(hwnd, 1);
 					MoveWindow(thwnd, x, 5, 80, 25, 0);
-				}
-				
-				thwnd = GetDlgItem(hwnd, 3);
-				MoveWindow(thwnd, 0, DMAN_TOP_MRG, rect.right, rect.bottom-DMAN_TOP_MRG-(!!(this->plv->LastPage > 1))*DMAN_BOT_MRG, 0);
-				thwnd = GetDlgItem(hwnd, 4);
-				MoveWindow(thwnd, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->LastPage > 1))*DMAN_BOT_MRG, 0);
-				break;
-			//}
-			case WM_PAINT: //{
-				
-				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf("GetClientRect failed");
 				}
 				
 				{
-		
-					HPEN hOldPen;
-					HBRUSH hOldBrush;
-					HDC hdc;
-					PAINTSTRUCT ps;
-
-					hdc = BeginPaint(hwnd, &ps);
-					
-					hOldPen = (HPEN) SelectObject(hdc, bgPen1);
-					hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
-					
-					Rectangle(hdc, 0, 0, rect.right, DMAN_TOP_MRG);
-					SelectObject(hdc, hPen1);
-					MoveToEx(hdc, 0, 0, NULL);
-					LineTo(hdc, rect.right, 0);
-					MoveToEx(hdc, 0, DMAN_TOP_MRG-1, NULL);
-					LineTo(hdc, rect.right, DMAN_TOP_MRG-1);
-						
-					if (this->plv->LastPage > 1) {
-						MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
-						LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
-					}
-					SelectObject(hdc, hOldPen);
-					SelectObject(hdc, hOldBrush);
-					EndPaint(hwnd, &ps);
-				
+					HWND thwnd = GetDlgItem(hwnd, 3);
+					MoveWindow(thwnd, 0, DMAN_TOP_MRG, rect.right, rect.bottom-DMAN_TOP_MRG-(!!(this->plv->LastPage > 1))*DMAN_BOT_MRG, 0);
+				}
+				{
+					HWND thwnd = GetDlgItem(hwnd, 4);
+					MoveWindow(thwnd, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->LastPage > 1))*DMAN_BOT_MRG, 0);
 				}
 				break;
-			//}
-			case WM_MOUSEMOVE: //{
+			}
+			case WM_PAINT: {
+				
+				RECT rect = {0};
+				if (GetClientRect(hwnd, &rect) == 0) {
+					errorf("GetClientRect failed");
+				}
+	
+				HPEN hOldPen;
+				HBRUSH hOldBrush;
+				HDC hdc;
+				PAINTSTRUCT ps;
+
+				hdc = BeginPaint(hwnd, &ps);
+				
+				hOldPen = (HPEN) SelectObject(hdc, bgPen1);
+				hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
+				
+				Rectangle(hdc, 0, 0, rect.right, DMAN_TOP_MRG);
+				SelectObject(hdc, hPen1);
+				MoveToEx(hdc, 0, 0, NULL);
+				LineTo(hdc, rect.right, 0);
+				MoveToEx(hdc, 0, DMAN_TOP_MRG-1, NULL);
+				LineTo(hdc, rect.right, DMAN_TOP_MRG-1);
+					
+				if (this->plv->LastPage > 1) {
+					MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
+					LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
+				}
+				SelectObject(hdc, hOldPen);
+				SelectObject(hdc, hOldBrush);
+				EndPaint(hwnd, &ps);
+				
+			}
+			break;
+			case WM_MOUSEMOVE: {
 				
 				this->plv->hovered = 0;
 				SetCursor(hDefCrs);
 			
 				break;
-			//}
-			case WM_SETFOCUS: //{
+			}
+			case WM_SETFOCUS: {
 				SetFocus(GetDlgItem(hwnd, 3));
 				
 				break;
-			//}
-			case WM_USER: //{	redetermine last page and refresh pages
+			}
+			case WM_USER: { 	// redetermine last page and refresh pages
 				
-				lastlastpage = this->plv->LastPage;
-				j = 0, x = 0;
+				uint64_t lastlastpage = this->plv->LastPage;
+				int32_t j = 0, x = 0;
 				
-				ll = getlastdnum(this->inum);
+				uint64_t ll = getlastdnum(this->inum);
+g_errorfStream << "got lastdnum: " << ll << std::flush;
 				this->plv->LastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
 				if (this->plv->LastPage == 0) {
 					this->plv->LastPage = 1;
@@ -1431,6 +1427,7 @@ errorf("Dman get 3");
 				}
 				
 				if (this->plv->LastPage != lastlastpage) {
+g_errorfStream << "set lastpage to " << this->plv->LastPage << std::flush; 
 					if (j == 1) {
 						SendMessage(hwnd, WM_USER+2, 2, this->plv->CurPage);
 					}
@@ -1446,24 +1443,26 @@ errorf("Dman get 3");
 				}
 			
 				break;
-			//}
-			case WM_USER+1:		//{		refresh num and dir strings
+			}
+			case WM_USER+1: {	// refresh num and dir strings
 				
-				for (i = 0; i < this->slv->nChns; i++) {
-					for (j = 0; j < this->slv->nRows; j++) {
+				for (int32_t i = 0; i < this->slv->nChns; i++) {
+					for (int32_t j = 0; j < this->slv->nRows; j++) {
 						if (this->slv->strs[i][j]) free(this->slv->strs[i][j]), this->slv->strs[i][j] = NULL;
 					}
 				}
-				fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
+				uint64_t fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
 				//if ((this->plv->CurPage <= 0) || (this->slv->nRows <= 0)) {
 				if ((this->plv->CurPage <= 0)) {
 					this->slv->nRows = 0;
 					break;
 				}
-				link2 = idread(this->inum, (unsigned long long) fNum, MAX_NROWS);
+				oneslnk *link2 = idread(this->inum, (uint64_t) fNum, MAX_NROWS);
 				
-				wp = malloc(MAX_PATH*2);
-				for (link = link2, i = 0, x = 0; link != 0; link = link->next, i++) {
+				wchar_t *wp = malloc(MAX_PATH*2);
+				oneslnk *link = link2;
+				int32_t i = 0, x = 0;
+				for (; link != 0; link = link->next, i++) {
 					if ((MultiByteToWideChar(65001, 0, link->str, -1, wp, MAX_PATH)) == 0) {
 						errorf("MultiByteToWideChar failed -- MainIndexManProc -- 1");
 						errorf_old("input string was: %s", link->str);
@@ -1472,7 +1471,7 @@ errorf("Dman get 3");
 						DestroyWindow(hwnd);
 						return 0;
 					}
-					j = wcsnlen(wp, MAX_PATH);
+					int32_t j = wcsnlen(wp, MAX_PATH);
 					if (j > x) {
 						x = j;
 					}
@@ -1504,41 +1503,40 @@ errorf("Dman get 3");
 					errorf("InvalidateRect failed");
 				}
 				break;
-			//}
-			case WM_USER+2: //{
+			}
+			case WM_USER+2: {
 				
 				switch(wParam) {
 					
-				case 0:		// refresh
-					//this->slv->nRows = MAX_NROWS;
-					PostMessage(hwnd, WM_USER+1, 0, 0);
-					
-					break;
-					
-				case 1:		// change page and refresh
-					SendMessage(hwnd, WM_USER+2, 2, lParam);
-					PostMessage(hwnd, WM_USER+1, 0, 0);
-					
-					break;
-					
-				case 2:		// change page
-					for (i = this->slv->nRows/8+!!(this->slv->nRows%8)-1; i >= 0; i--) {
-						if (i < 0)
-							break;
-						this->slv->StrListSel[i] = 0;
+					case 0:	{	// refresh
+						//this->slv->nRows = MAX_NROWS;
+						PostMessage(hwnd, WM_USER+1, 0, 0);
+						
+						break;
 					}
-	//				this->slv->nRows = MAX_NROWS;
-					fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
-					
-					i = log10(fNum+this->slv->nRows-1)+1;
-					this->slv->bpos[0] = CHAR_WIDTH*(i)+6;
-					
-					break;
-				
+					case 1:	{	// change page and refresh
+						SendMessage(hwnd, WM_USER+2, 2, lParam);
+						PostMessage(hwnd, WM_USER+1, 0, 0);
+						
+						break;
+					}
+					case 2:	{	// change page
+						for (int32_t i = this->slv->nRows/8+!!(this->slv->nRows%8)-1; i >= 0; i--) {
+							if (i < 0)
+								break;
+							this->slv->StrListSel[i] = 0;
+						}
+		//				this->slv->nRows = MAX_NROWS;
+						uint64_t fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
+						
+						int32_t i = log10(fNum+this->slv->nRows-1)+1;
+						this->slv->bpos[0] = CHAR_WIDTH*(i)+6;
+						
+						break;
+					}
 				}
-				
 				break;
-			//}
+			}
 			case WM_U_SLV: //{
 				
 				switch (lParam) {
@@ -1548,7 +1546,7 @@ errorf("Dman get 3");
 				case 2:
 				case 3:
 					if (this->option != 2) {
-						fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
+						uint64_t fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
 						//DelRer(hwnd, lParam, &this->slv);
 						SendMessage(hwnd, WM_USER, 0, 0);
 						SendMessage(hwnd, WM_USER+2, 0, 0);
@@ -1559,9 +1557,10 @@ errorf("Dman get 3");
 					break;
 				case 5:	// make selection
 					if (this->option == 2) {
-						for (i = 0, ll = 0; i < this->slv->nRows; i++) {
+						int32_t i = 0;
+						for (uint64_t ull = 0; i < this->slv->nRows; i++) {
 							if (this->slv->StrListSel[(i)/8] & (1 << i%8)) {
-								ll = ctou(this->slv->strs[0][i]);
+								ull = ctou(this->slv->strs[0][i]);
 								break;
 							}
 						} if (i == this->slv->nRows) {
@@ -1602,11 +1601,11 @@ errorf("Dman get 3");
 					
 				//! TODO: move to class destructor
 				if (1) {
-					thwnd = this->parent;
+					HWND thwnd = this->parent;
 					
 					if (this->plv) {
 						if (this->plv->PageList) {
-							for (i = 0; ; i++) {
+							for (int32_t i = 0; ; i++) {
 								free(this->plv->PageList[i].str);
 								if (this->plv->PageList[i].type & 2)
 									break;
@@ -1615,9 +1614,9 @@ errorf("Dman get 3");
 						}
 					}
 					if (this->slv) {
-						for (i = 0; i < this->slv->nChns; i++) {
+						for (int32_t i = 0; i < this->slv->nChns; i++) {
 							if (this->slv->header[i]) free(this->slv->header[i]);
-							for (j = 0; j < this->slv->nRows; j++) {
+							for (int32_t j = 0; j < this->slv->nRows; j++) {
 								if (this->slv->strs[i][j]) free(this->slv->strs[i][j]);
 							}
 							free(this->slv->strs[i]);
@@ -1685,10 +1684,10 @@ errorf("Dman get 3");
 		return 0;
 	};
 
-	int SDmanClass::menuUse(HWND hwnd, long int menu_id) {
+	int SDmanClass::menuUse(HWND hwnd, int32_t menu_id) {
 		errorf_old("menu_id is: %d", menu_id);
 		
-		unsigned long long fNum;
+		uint64_t fNum;
 		
 		switch (menu_id) {
 		case 1:
@@ -1711,172 +1710,147 @@ errorf("Dman get 3");
 		char *p;
 		wchar_t *wp;
 		int i, j, x;
-		unsigned long long ll, lastlastpage, fNum;
+		uint64_t ll, lastlastpage, fNum;
 		RECT rect;
 		HWND thwnd;
 		oneslnk *link, *link2;
 
 		switch(msg) {
-			case WM_CREATE: //{
+			case WM_CREATE: {
+				SDIRMANARGS *args = *(SDIRMANARGS **) lParam;
 				
-				{
-					SDIRMANARGS *args = *(SDIRMANARGS **) lParam;
-					
-					if (args->inum == 0) {
-						errorf("inum is 0");
-						DestroyWindow(hwnd);
-						return 0;
-					}
-					
-					if (args) {
-						this->option = args->option;
-						this->parent = args->parent;
-						this->inum = args->inum;
-					} else {
-						errorf("args is NULL");
-						//DestroyWindow(hwnd);
-						//FreeWindowMem(hwnd);
-						return -1;
-						
-						// this->option = 0;
-						// this->parent = 0;
-					}
-				
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
-					}
-					
-					if (this->option != 2) {
-						x = rect.right / 2 - 100;
-						if (x < 5)
-							x = 5;
-						CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-						SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-						CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
-						SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
-						CheckDlgButton(hwnd, 2, BST_UNCHECKED);
-					} else {
-						x = (rect.right-80) / 2;
-						if (x < 5)
-							x = 5;
-						EnableWindow(this->parent, 0);
-						CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-						SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-					}
-					
-					thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
-					if (!thwnd) {
-						errorf("failed to create PageListClass");
-						return -1;
-					}
-					
-					this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
-					if (!this->plv) {
-						errorf("failed to receive PageListClass pointer");
-						return -1;
-					}
-					
-					thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
-					if (!thwnd) {
-						errorf("failed to create StrListClass");
-						return -1;
-					}
-					
-					this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
-					if (!this->slv) {
-						errorf("failed to receive StrListClass pointer");
-						return -1;
-					}
-					
-					//! TODO: move this to the createWindowInstance arguments
-					if (this->option == 2) {
-						this->slv->option = 1;
-					}
-					
-					this->plv->CurPage = 1;
-					ll = getlastsdnum(this->inum);
-					this->plv->LastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
-					if (this->plv->LastPage == 0) {
-						this->plv->LastPage = 1;
-					}
-					this->plv->PageList = 0;
-					
-					i = MAX_NROWS/8 + !!(MAX_NROWS%8);
-					if (!i) {
-						errorf("no space row selections");
-					}
-					this->slv->StrListSel = malloc(i);
-					while (--i >= 0) {
-						this->slv->StrListSel[i] = 0;
-					}
-					this->slv->nChns = 2;
-					this->slv->nRows = MAX_NROWS;
-					this->slv->lastsel = 0;
-					this->slv->strs = malloc(sizeof(char **)*this->slv->nChns);
-					for (i = 0; i < this->slv->nChns; i++) {
-						this->slv->strs[i] = malloc(sizeof(char *)*MAX_NROWS);
-						for (j = 0; j < MAX_NROWS; j++) this->slv->strs[i][j] = NULL;
-					}
-					this->slv->bpos = malloc(sizeof(short)*this->slv->nChns);
-					fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
-					i = log10(fNum+MAX_NROWS-1)+1;
-					this->slv->bpos[0] = CHAR_WIDTH*(i)+6;
-					this->slv->bpos[1] = 0;
-					this->slv->header = malloc(sizeof(char *)*this->slv->nChns);
-					this->slv->header[0] = dupstr("#", 5, 0);
-					this->slv->header[1] = dupstr("Path", 5, 0);
-					
-					SetFocus(GetDlgItem(hwnd, 3));
-					
-					SendMessage(hwnd, WM_USER+1, 0, 0);
+				if (args->inum == 0) {
+					errorf("inum is 0");
+					DestroyWindow(hwnd);
+					return 0;
 				}
-				break;
-			//}
-			case WM_COMMAND: //{	// add directory
+				
+				if (args) {
+					this->option = args->option;
+					this->parent = args->parent;
+					this->inum = args->inum;
+				} else {
+					errorf("args is NULL");
+					//DestroyWindow(hwnd);
+					//FreeWindowMem(hwnd);
+					return -1;
+					
+					// this->option = 0;
+					// this->parent = 0;
+				}
+			
+				if (GetClientRect(hwnd, &rect) == 0) {
+					errorf("GetClientRect failed");
+				}
 				
 				if (this->option != 2) {
-					bool checked = !!(IsDlgButtonChecked(hwnd, 2));
+					x = rect.right / 2 - 100;
+					if (x < 5)
+						x = 5;
+					CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+					SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+					//CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
+					//SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
+					//CheckDlgButton(hwnd, 2, BST_UNCHECKED);
+				} else {
+					x = (rect.right-80) / 2;
+					if (x < 5)
+						x = 5;
+					EnableWindow(this->parent, 0);
+					CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+					SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+				}
+				
+				thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
+				if (!thwnd) {
+					errorf("failed to create PageListClass");
+					return -1;
+				}
+				
+				this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
+				if (!this->plv) {
+					errorf("failed to receive PageListClass pointer");
+					return -1;
+				}
+				
+				thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
+				if (!thwnd) {
+					errorf("failed to create StrListClass");
+					return -1;
+				}
+				
+				this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
+				if (!this->slv) {
+					errorf("failed to receive StrListClass pointer");
+					return -1;
+				}
+				
+				//! TODO: move this to the createWindowInstance arguments
+				if (this->option == 2) {
+					this->slv->option = 1;
+				}
+				
+				this->plv->CurPage = 1;
+				ll = getlastsdnum(this->inum);
+				this->plv->LastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
+				if (this->plv->LastPage == 0) {
+					this->plv->LastPage = 1;
+				}
+				this->plv->PageList = 0;
+				
+				i = MAX_NROWS/8 + !!(MAX_NROWS%8);
+				if (!i) {
+					errorf("no space row selections");
+				}
+				this->slv->StrListSel = malloc(i);
+				while (--i >= 0) {
+					this->slv->StrListSel[i] = 0;
+				}
+				this->slv->nChns = 2;
+				this->slv->nRows = MAX_NROWS;
+				this->slv->lastsel = 0;
+				this->slv->strs = malloc(sizeof(char **)*this->slv->nChns);
+				for (i = 0; i < this->slv->nChns; i++) {
+					this->slv->strs[i] = malloc(sizeof(char *)*MAX_NROWS);
+					for (j = 0; j < MAX_NROWS; j++) this->slv->strs[i][j] = NULL;
+				}
+				this->slv->bpos = malloc(sizeof(int16_t)*this->slv->nChns);
+				fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
+				i = log10(fNum+MAX_NROWS-1)+1;
+				this->slv->bpos[0] = CHAR_WIDTH*(i)+6;
+				this->slv->bpos[1] = 0;
+				this->slv->header = malloc(sizeof(char *)*this->slv->nChns);
+				this->slv->header[0] = dupstr("#", 5, 0);
+				this->slv->header[1] = dupstr("Path", 5, 0);
+				
+				SetFocus(GetDlgItem(hwnd, 3));
+				
+				SendMessage(hwnd, WM_USER+1, 0, 0);
+				
+				break;
+			}
+			case WM_COMMAND: {	// add directory
+				
+				if (this->option != 2) {
 					
 					if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
+						//SendMessage(hwnd, WM_U_SLV, 3, LOWORD(wParam);
 						this->menuUse(hwnd, LOWORD(wParam));
 						break;
-					}				
-					
-					/*
-					if (LOWORD(wParam) == 1) {
-						char *cbuf = malloc(MAX_PATH*4);
-						char abort = 0;
-
-						if (!SeekDir(hwnd, cbuf)) {
-							char *p;
+					//! TODO: move next to button creation
+					} else if (HIWORD(wParam) == BN_CLICKED) {
+						if (LOWORD(wParam) == 1) {	// add listing
 							
-							if (checked) {
-								char *rbuf = toRelativePath(cbuf);
-								free(cbuf);
-								cbuf = rbuf;
-								
-							}
-							if (cbuf) {
-								dreg(this->inum, cbuf);
-								
-								SendMessage(hwnd, WM_USER, 0, 0);
-							}
-						}
-						
-						if (cbuf) {
-							free(cbuf);
-						}
-					}
-					*/
-					
-					if (LOWORD(wParam) == 2) {
-						if (checked) {
-							CheckDlgButton(hwnd, 2, BST_UNCHECKED);
-						} else {
-							CheckDlgButton(hwnd, 2, BST_CHECKED);
+							DIRMANARGS args = {};
+							args.option = 2;
+							args.inum = this->inum;
+							args.parent = hwnd;
+							
+							thwnd = DmanClass::createWindowInstance(WinInstancer(0, L"Select Superdirectory", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, NULL, ghInstance, (LPVOID) &args));
 						}
 					}
 				} else {
+					//! TODO: ??
 					if (LOWORD(wParam) == 1) {
 						EnableWindow(this->parent, 1);
 						
@@ -1894,7 +1868,7 @@ errorf("Dman get 3");
 				}
 				
 				break;
-			//}
+			}
 			case WM_SIZE: //{
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
@@ -1906,8 +1880,8 @@ errorf("Dman get 3");
 				
 					thwnd = GetDlgItem(hwnd, 1);
 					MoveWindow(thwnd, x, 5, 80, 25, 0);
-					thwnd = GetDlgItem(hwnd, 2);
-					MoveWindow(thwnd, x+90, 2, 110, 35, 0);
+					//thwnd = GetDlgItem(hwnd, 2);
+					//MoveWindow(thwnd, x+90, 2, 110, 35, 0);
 				} else {
 					x = (rect.right-80) / 2;
 					if (x < 5)
@@ -2016,7 +1990,7 @@ errorf("Dman get 3");
 					this->slv->nRows = 0;
 					break;
 				}
-				link2 = isdread(this->inum, (unsigned long long) fNum, MAX_NROWS);
+				link2 = isdread(this->inum, (uint64_t) fNum, MAX_NROWS);
 				
 				wp = malloc(MAX_PATH*2);
 				for (link = link2, i = 0, x = 0; link != 0; link = link->next, i++) {
@@ -2242,10 +2216,10 @@ errorf("Dman get 3");
 		return 0;
 	};
 
-	int MainIndexManClass::menuUse(HWND hwnd, long int menu_id) {
+	int MainIndexManClass::menuUse(HWND hwnd, int32_t menu_id) {
 		errorf_old("menu_id is: %d", menu_id);
 		
-		unsigned long long fNum;
+		uint64_t fNum;
 		
 		if (this->option != 2) {
 			switch (menu_id) {
@@ -2261,7 +2235,7 @@ errorf("Dman get 3");
 			case 3:
 				{
 					
-					DIRMANARGS args = {};
+					DIRMANARGS args = {0};
 					args.option = 0;
 					args.parent = hwnd;
 					args.inum = this->slv->getSingleSelPos();
@@ -2302,13 +2276,13 @@ errorf("Dman get 3");
 		char *p;
 		wchar_t *wp;
 		int i, j, x;
-		unsigned long long ll, lastlastpage, fNum;
+		uint64_t ll, lastlastpage, fNum;
 		RECT rect;
 		HWND thwnd;
 		oneslnk *link, *link2;
 		
-		unsigned long long (*getNumElements)(void) = getlastminum;
-		oneslnk *(*iread)(unsigned long long fnum, unsigned long long intrvl) = imiread;
+		uint64_t (*getNumElements)(void) = getlastminum;
+		oneslnk *(*iread)(uint64_t fnum, uint64_t intrvl) = imiread;
 
 		switch(msg) {
 			case WM_CREATE: //{
@@ -2392,7 +2366,7 @@ errorf("miman 4");
 					if (!i) {
 						errorf("no space row selections");
 					}
-					this->slv->StrListSel = (unsigned char*) malloc(i);
+					this->slv->StrListSel = (uint8_t*) malloc(i);
 					while (--i >= 0) {
 						this->slv->StrListSel[i] = 0;
 					}
@@ -2404,7 +2378,7 @@ errorf("miman 4");
 						this->slv->strs[i] = malloc(sizeof(char *)*MAX_NROWS);
 						for (j = 0; j < MAX_NROWS; j++) this->slv->strs[i][j] = NULL;
 					}
-					this->slv->bpos = malloc(sizeof(short)*this->slv->nChns);
+					this->slv->bpos = malloc(sizeof(int16_t)*this->slv->nChns);
 					fNum = (this->plv->CurPage-1)*MAX_NROWS+1;
 					i = log10(fNum+MAX_NROWS-1)+1;
 					this->slv->bpos[0] = CHAR_WIDTH*(i)+6;
@@ -2424,32 +2398,35 @@ errorf("miman 7");
 			case WM_COMMAND: //{
 				
 				if (this->option != 2) {
-					
 					if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
 						//SendMessage(hwnd, WM_U_SLV, 3, LOWORD(wParam);
 						this->menuUse(hwnd, LOWORD(wParam));
 						break;
-					} else if (LOWORD(wParam) == 1) {	// add listing
-						
-						HWND *arg = malloc(sizeof(HWND));
-						TextEditDialogClass::createWindowInstance(WinInstancer(0, L"Enter Main Index Name", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 150, 150, 500, 500, hwnd, 0, NULL, arg));
-						//SendMessage(thwnd, WM_USER, 0, (LPARAM) this->dnum);
-						free(arg);
+					} else if (HIWORD(wParam) == BN_CLICKED) {
+						if (LOWORD(wParam) == 1) {	// add listing
+							
+							HWND *arg = malloc(sizeof(HWND));
+							TextEditDialogClass::createWindowInstance(WinInstancer(0, L"Enter Main Index Name", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 150, 150, 500, 500, hwnd, 0, NULL, arg));
+							//SendMessage(thwnd, WM_USER, 0, (LPARAM) this->dnum);
+							free(arg);
+						}
 					}
 				} else {
-					if (LOWORD(wParam) == 1) {
-						EnableWindow(this->parent, 1);
-						
-						for (i = 0, ll = 0; i < this->slv->nRows; i++) {
-							if (this->slv->StrListSel[(i)/8] & (1 << i%8)) {
-								ll = ctou(this->slv->strs[0][i]);
-								break;
+					if (HIWORD(wParam) == BN_CLICKED) {
+						if (LOWORD(wParam) == 1) {
+							EnableWindow(this->parent, 1);
+							
+							for (i = 0, ll = 0; i < this->slv->nRows; i++) {
+								if (this->slv->StrListSel[(i)/8] & (1 << i%8)) {
+									ll = ctou(this->slv->strs[0][i]);
+									break;
+								}
+							} if (i == this->slv->nRows) {
+								i = 0;
 							}
-						} if (i == this->slv->nRows) {
-							i = 0;
+							PostMessage(this->parent, WM_U_DMAN, 3, (LPARAM) ll);
+							DestroyWindow(hwnd);
 						}
-						PostMessage(this->parent, WM_U_DMAN, 3, (LPARAM) ll);
-						DestroyWindow(hwnd);
 					}
 				}
 				
@@ -2466,8 +2443,8 @@ errorf("miman 7");
 				
 					thwnd = GetDlgItem(hwnd, 1);
 					MoveWindow(thwnd, x, 5, 80, 25, 0);
-					thwnd = GetDlgItem(hwnd, 2);
-					MoveWindow(thwnd, x+90, 2, 110, 35, 0);
+					//thwnd = GetDlgItem(hwnd, 2);
+					//MoveWindow(thwnd, x+90, 2, 110, 35, 0);
 				} else {
 					x = (rect.right-80) / 2;
 					if (x < 5)
@@ -2576,7 +2553,7 @@ errorf("miman 7");
 					this->slv->nRows = 0;
 					break;
 				}
-				link2 = iread((unsigned long long) fNum, MAX_NROWS); //! generalize on index
+				link2 = iread((uint64_t) fNum, MAX_NROWS); //! generalize on index
 				
 				wp = malloc(MAX_PATH*2);
 				for (link = link2, i = 0, x = 0; link != 0; link = link->next, i++) {
@@ -2799,7 +2776,7 @@ errorf("MainIndex NCDESTROY 1");
 	LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		char *p;
 		int i, j, x;
-		unsigned long long ll, lastlastpage, fnum;
+		uint64_t ll, lastlastpage, fnum;
 		RECT rect;
 		HWND thwnd;
 		oneslnk *link, *flink, *inlink;
@@ -2995,7 +2972,7 @@ errorf("MainIndex NCDESTROY 1");
 				
 				if (this->tfstr) {
 					if (1) {
-						this->tlv.strchn[0] = ifrread(this->tfstr, (unsigned long long) fnum, MAX_NTHUMBS); //! potentially modify it to have fnums and fnames in the same file
+						this->tlv.strchn[0] = ifrread(this->tfstr, (uint64_t) fnum, MAX_NTHUMBS); //! potentially modify it to have fnums and fnames in the same file
 						
 						for (link = this->tlv.strchn[0], i = 0; link != 0; link = link->next, i++);
 						if (fnum + i - 1 > this->nitems || (this->plv->CurPage == this->plv->LastPage && fnum + i - 1 != this->nitems)) {
@@ -3345,7 +3322,7 @@ errorf("MainIndex NCDESTROY 1");
 	LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		int i, j, x;
-		unsigned long long ll, lastlastpage, fnum;
+		uint64_t ll, lastlastpage, fnum;
 		RECT rect;
 		HWND thwnd;
 		oneslnk *link;
@@ -3606,7 +3583,7 @@ errorf("destroyed page list");
 		return wInstancer.create(winArgs, helper.winClassName);
 	}
 
-	unsigned long long StrListClass::getSingleSelPos(void) {
+	uint64_t StrListClass::getSingleSelPos(void) {
 		oneslnk *link, *flink;
 		int pos, i;
 		
@@ -3637,7 +3614,7 @@ errorf("destroyed page list");
 			return 0;
 		}
 			
-		unsigned long long t = flink->ull;
+		uint64_t t = flink->ull;
 		killoneschn(flink, 1);
 		return t;
 	}
@@ -3647,9 +3624,9 @@ errorf("destroyed page list");
 		RECT rect;
 		HWND thwnd;
 		
-		long long i;
+		int64_t i;
 		int j, k, l, pos;
-		unsigned char *buf, exit = 0;
+		uint8_t *buf, exit = 0;
 		wchar_t *wbuf;
 		SCROLLINFO sinfo = {0};
 		//STRLISTV *lv = 0;
@@ -3664,7 +3641,7 @@ errorf("destroyed page list");
 		oneslnk **link;
 		
 		int len, diff;
-		long long lastrow;
+		int64_t lastrow;
 		char uneven, sel;
 		
 		switch(msg) {
@@ -4203,15 +4180,15 @@ errorf("strlistclass create 9");
 				if ((HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT == 0)
 					break;
 				
-				if (this->yspos <= (short)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT) {
+				if (this->yspos <= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT) {
 					if (this->yspos == 0)
 						break;
 					this->yspos = 0;
-				} else if (this->yspos >= (this->nRows*ROW_HEIGHT)-(rect.bottom-STRLIST_TOP_MRG)+((short)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT)) {	// wParam is negative if scrolling down
+				} else if (this->yspos >= (this->nRows*ROW_HEIGHT)-(rect.bottom-STRLIST_TOP_MRG)+((int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT)) {	// wParam is negative if scrolling down
 					if (this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG))
 						break;
 					this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
-				} else this->yspos -= (short)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT;
+				} else this->yspos -= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT;
 				sinfo.nPos = this->yspos;
 				
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);		
@@ -4246,7 +4223,7 @@ errorf("strlistclass create 9");
 					errorf("GetClientRect failed");
 				}
 				i = this->drag-1;
-				this->bpos[i] = (((signed short) (lParam)) - this->drgpos);
+				this->bpos[i] = (((int16_t) (lParam)) - this->drgpos);
 				if (this->bpos[i] < 5)
 					this->bpos[i] = 5;
 				if (this->bpos[i] > rect.right-5+this->xspos) {
@@ -4761,9 +4738,9 @@ errorf("destroyed strlist");
 		RECT rect;
 		HWND thwnd;
 		
-		long long i;
+		int64_t i;
 		int j, k, l, pos;
-		unsigned char *buf, exit = 0;
+		uint8_t *buf, exit = 0;
 		wchar_t *wbuf;
 		SCROLLINFO sinfo = {0};
 		//THMBLISTV *lv = 0;
@@ -5138,15 +5115,15 @@ errorf("destroyed strlist");
 				if ((HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT == 0)
 					break;
 				
-				if (this->yspos <= (short)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT) {
+				if (this->yspos <= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT) {
 					if (this->yspos == 0)
 						break;
 					this->yspos = 0;
-				} else if (this->yspos >= (sinfo.nMax+1)-rect.bottom+((short)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT)) {	// wParam is negative if scrolling down
+				} else if (this->yspos >= (sinfo.nMax+1)-rect.bottom+((int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT)) {	// wParam is negative if scrolling down
 					if (this->yspos == sinfo.nMax+1-rect.bottom)
 						break;
 					this->yspos = sinfo.nMax+1-rect.bottom;
-				} else this->yspos -= (short)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT;
+				} else this->yspos -= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT;
 				sinfo.nPos = this->yspos;
 				
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);		
@@ -5178,7 +5155,7 @@ errorf("destroyed strlist");
 					sparep = (DEF_THUMBFW+DEF_THUMBGAPX-1)/2;
 				}
 				
-				if ((j = (short)(lParam & (256*256-1))) < THMBLIST_LEFT_MRG || (k = (short)((lParam/256/256) & (256*256-1))+this->yspos-THMBLIST_TOP_MRG) < 0 || (j - THMBLIST_LEFT_MRG) % (DEF_THUMBFW+DEF_THUMBGAPX+sparep) >= DEF_THUMBFW || (k+this->yspos) % (DEF_THUMBFH+DEF_THUMBGAPY) >= DEF_THUMBFH) {
+				if ((j = (int16_t)(lParam & (256*256-1))) < THMBLIST_LEFT_MRG || (k = (int16_t)((lParam/256/256) & (256*256-1))+this->yspos-THMBLIST_TOP_MRG) < 0 || (j - THMBLIST_LEFT_MRG) % (DEF_THUMBFW+DEF_THUMBGAPX+sparep) >= DEF_THUMBFW || (k+this->yspos) % (DEF_THUMBFH+DEF_THUMBGAPY) >= DEF_THUMBFH) {
 					this->hvrd = 0;
 					SetCursor(hDefCrs);
 					if (l > 0) {
@@ -5650,9 +5627,9 @@ errorf("destroyed strlist");
 		RECT rect;
 		HWND thwnd;
 		
-		long long i;
+		int64_t i;
 		int j, k, l, m;
-		unsigned char exit = 0;
+		uint8_t exit = 0;
 		IMGVIEWV *ev = 0;
 		BITMAPINFO bminfo = {0};
 		
@@ -5729,8 +5706,8 @@ errorf("destroyed strlist");
 					ev->fit |= BIT_VI_FIT_DISP_IS_ORIG;
 					ev->DispImage = ev->FullImage;
 				}
-				ev->xpos = ((long long)ev->DispImage->x - rect.right)/2;
-				ev->ypos = ((long long)ev->DispImage->y - rect.bottom)/2;
+				ev->xpos = ((int64_t)ev->DispImage->x - rect.right)/2;
+				ev->ypos = ((int64_t)ev->DispImage->y - rect.bottom)/2;
 				if (ev->DispImage == NULL) {
 					errorf("no DispImage");
 					DestroyWindow(GetParent(hwnd));
@@ -5861,8 +5838,8 @@ errorf("destroyed strlist");
 						ev->fit |= BIT_VI_FIT_DISP_IS_ORIG;
 						ev->DispImage = ev->FullImage;
 					}
-					ev->xpos = ((long long)ev->DispImage->x - rect.right)/2;
-					ev->ypos = ((long long)ev->DispImage->y - rect.bottom)/2;
+					ev->xpos = ((int64_t)ev->DispImage->x - rect.right)/2;
+					ev->ypos = ((int64_t)ev->DispImage->y - rect.bottom)/2;
 					if (ev->DispImage == NULL) {
 						errorf("no DispImage");
 						DestroyWindow(GetParent(hwnd));
@@ -5871,8 +5848,8 @@ errorf("destroyed strlist");
 					
 				} else {
 					if (ev->fit & (BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y) && ev->xdisp < rect.right && ev->ydisp < rect.bottom) {	// if zoomed image fits
-						ev->xpos = ((long long)ev->xdisp - rect.right)/2;
-						ev->ypos = ((long long)ev->ydisp - rect.bottom)/2;
+						ev->xpos = ((int64_t)ev->xdisp - rect.right)/2;
+						ev->ypos = ((int64_t)ev->ydisp - rect.bottom)/2;
 					} else {
 						if (ev->xdisp <= rect.right) {
 							l = ev->xdisp;		// width of the retrieved image is the same as the whole image zoomed
@@ -5882,7 +5859,7 @@ errorf("destroyed strlist");
 							l = rect.right;		// width is the width of window
 							
 							if (!(ev->fit & BIT_VI_FIT_RESIZE_FITS_X)) {
-								i = ((long long)(rect.right - rect.right % 2) - (ev->DispImage->x - ev->DispImage->x % 2))/2; // difference between dispimage size and new dispimage size both rounded down to nearest multiple of 2 -- that way image position is adjusted by pixel every other pixel
+								i = ((int64_t)(rect.right - rect.right % 2) - (ev->DispImage->x - ev->DispImage->x % 2))/2; // difference between dispimage size and new dispimage size both rounded down to nearest multiple of 2 -- that way image position is adjusted by pixel every other pixel
 								ev->xpos -= i;	// image is revealed and hidden from both directions equally -- xpos moves the image in the opposite direction
 							} else {
 								midpos = (double)ev->xdisp/2;
@@ -5909,7 +5886,7 @@ errorf("destroyed strlist");
 							m = rect.bottom;		// height is the height of window
 							
 							if (!(ev->fit & BIT_VI_FIT_RESIZE_FITS_Y)) {
-								i = ((long long)(rect.bottom - rect.bottom % 2) - (ev->DispImage->y - ev->DispImage->y % 2))/2;
+								i = ((int64_t)(rect.bottom - rect.bottom % 2) - (ev->DispImage->y - ev->DispImage->y % 2))/2;
 								ev->ypos -= i;
 							} else {
 								midpos = (double)ev->ydisp/2;
@@ -5936,11 +5913,11 @@ errorf("destroyed strlist");
 						if (ev->DispImage) {
 							if (ev->xdisp <= rect.right) {
 								ev->fit |= BIT_VI_FIT_RESIZE_FITS_X;
-								ev->xpos = ((long long)ev->xdisp - rect.right)/2;
+								ev->xpos = ((int64_t)ev->xdisp - rect.right)/2;
 							}
 							if (ev->ydisp <= rect.bottom) {
 								ev->fit |= BIT_VI_FIT_RESIZE_FITS_Y;
-								ev->ypos = ((long long)ev->ydisp - rect.bottom)/2;
+								ev->ypos = ((int64_t)ev->ydisp - rect.bottom)/2;
 							}
 						}
 					}
@@ -5959,7 +5936,7 @@ errorf("destroyed strlist");
 					errorf("GetClientRect failed");
 				}
 				
-				if ((i = (short)(HIWORD(wParam))/WHEEL_DELTA) == 0) {
+				if ((i = (int16_t)(HIWORD(wParam))/WHEEL_DELTA) == 0) {
 					break;
 				}
 				if (!(ev->fit & BIT_VI_FIT_MODE_ENABLED) && ev->DispImage != NULL) {	// to calculate middle position -- not needed if whole image in screen
@@ -6103,11 +6080,11 @@ errorf("destroyed strlist");
 				if (ev->DispImage) {
 					if (ev->xdisp <= rect.right) {
 						ev->fit |= BIT_VI_FIT_RESIZE_FITS_X;
-						ev->xpos = ((long long)ev->xdisp - rect.right)/2;
+						ev->xpos = ((int64_t)ev->xdisp - rect.right)/2;
 					}
 					if (ev->ydisp <= rect.bottom) {
 						ev->fit |= BIT_VI_FIT_RESIZE_FITS_Y;
-						ev->ypos = ((long long)ev->ydisp - rect.bottom)/2;
+						ev->ypos = ((int64_t)ev->ydisp - rect.bottom)/2;
 					}
 				}
 				InvalidateRect(hwnd, 0, 0);
@@ -6173,7 +6150,7 @@ errorf("destroyed strlist");
 				}
 				if (!(ev->fit & BIT_VI_FIT_RESIZE_FITS_X)) {
 					l = rect.right;
-					ev->xpos = ev->xdrgstart + (ev->xdrgpos - ((short) (lParam & (256*256-1))));
+					ev->xpos = ev->xdrgstart + (ev->xdrgpos - ((int16_t) (lParam & (256*256-1))));
 					if (ev->xpos+rect.right > ev->xdisp)
 						ev->xpos = ev->xdisp-rect.right;
 					if (ev->xpos < 0)
@@ -6186,7 +6163,7 @@ errorf("destroyed strlist");
 				}
 				if (!(ev->fit & BIT_VI_FIT_RESIZE_FITS_Y)) {
 					m = rect.bottom;
-					ev->ypos = ev->ydrgstart + (ev->ydrgpos - ((short) ((lParam/256/256) & (256*256-1))));
+					ev->ypos = ev->ydrgstart + (ev->ydrgpos - ((int16_t) ((lParam/256/256) & (256*256-1))));
 					if (ev->ypos+rect.bottom > ev->ydisp)
 						ev->ypos = ev->ydisp-rect.bottom;
 					if (ev->ypos < 0)
@@ -6208,11 +6185,11 @@ errorf("destroyed strlist");
 					if (ev->DispImage) {	//! maybe remove this portion since the status shouldn't change under WM_MOUSEMOVE
 						if (ev->xdisp <= rect.right) {
 							ev->fit |= BIT_VI_FIT_RESIZE_FITS_X;
-							ev->xpos = ((long long)ev->xdisp - rect.right)/2;
+							ev->xpos = ((int64_t)ev->xdisp - rect.right)/2;
 						}
 						if (ev->ydisp <= rect.bottom) {
 							ev->fit |= BIT_VI_FIT_RESIZE_FITS_Y;
-							ev->ypos = ((long long)ev->ydisp - rect.bottom)/2;
+							ev->ypos = ((int64_t)ev->ydisp - rect.bottom)/2;
 						}
 					}
 	*/				InvalidateRect(hwnd, 0, 0);
@@ -6223,11 +6200,11 @@ errorf("destroyed strlist");
 	/*				if (ev->DispImage) {	//! maybe remove this portion since the status shouldn't change under WM_MOUSEMOVE
 						if (ev->xdisp <= rect.right) {
 							ev->fit |= BIT_VI_FIT_RESIZE_FITS_X;
-							ev->xpos = ((long long)ev->xdisp - rect.right)/2;
+							ev->xpos = ((int64_t)ev->xdisp - rect.right)/2;
 						}
 						if (ev->ydisp <= rect.bottom) {
 							ev->fit |= BIT_VI_FIT_RESIZE_FITS_Y;
-							ev->ypos = ((long long)ev->ydisp - rect.bottom)/2;
+							ev->ypos = ((int64_t)ev->ydisp - rect.bottom)/2;
 						}
 					}
 	*/			}
@@ -6277,11 +6254,11 @@ errorf("destroyed strlist");
 					if (ev->DispImage) {	//! this should probably be removed since the fit mode nor ev->xdisp shouldn't change when dragging
 						if (ev->xdisp <= rect.right) {
 							ev->fit |= BIT_VI_FIT_RESIZE_FITS_X;
-							ev->xpos = ((long long)ev->xdisp - rect.right)/2;
+							ev->xpos = ((int64_t)ev->xdisp - rect.right)/2;
 						}
 						if (ev->ydisp <= rect.bottom) {
 							ev->fit |= BIT_VI_FIT_RESIZE_FITS_Y;
-							ev->ypos = ((long long)ev->ydisp - rect.bottom)/2;
+							ev->ypos = ((int64_t)ev->ydisp - rect.bottom)/2;
 						}
 					}
 	*/				InvalidateRect(hwnd, 0, 0);
@@ -6346,7 +6323,7 @@ errorf("destroyed strlist");
 		RECT rect;
 		HWND thwnd;
 		
-		long long i, len;
+		int64_t i, len;
 		FTEV *ev = 0;
 		char *buf, space_flag;
 		wchar_t *wbuf;
@@ -6403,9 +6380,9 @@ errorf("destroyed strlist");
 	errorf("fte user 1");
 				ev = GetWindowMem(hwnd);
 	errorf("fte user 2");
-				if ((unsigned long long) wParam == 0) {
-					ev->dnum = (unsigned long long) lParam;
-				} else if ((unsigned long long) wParam == 1) {
+				if ((uint64_t) wParam == 0) {
+					ev->dnum = (uint64_t) lParam;
+				} else if ((uint64_t) wParam == 1) {
 					ev->fnumchn = (oneslnk*) lParam;
 	errorf("fte user 2.2");
 					
@@ -6858,7 +6835,7 @@ errorf("destroyed strlist");
 		RECT rect;
 		HWND thwnd;
 		
-		long long i;
+		int64_t i;
 		
 		HDC hdc;
 		PAINTSTRUCT ps;
@@ -7055,7 +7032,7 @@ errorf("creating editsuperclass inner");
 						CleanEditText(thwnd);
 						
 						wchar_t *wbuf;
-						long long len;
+						int64_t len;
 						char *buf = NULL;
 						
 						len = GetWindowTextLengthW(thwnd);
@@ -7112,7 +7089,7 @@ errorf("creating editsuperclass inner");
 		RECT rect;
 		HWND thwnd;
 		
-		long long i, len;
+		int64_t i, len;
 		
 		HDC hdc;
 		PAINTSTRUCT ps;
@@ -7238,18 +7215,18 @@ errorf("creating editsuperclass inner");
 
 //}
 
-void DelRer(HWND hwnd, unsigned char option, STRLISTV const *slv) {	// changing would require replacing option and slv with nRows, StrListSel, strchn[0] and strchn[1] 
+void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would require replacing option and slv with nRows, StrListSel, strchn[0] and strchn[1] 
 	wchar_t *wbuf;
 	oneslnk *link, *flink, *inlink;
 	int i, j, pos;
 	char *buf, confirmed = 0;
 	RECT rect;
 	
-	//char (*rerf)(unsigned long long dnum, char *dpath) = drer;
-	//char (*rmvf)(unsigned long long dnum) = drmv;
+	//char (*rerf)(uint64_t dnum, char *dpath) = drer;
+	//char (*rmvf)(uint64_t dnum) = drmv;
 	//int (*crmvf)(oneslnk *dnumchn) = cdrmv;
-	char (*rerf)(unsigned long long dnum, char *dpath) = NULL;
-	char (*rmvf)(unsigned long long dnum) = NULL;
+	char (*rerf)(uint64_t dnum, char *dpath) = NULL;
+	char (*rmvf)(uint64_t dnum) = NULL;
 	int (*crmvf)(oneslnk *dnumchn) = NULL;
 	
 	link = flink = malloc(sizeof(oneslnk));
@@ -7410,14 +7387,14 @@ void DelRer(HWND hwnd, unsigned char option, STRLISTV const *slv) {	// changing 
 	killoneschn(flink, 1);
 }
 
-struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long long LastPage) {
+struct ListPage *GetPages(int32_t edge, uint64_t CurPage, uint64_t LastPage) {
 	// the selected page's button is centered unless buttons for all pages fit or the buttons left of a centered button would reach the left edge (that is no left arrow buttons are required) or reach the right edge to the right (no right arrows)
 
-	long endremainder, midremainder, taillen, headlen;
-	long selstart;
-	unsigned short decimals, decimals2;
-	unsigned long long pos, pos2 = 0, lastnum, lastnum2;
-	unsigned char status = 0;
+	int32_t endremainder, midremainder, taillen, headlen;
+	int32_t selstart;
+	uint16_t decimals, decimals2;
+	uint64_t pos, pos2 = 0, lastnum, lastnum2;
+	uint8_t status = 0;
 	struct ListPage *result;
 	
 	if (LastPage == 1 || (CurPage > LastPage) || (CurPage == 0)) {
@@ -7425,11 +7402,11 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 	}
 	
 	headlen = ((1+1)*CHAR_WIDTH+2*(PAGES_SPACE+PAGE_PAD)); // space for the left arrow and '1' button
-	decimals = (unsigned short) log10(LastPage)+1;
+	decimals = (uint16_t) log10(LastPage)+1;
 	taillen = ((1+decimals)*CHAR_WIDTH+2*(PAGES_SPACE+PAGE_PAD)); // space for the right arrow and last button
 	// headlen = taillen = ((3)*CHAR_WIDTH+2*(PAGES_SPACE+PAGE_PAD)) // if using double arrows instead of first and last page nums
 	
-	midremainder = (edge + ((unsigned short)(log10(CurPage)+1)*CHAR_WIDTH + PAGE_PAD)) / 2 - PAGES_SIDEBUF + PAGES_SPACE; // space to fit curpage button in middle
+	midremainder = (edge + ((uint16_t)(log10(CurPage)+1)*CHAR_WIDTH + PAGE_PAD)) / 2 - PAGES_SIDEBUF + PAGES_SPACE; // space to fit curpage button in middle
 	endremainder = edge - PAGES_SIDEBUF*2 + PAGES_SPACE;	// the first button doesn't have space at the front
 	if (endremainder - taillen < midremainder) {
 		midremainder = endremainder - taillen; // space to fit curpage button if tail is included
@@ -7442,7 +7419,7 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 	
 	pos = 1;
 	do {
-		decimals = (unsigned short) log10(pos)+1;
+		decimals = (uint16_t) log10(pos)+1;
 		lastnum = pow(10, decimals)-1;
 		
 		if (!(status & 4)) {
@@ -7451,7 +7428,7 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 					midremainder = endremainder - taillen;
 					pos2 = pos, lastnum2 = lastnum;
 					do { // determine last number and remaining space when with tail
-						decimals2 = (unsigned short) log10(pos2)+1;
+						decimals2 = (uint16_t) log10(pos2)+1;
 						lastnum2 = pow(10, decimals2)-1;
 						if ((lastnum2-pos2+1)*(decimals2*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE) >= midremainder) {	// if midremainder is larger it can be decremented
 							pos2 = pos2 - 1 + (midremainder) / (decimals2*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE);	// the last page that fits -- pos-1 to account for the space the first page take
@@ -7494,8 +7471,8 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 			result[pos-1].type = 0;
 			result[pos-1].str = utoc(pos);
 			result[pos-1].left = endremainder;
-			result[pos-1].right = endremainder+(((unsigned short) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD);
-			endremainder += (((unsigned short) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE);
+			result[pos-1].right = endremainder+(((uint16_t) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD);
+			endremainder += (((uint16_t) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE);
 		}
 		result[CurPage-1].type |= 1;
 		result[LastPage-1].type |= 2;
@@ -7510,8 +7487,8 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 			result[pos-1].type = 0;
 			result[pos-1].str = utoc(pos);
 			result[pos-1].left = endremainder;
-			result[pos-1].right = endremainder+(((unsigned short) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD);
-			endremainder += ((unsigned short) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
+			result[pos-1].right = endremainder+(((uint16_t) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD);
+			endremainder += ((uint16_t) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
 		}
 		result[CurPage-1].type |= 1;
 		result[pos-1].type = 0;
@@ -7524,11 +7501,11 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 //		result[pos].str = malloc(3), result[pos].str[0] = '>', result[pos].str[1] = '>', result[pos].str[2] = '\0';
 		result[pos].left = endremainder;
 //		result[pos].right = endremainder+2*CHAR_WIDTH+PAGE_PAD;
-		result[pos].right = endremainder+(((unsigned short) log10(LastPage)+1)*CHAR_WIDTH+PAGE_PAD);
+		result[pos].right = endremainder+(((uint16_t) log10(LastPage)+1)*CHAR_WIDTH+PAGE_PAD);
 		return result;
 	} else {
 		status = 0;
-		selstart = (edge - ((unsigned short)(log10(CurPage)+1)*CHAR_WIDTH + PAGE_PAD)) / 2;		// space before curpage button; not casting to unsigned short caused it to go off-center
+		selstart = (edge - ((uint16_t)(log10(CurPage)+1)*CHAR_WIDTH + PAGE_PAD)) / 2;		// space before curpage button; not casting to uint16_t caused it to go off-center
 		if (selstart < PAGES_SIDEBUF + headlen + PAGES_SPACE) {		// ensure end part doesn't overextend
 		//! also needs room for the space before (I think)(test later)(or is PAGES_SPACE extra if included in head)
 			selstart = PAGES_SIDEBUF + headlen + PAGES_SPACE;
@@ -7539,7 +7516,7 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 			endremainder = 0;
 		}
 		do {
-			decimals = (unsigned short) log10(pos)+1;
+			decimals = (uint16_t) log10(pos)+1;
 			lastnum = pow(10, decimals)-1;
 			
 			if (!(status & 2)) {
@@ -7547,7 +7524,7 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 					midremainder = endremainder-taillen;
 					pos2 = pos, lastnum2 = lastnum;
 					do { // determine last num before tail
-						decimals2 = (unsigned short) log10(pos2)+1;
+						decimals2 = (uint16_t) log10(pos2)+1;
 						lastnum2 = pow(10, decimals2)-1;
 						if ((lastnum2-pos2+1)*(decimals2*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE) >= midremainder) {
 							pos2 = pos2 - 1 + (midremainder) / (decimals2*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE);
@@ -7593,7 +7570,7 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 		}
 		pos = CurPage;
 		do {
-			decimals = (unsigned short) log10(pos-1)+1; 	// the actual pos doesn't need to fit
+			decimals = (uint16_t) log10(pos-1)+1; 	// the actual pos doesn't need to fit
 			lastnum = pow(10, decimals-1);
 			
 			if ((pos-lastnum)*(decimals*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE) >= endremainder) {
@@ -7627,8 +7604,8 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 			result[lastnum].type = 0;
 			result[lastnum].str = utoc(pos);
 			result[lastnum].left = endremainder;
-			result[lastnum].right = endremainder+(((unsigned short) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD);
-			endremainder += ((unsigned short) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
+			result[lastnum].right = endremainder+(((uint16_t) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD);
+			endremainder += ((uint16_t) log10(pos)+1)*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
 		}
 		if (!(status & 1)) {
 			result[lastnum].type = 0;
@@ -7642,7 +7619,7 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 //			result[lastnum].str = malloc(3), result[lastnum].str[0] = '>', result[lastnum].str[1] = '>', result[lastnum].str[2] = '\0';
 			result[lastnum].left = endremainder;
 //			result[lastnum].right = endremainder+2*CHAR_WIDTH+PAGE_PAD;
-			result[lastnum].right = endremainder+(((unsigned short) log10(LastPage)+1)*CHAR_WIDTH+PAGE_PAD);
+			result[lastnum].right = endremainder+(((uint16_t) log10(LastPage)+1)*CHAR_WIDTH+PAGE_PAD);
 			lastnum++;
 		}
 		lastnum--;
@@ -7653,8 +7630,8 @@ struct ListPage *GetPages(long edge, unsigned long long CurPage, unsigned long l
 }
 
 int CleanEditText(HWND hwnd) {
-	int i, offset;
-	long long len;
+	int32_t i, offset;
+	int64_t len;
 	wchar_t *buf;
 	DWORD selstart, selend;
 	
@@ -7696,8 +7673,8 @@ int CleanEditText(HWND hwnd) {
 char parsefiletagstr(char *input, oneslnk **parsedchn) {
 	oneslnk *flink, *link;
 	char buf[10000];
-	unsigned long long ull1, ull2;
-	unsigned char quoted;
+	uint64_t ull1, ull2;
+	uint8_t quoted;
 	
 	if (!parsedchn) {
 		errorf("no parsedchn");
@@ -7763,9 +7740,8 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 	return 0;
 }
 
-char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, oneslnk **remaliaschn, unsigned char presort) {		// if presorted for origchn
+char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, oneslnk **remaliaschn, uint8_t presort) {		// if presorted for origchn
 	oneslnk *parsedchn, *link1, *link2, *link3, *link4;
-	int i;
 	
 	if (!addaliaschn || !remaliaschn) {
 		errorf("no addaliaschn or no remaliaschn");
@@ -7795,7 +7771,9 @@ char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, one
 		}
 	}
 	
+////////
 if (!origchn) { errorf("remadd no origchn"); } else { errorf("remadd with origchn"); } //!
+////////
 
 	if (!presort && origchn) {
 		 origchn = copyoneschn(origchn, 0);
@@ -7807,7 +7785,7 @@ if (!origchn) { errorf("remadd no origchn"); } else { errorf("remadd with origch
 	} if (origchn && origchn->str == 0) {
 		errorf("origchn null string");
 	}
-	
+////////
 link1 = origchn;
 while (link1) {
 	errorf_old("origchn: %s", link1->str);
@@ -7818,10 +7796,13 @@ while (link1) {
 	errorf_old("parsedchn: %s", link1->str);
 	link1 = link1->next;
 }
+///////
+
 	link1 = parsedchn, link2 = origchn;
 	if (!presort) {
 		while (link1 && link2) {
-			if ((i = strcmp(link1->str, link2->str)) == 0) {
+			int32_t i = strcmp(link1->str, link2->str);
+			if (i == 0) {
 				if (link1 == parsedchn) {
 					parsedchn = parsedchn->next;
 					if (link1->str) free(link1->str);
@@ -7857,7 +7838,8 @@ while (link1) {
 		*remaliaschn = link4 = malloc(sizeof(oneslnk));
 		
 		while (link1 && link2) {
-			if ((i = strcmp(link1->str, link2->str)) == 0) {
+			int32_t i = strcmp(link1->str, link2->str);
+			if (i == 0) {
 				if (link1 == parsedchn) {
 					parsedchn = parsedchn->next;
 					if (link1->str) free(link1->str);

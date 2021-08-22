@@ -4,6 +4,7 @@
 #include "stringchains.h"
 
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct searchexpr {
 	unsigned short exprtype;
@@ -11,7 +12,7 @@ typedef struct searchexpr {
 		struct searchexpr *expr1;
 		union {
 			struct searchexpr *expr2;
-			unsigned long long refnum;
+			uint64_t refnum;
 		};
 	};
 } SREXP;
@@ -23,12 +24,12 @@ typedef struct srexplist {
 
 typedef struct superexpstack {
 	SREXP *expr;
-	unsigned long long subexp_layers;
+	uint64_t subexp_layers;
 	struct superexpstack *next;
 } SUPEXPSTACK;
 
 typedef struct tagnumstruct {
-	unsigned long long tagnum;
+	uint64_t tagnum;
 	unsigned char state;
 } TAGNUMNODE;
 
@@ -36,20 +37,20 @@ typedef struct sstruct {
 	TAGNUMNODE *tagnumarray;
 	unsigned long ntagnums;
 	struct searchexpr *rootexpr;
-	unsigned long long dnum;
+	uint64_t dnum;
 } SEARCHSTRUCT;
 
 struct subdirentry {
 	char *subdirstr;
 };
 
-unsigned long long rmiread(char *entrystr);
+uint64_t rmiread(char *entrystr);
 
 char rmirmv(char *entrystr);
 
-char rmirer(unsigned long long source, char *dest);
+char rmirer(uint64_t source, char *dest);
 
-char rmirmvnum(unsigned long long inum);
+char rmirmvnum(uint64_t inum);
 
 char crmireg(twoslnk *regchn);
 
@@ -57,23 +58,23 @@ char crmirer(oneslnk *rmchn, twoslnk *addchn);
 
 char crmirmvnum(oneslnk *rmchn);
 
-char mifrmv(unsigned long long inum);
+char mifrmv(uint64_t inum);
 
 char cmifrmv(oneslnk *inumchm);
 
-char setmilastchecked(unsigned long long inum, unsigned long long ulltime);
+char setmilastchecked(uint64_t inum, uint64_t ulltime);
 
-unsigned long long getmilastchecked(unsigned long long inum);
+uint64_t getmilastchecked(uint64_t inum);
 
-unsigned long long getlastminum(void);
+uint64_t getlastminum(void);
 
-unsigned long long mireg(char *entrystr);
+uint64_t mireg(char *entrystr);
 
-char *miread(unsigned long long inum);
+char *miread(uint64_t inum);
 
-char mirmv(unsigned long long inum);
+char mirmv(uint64_t inum);
 
-char mirer(unsigned long long inum, char *entrystr);
+char mirer(uint64_t inum, char *entrystr);
 
 int cmireg(oneslnk *entrystrchn);
 
@@ -83,145 +84,145 @@ int cmirmv(oneslnk *inumchn);
 
 int cmirer(twoslnk *rerchn);
 
-oneslnk *imiread(unsigned long long start, unsigned long long intrvl);
+oneslnk *imiread(uint64_t start, uint64_t intrvl);
 
 void verMII(void);
 
 
 
 
-char rdreg(unsigned long long minum, char *dpath, unsigned long long dnum);
+char rdreg(uint64_t minum, char *dpath, uint64_t dnum);
 
-unsigned long long rdread(unsigned long long minum, char *dpath);
+uint64_t rdread(uint64_t minum, char *dpath);
 
-char rdrmv(unsigned long long minum, char *dpath);
+char rdrmv(uint64_t minum, char *dpath);
 
-char rdrer(unsigned long long minum, unsigned long long source, char *dest);
+char rdrer(uint64_t minum, uint64_t source, char *dest);
 
-char rdrmvnum(unsigned long long minum, unsigned long long dnum);
+char rdrmvnum(uint64_t minum, uint64_t dnum);
 
-char crdreg(unsigned long long minum, twoslnk *regchn);
+char crdreg(uint64_t minum, twoslnk *regchn);
 
-char crdrer(unsigned long long minum, oneslnk *rmchn, twoslnk *addchn);
+char crdrer(uint64_t minum, oneslnk *rmchn, twoslnk *addchn);
 
-char crdrmvnum(unsigned long long minum, oneslnk *rmchn);
+char crdrmvnum(uint64_t minum, oneslnk *rmchn);
 
-char dfrmv(unsigned long long minum, unsigned long long dnum);
+char dfrmv(uint64_t minum, uint64_t dnum);
 
-char cdfrmv(unsigned long long minum, oneslnk *dnumchm);
+char cdfrmv(uint64_t minum, oneslnk *dnumchm);
 
-unsigned long long getlastdnum(unsigned long long minum);
+uint64_t getlastdnum(uint64_t minum);
 
-unsigned long long dreg(unsigned long long minum, char *dpath);
+uint64_t dreg(uint64_t minum, char *dpath);
 
-char *dread(unsigned long long minum, unsigned long long dnum);
+char *dread(uint64_t minum, uint64_t dnum);
 
-char drmv(unsigned long long minum, unsigned long long dnum);
+char drmv(uint64_t minum, uint64_t dnum);
 
-char drer(unsigned long long minum, unsigned long long dnum, char *dpath);
+char drer(uint64_t minum, uint64_t dnum, char *dpath);
 
-int cdreg(unsigned long long minum, oneslnk *dpathchn);
+int cdreg(uint64_t minum, oneslnk *dpathchn);
 
-oneslnk *cdread(unsigned long long minum, oneslnk *dnumchn);
+oneslnk *cdread(uint64_t minum, oneslnk *dnumchn);
 
-int cdrmv(unsigned long long minum, oneslnk *dnumchn);
+int cdrmv(uint64_t minum, oneslnk *dnumchn);
 
-int cdrer(unsigned long long minum, twoslnk *rerchn);
+int cdrer(uint64_t minum, twoslnk *rerchn);
 
-oneslnk *idread(unsigned long long minum, unsigned long long start, unsigned long long intrvl);
+oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl);
 
-void verDI(unsigned long long minum);
-
-
+void verDI(uint64_t minum);
 
 
-unsigned long long getlastsdnum(unsigned long long minum);
 
-oneslnk *isdread(unsigned long long minum, unsigned long long start, unsigned long long intrvl);	// returns malloc memory (the whole chain)
+
+uint64_t getlastsdnum(uint64_t minum);
+
+oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl);	// returns malloc memory (the whole chain)
 
 /*
 
-char raddtolastfnum(unsigned long long dnum, long long num);
+char raddtolastfnum(uint64_t dnum, long long num);
 
-char rfinit(unsigned long long dnum);
+char rfinit(uint64_t dnum);
 
-char rfireg(unsigned long long dnum, char *fname, unsigned long long fnum);
+char rfireg(uint64_t dnum, char *fname, uint64_t fnum);
 
-unsigned long long rfiread(unsigned long long dnum, char *fname);
+uint64_t rfiread(uint64_t dnum, char *fname);
 
-unsigned char crfireg(unsigned long long dnum, twoslnk *regchn);
+unsigned char crfireg(uint64_t dnum, twoslnk *regchn);
 
-unsigned char addtolastfnum(unsigned long long dnum, long long num, unsigned long long spot);
+unsigned char addtolastfnum(uint64_t dnum, long long num, uint64_t spot);
 
-unsigned long long getlastfnum(unsigned long long dnum);
+uint64_t getlastfnum(uint64_t dnum);
 
-unsigned long long finitpos(unsigned long long dnum, unsigned long long ifnum);
+uint64_t finitpos(uint64_t dnum, uint64_t ifnum);
 
-unsigned long long fireg(unsigned long long dnum, char *fname);
+uint64_t fireg(uint64_t dnum, char *fname);
 
-char cfireadtag(unsigned long long dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **rettags, unsigned char presort);
+char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **rettags, unsigned char presort);
 
-char *firead(unsigned long long dnum, unsigned long long fnum);
+char *firead(uint64_t dnum, uint64_t fnum);
 
-oneslnk *cfiread(unsigned long long dnum, oneslnk *fnumchn);
+oneslnk *cfiread(uint64_t dnum, oneslnk *fnumchn);
 
-unsigned char firmv(unsigned long long dnum, unsigned long long fnum);
+unsigned char firmv(uint64_t dnum, uint64_t fnum);
 
-int cfireg(unsigned long long dnum, oneslnk *fnamechn);
+int cfireg(uint64_t dnum, oneslnk *fnamechn);
 
-oneslnk *ifiread(unsigned long long dnum, unsigned long long start, unsigned long long intrvl);
+oneslnk *ifiread(uint64_t dnum, uint64_t start, uint64_t intrvl);
 
-unsigned char addremfnumctagc(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *remtagnums);
+unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *remtagnums);
 
-unsigned char addfnumctag(unsigned long long dnum, oneslnk *fnums, unsigned long long tagnum);
+unsigned char addfnumctag(uint64_t dnum, oneslnk *fnums, uint64_t tagnum);
 
-unsigned long long pfireg(char *fpath, unsigned char flag);
+uint64_t pfireg(char *fpath, unsigned char flag);
 
 unsigned char dirfreg(char *path, unsigned char flag);
 
-SEARCHSTRUCT *initftagsearch(char *searchstr, unsigned char *retarg, unsigned long long dnum);
+SEARCHSTRUCT *initftagsearch(char *searchstr, unsigned char *retarg, uint64_t dnum);
 
 int srexpvalue(SREXP *sexp, SEARCHSTRUCT *sstruct);
 
-unsigned char ftagcheck(FILE *file, unsigned long long fnum, SEARCHSTRUCT *sstruct);
+unsigned char ftagcheck(FILE *file, uint64_t fnum, SEARCHSTRUCT *sstruct);
 
 void killsearchexpr(struct searchexpr *sexp);
 
 void endsearch(SEARCHSTRUCT *sstruct);
 
-char *ffireadtagext(unsigned long long dnum, char *searchstr, char *exts);
+char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts);
 
-unsigned long long getframount(char *tfstr);
+uint64_t getframount(char *tfstr);
 
-unsigned long long frinitpos(char *tfstr, unsigned long long inpos, unsigned long long *retnpos);
+uint64_t frinitpos(char *tfstr, uint64_t inpos, uint64_t *retnpos);
 
-oneslnk *ifrread(char *tfstr, unsigned long long start, unsigned long long intrvl);
+oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl);
 
-char reftaliasrec(unsigned long long dnum);
+char reftaliasrec(uint64_t dnum);
 
-unsigned long long tainitpos(unsigned long long dnum, char *aliasstr);
+uint64_t tainitpos(uint64_t dnum, char *aliasstr);
 
-char aliasentryto(FILE *fromfile, FILE *tofile, unsigned long long aliascode);
+char aliasentryto(FILE *fromfile, FILE *tofile, uint64_t aliascode);
 
-char crtreg(unsigned long long dnum, oneslnk *tagnames, oneslnk *tagnums);
+char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums);
 
-char rtreg(unsigned long long dnum, char *tname, unsigned long long tagnum);
+char rtreg(uint64_t dnum, char *tname, uint64_t tagnum);
 
-oneslnk *tnumfromalias(unsigned long long dnum, oneslnk *aliaschn, oneslnk **retalias);
+oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias);
 
-unsigned long long tinitpos(unsigned long long dnum, unsigned long long ifnum);
+uint64_t tinitpos(uint64_t dnum, uint64_t ifnum);
 
-unsigned char addtolasttnum(unsigned long long dnum, long long num, unsigned long long spot);
+unsigned char addtolasttnum(uint64_t dnum, long long num, uint64_t spot);
 
-unsigned long long getlasttnum(unsigned long long dnum);
+uint64_t getlasttnum(uint64_t dnum);
 
-char tcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk **newtagnums, oneslnk *remtagnums);
+char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk **newtagnums, oneslnk *remtagnums);
 
-unsigned long long treg(unsigned long long dnum, char *tname, oneslnk *fnums);
+uint64_t treg(uint64_t dnum, char *tname, oneslnk *fnums);
 
-char ctread(unsigned long long dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **retfnums, unsigned char presort);
+char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **retfnums, unsigned char presort);
 
-char twowaytcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk *remtagnums, unsigned char presort);
+char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk *remtagnums, unsigned char presort);
 */
 
 #endif

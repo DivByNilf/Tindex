@@ -62,25 +62,28 @@ private:
 };
 
 template <typename T>
-class StreamFlusher {
+class StringBufFlusher {
 private:
-	std::basic_ostream<T> &stream;
+	std::basic_stringbuf<T> &buf;
 	
 public:
 	
-	StreamFlusher() = delete;
+	StringBufFlusher() = delete;
 	
-	StreamFlusher(std::basic_ostream<T> &stream_) : stream{stream_} {};
+	StringBufFlusher(std::basic_stringbuf<T> &buf_) : buf{buf_} {};
 	
-	virtual ~StreamFlusher() {
-		this->stream << std::flush;
+	virtual ~StringBufFlusher() {
+		// should not flush if nothing written
+		if (buf.str().length() >= 1) {
+			this->buf.pubsync();
+		}
 	}
 };
 
-FlushToFileBuf outerBuf;
+static FlushToFileBuf outerBuf;
 std::basic_ostream<char> g_errorfStream(&outerBuf);
 // flush the errorf stream when the program exits
-static StreamFlusher<char> FlushToFileHelper(g_errorfStream);
+static StringBufFlusher<char> FlushToFileHelper(outerBuf);
 
 void g_errorfDialogStdStr(std::string str) {
 	std::wstring wstr = utf8_to_utf16(str);

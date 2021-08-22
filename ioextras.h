@@ -11,4 +11,6 @@ char null_fgets(char *str, int n, FILE *stream);
 char pref_fgets(char *str, int n, FILE *stream);
 
 unsigned long long fgetull_pref(FILE *stream, int *feedback);
-	
+
+unsigned long long fgetull_len(FILE *stream, uint8_t len, int *feedback);
+

@@ -55,53 +55,53 @@ FILE *MBfopen(char*, char*);
 
 unsigned char raddtolastminum(long long num);
 
-unsigned long long rmiinitpos(char *idir);
+uint64_t rmiinitpos(char *idir);
 
 char rmiinit();
 
-char rmireg(char *entrystr, unsigned long long inum);
+char rmireg(char *entrystr, uint64_t inum);
 
-unsigned char addtolastminum(long long num, unsigned long long spot);
+unsigned char addtolastminum(long long num, uint64_t spot);
 
-unsigned long long miinitpos(unsigned long long iinum);
-
-
-
-unsigned char raddtolastdnum(unsigned long long minum, long long num);
-
-unsigned long long rdinitpos(unsigned long long minum, char *idir);
-
-char rdinit(unsigned long long minum);
-
-// // char setdlastchecked(unsigned long long minum, unsigned long long dnum, unsigned long long ulltime);
-
-// // unsigned long long getdlastchecked(unsigned long long minum, unsigned long long dnum);
-
-unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned long long spot);
-
-unsigned long long dinitpos(unsigned long long minum, unsigned long long idnum);
+uint64_t miinitpos(uint64_t iinum);
 
 
 
+unsigned char raddtolastdnum(uint64_t minum, long long num);
 
-unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned long long spot);
+uint64_t rdinitpos(uint64_t minum, char *idir);
 
-unsigned long long sdinitpos(unsigned long long minum, unsigned long long idnum);
+char rdinit(uint64_t minum);
+
+// // char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime);
+
+// // uint64_t getdlastchecked(uint64_t minum, uint64_t dnum);
+
+unsigned char addtolastdnum(uint64_t minum, long long num, uint64_t spot);
+
+uint64_t dinitpos(uint64_t minum, uint64_t idnum);
 
 
 
-int cfireg(unsigned long long dnum, oneslnk *fnamechn); //!
+
+unsigned char addtolastsdnum(uint64_t minum, long long num, uint64_t spot);
+
+uint64_t sdinitpos(uint64_t minum, uint64_t idnum);
 
 
-int tnumfromalias2(unsigned long long dnum, twoslnk **sourcelist);
+
+int cfireg(uint64_t dnum, oneslnk *fnamechn); //!
+
+
+int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist);
 
 struct arg_struct1 {
 	char *fileStrBase;
-	unsigned long long (*getlastentrynum)(void *args);
+	uint64_t (*getlastentrynum)(void *args);
 	void *getlastnum_args;
 	char (*crentryreg)(void *args, twoslnk *regchn); // reverse entry reg
 	void *crentryreg_args;
-	unsigned char (*addtolastentrynum)(void *args, long long num, unsigned long long spot);
+	unsigned char (*addtolastentrynum)(void *args, long long num, uint64_t spot);
 	void *addtolastentrynum_args;
 };
 
@@ -112,17 +112,17 @@ int cregformat1(oneslnk *inputchn, struct arg_struct1 *args) {
 	//dIndex
 	unsigned char buf[MAX_PATH*4]; //!
 	int c, i, j;
-	unsigned long long lastentrynum = 0;
+	uint64_t lastentrynum = 0;
 	//lastdnum = 0;
 	oneslnk *link;
 	long int maxentrylen = MAX_PATH*4;
 	
 	char *fileStrBase = args->fileStrBase;
-	unsigned long long (*getlastentrynum)(void *args) = args->getlastentrynum;
+	uint64_t (*getlastentrynum)(void *args) = args->getlastentrynum;
 	void *getlastnum_args = args->getlastnum_args;
 	char (*crentryreg)(void *args, twoslnk *regchn) = args->crentryreg; // reverse entry reg
 	void *crentryreg_args = args->crentryreg_args;
-	unsigned char (*addtolastentrynum)(void *args, long long num, unsigned long long spot) = args->addtolastentrynum;
+	unsigned char (*addtolastentrynum)(void *args, long long num, uint64_t spot) = args->addtolastentrynum;
 	void *addtolastentrynum_args = args->addtolastentrynum_args;
 	
 	//! checks
@@ -204,11 +204,11 @@ int cregformat1(oneslnk *inputchn, struct arg_struct1 *args) {
 	return 0;
 }
 
-unsigned long long funcarg_entryinitpos(unsigned long long (*entryinitpos)(unsigned long long), unsigned long long ientrynum) {
+uint64_t funcarg_entryinitpos(uint64_t (*entryinitpos)(uint64_t), uint64_t ientrynum) {
 	return entryinitpos(ientrynum);
 }
 
-unsigned long long funcarg_getlastentrynum(unsigned long long (*getlastentrynum)(void)) {
+uint64_t funcarg_getlastentrynum(uint64_t (*getlastentrynum)(void)) {
 	return getlastentrynum();
 }
 
@@ -216,7 +216,7 @@ char funcarg_crentryreg(char (*crentryreg)(twoslnk *), twoslnk *regchn) {
 	return crentryreg(regchn);
 }
 
-unsigned char funcarg_addtolastentrynum(unsigned char (*addtolastentrynum)(long long num, unsigned long long spot), long long num, unsigned long long spot) {
+unsigned char funcarg_addtolastentrynum(unsigned char (*addtolastentrynum)(long long num, uint64_t spot), long long num, uint64_t spot) {
 	return addtolastentrynum(num, spot);
 }
 	
@@ -228,7 +228,7 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 	char buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], ch;
 	int i, c;
 	FILE *rirec, *trirec, *rIndex;
-	unsigned long long inum, gap, pos = 0;
+	uint64_t inum, gap, pos = 0;
 	
 	char *rindexStrBase = "rmiIndex";
 	char *rrecStrBase = "rmiRec";
@@ -244,7 +244,7 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 	sprintf(buf3, "%s\\%s.bin", g_prgDir, indexStrBase);
 
 	if (((rirec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(rirec)) != EOF)) {
-		unsigned long long oldinum = 0;
+		uint64_t oldinum = 0;
 		
 		for (; i > 0; i--) {
 			oldinum *= 256;
@@ -287,7 +287,7 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 				}
 			}
 			if ((c = pref_fgets(0, 9, rIndex)) != 0) {
-				errorf("EOF before end of number");
+				errorf("EOF before end of number (raddtolastminum)(1)");
 				fclose(trirec), MBremove(buf), fclose(rIndex);
 				return 2;
 			}
@@ -331,7 +331,7 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 		}
 		
 		if ((c = pref_fgets(0, 9, rIndex)) != 0) {
-			errorf("EOF before end of number");
+			errorf("EOF before end of number (raddtolastminum)(2)");
 			fclose(trirec), MBremove(buf), fclose(rIndex);
 			return 2;
 		}
@@ -342,10 +342,10 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 }
 /* 
 
-unsigned long long rmiinitpos___(char *idir) {
+uint64_t rmiinitpos___(char *idir) {
 	char buf[MAX_PATH*4], ch;
 	int i, c, remade = 0;
-	unsigned long long dnum, pos = 0, lastdnum = 0, gotdnum;
+	uint64_t dnum, pos = 0, lastdnum = 0, gotdnum;
 	FILE *rdirec;
 	
 	sprintf(buf, "%s\\rdiRec.bin", g_prgDir);
@@ -427,7 +427,7 @@ unsigned long long rmiinitpos___(char *idir) {
 char rmiinit() {
 	unsigned char buf[MAX_PATH*4], *tfilestr;
 	FILE *rindexF, *indexF, *tfile;
-	unsigned long long cLen, ntfilesegs;
+	uint64_t cLen, ntfilesegs;
 	twoslnk *flink, *link;
 	int c, i;
 	
@@ -467,7 +467,7 @@ char rmiinit() {
 		for (i = 1; i <= link->u[0].str[0]; i++) {
 			link->u[0].str[i] = c = getc(indexF); 
 			if (c == EOF) {
-				errorf("EOF before end of number");
+				errorf("EOF before end of number (rmiinit)");
 				fclose(indexF), killtwoschn(flink, 0), releasetfile(tfilestr, ntfilesegs);
 				return 1;
 			}
@@ -552,7 +552,7 @@ char rmiinit() {
 }
 
 /*
-char rmireg___(char *dpath, unsigned long long dnum) {
+char rmireg___(char *dpath, uint64_t dnum) {
 	FILE *rdIndex, *trdIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], bif[MAX_PATH*4], done = 0;
 	int i, c, d;
@@ -632,8 +632,8 @@ char rmireg___(char *dpath, unsigned long long dnum) {
 	return 0;
 }
 
-unsigned long long rmiread___(char *dpath) {		// reverse dread  //! untested
-	unsigned long long dnum = 0;
+uint64_t rmiread___(char *dpath) {		// reverse dread  //! untested
+	uint64_t dnum = 0;
 	FILE *rdIndex;
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
@@ -741,11 +741,11 @@ char rmirmv___(char *dpath) {  //! untested
 	return 4;
 }
 
-char rmirer___(unsigned long long source, char *dest) {
+char rmirer___(uint64_t source, char *dest) {
 	FILE *rdIndex, *trdIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], bef[MAX_PATH*4], fin1 = 0, fin2 = 0;
 	int c, i;
-	unsigned long long dnum = 0;
+	uint64_t dnum = 0;
 	
 	sprintf(bef, "%s\\rdIndex.bin", g_prgDir);
 	
@@ -816,7 +816,7 @@ char rmirer___(unsigned long long source, char *dest) {
 	return 4;
 }
 
-char rmirmvnum___(unsigned long long dnum) {		//! not done
+char rmirmvnum___(uint64_t dnum) {		//! not done
 	rdinit();
 	return 1;
 }
@@ -840,7 +840,7 @@ char crmirmvnum___(oneslnk *rmchn) {		//! not done
 	return 1;
 }
 
-char mifrmv___(unsigned long long dnum) {		//! not done
+char mifrmv___(uint64_t dnum) {		//! not done
 	rdinit();
 	return 1;
 }
@@ -850,9 +850,9 @@ char cmifrmv___(oneslnk *dnumchm) {		//! not done
 	return 1;
 }
 
-char passmiextra___(FILE *src, FILE *dst, unsigned long long ull) {
+char passmiextra___(FILE *src, FILE *dst, uint64_t ull) {
 	int c;
-	unsigned long long ull2;
+	uint64_t ull2;
 	if (ull == 0) {
 		ull2 = fgetull_pref(src, &c);
 		if (c != 0) {
@@ -868,8 +868,8 @@ char passmiextra___(FILE *src, FILE *dst, unsigned long long ull) {
 	}
 }
 
-char setmilastchecked___(unsigned long long dnum, unsigned long long ulltime) {		// no record for offsets in file	//! not extensively tested
-	unsigned long long tnum, tnum2;
+char setmilastchecked___(uint64_t dnum, uint64_t ulltime) {		// no record for offsets in file	//! not extensively tested
+	uint64_t tnum, tnum2;
 	FILE *dExtras, *tdExtras;
 	int c, i;
 	unsigned char fin = 0;
@@ -978,8 +978,8 @@ char setmilastchecked___(unsigned long long dnum, unsigned long long ulltime) {	
 	return 0;
 }
 
-unsigned long long getmilastchecked___(unsigned long long dnum) {
-	unsigned long long ulltime, tnum, tnum2;
+uint64_t getmilastchecked___(uint64_t dnum) {
+	uint64_t ulltime, tnum, tnum2;
 	FILE *dExtras;
 	int c, i;
 	char buf[MAX_PATH*4];
@@ -1045,11 +1045,11 @@ unsigned long long getmilastchecked___(unsigned long long dnum) {
 //}
 
 //{ main index
-unsigned char addtolastminum(long long num, unsigned long long spot) { // 0 as num to just refresh from spot //! generalize
+unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just refresh from spot //! generalize
 	char buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], ch;
 	int i, c;
 	FILE *irec, *tirec, *indexF;
-	unsigned long long inum = 0, gap = 0, pos = 0;
+	uint64_t inum = 0, gap = 0, pos = 0;
 	
 	char *indexStrBase = "dIndex";
 	char *recStrBase = "diRec";
@@ -1065,7 +1065,7 @@ unsigned char addtolastminum(long long num, unsigned long long spot) { // 0 as n
 	
 
 	if (((irec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(irec)) != EOF)) {
-		unsigned long long oldinum = 0;
+		uint64_t oldinum = 0;
 		
 		for (; i > 0; i--) {
 			oldinum *= 256;
@@ -1149,7 +1149,7 @@ unsigned char addtolastminum(long long num, unsigned long long spot) { // 0 as n
 				return 0;
 			} else {
 				oldinum = inum;
-				unsigned long long tpos;
+				uint64_t tpos;
 				while ((c = getc(irec)) != EOF) {
 					for (ch = c, i = 1, inum = 0; i++ <= ch && (c = getc(irec)) != EOF; inum *= 256, inum += c);
 					for (ch = getc(irec), i = 1, tpos = 0; i++ <= ch && (c = getc(irec)) != EOF; tpos *= 256, tpos += c);
@@ -1187,7 +1187,7 @@ unsigned char addtolastminum(long long num, unsigned long long spot) { // 0 as n
 				inum *= 256;
 				inum += c = getc(indexF);
 				if (c == EOF) {
-					errorf("EOF before end of number");
+					errorf("EOF before end of number (addtolastminum)");
 					fclose(tirec), MBremove(buf), fclose(indexF);
 					return 2;
 				}
@@ -1272,15 +1272,15 @@ unsigned char addtolastminum(long long num, unsigned long long spot) { // 0 as n
 	return 0;
 }
 
-unsigned long long getlastminum(void) { //! generalize
+uint64_t getlastminum(void) { //! generalize
 	char buf[MAX_PATH*4];
 	int i, c;
-	unsigned long long lastinum = 0;
+	uint64_t lastinum = 0;
 	FILE *file;
 	
 	
 	char *fileStrBase = "miRec";
-	unsigned char (*addtolastinum)(long long num, unsigned long long spot) = addtolastminum;
+	unsigned char (*addtolastinum)(long long num, uint64_t spot) = addtolastminum;
 	
 	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	
@@ -1298,7 +1298,7 @@ unsigned long long getlastminum(void) { //! generalize
 			if (file != NULL) {
 				fclose(file);
 			}
-			errorf("couldn't access irec");
+			errorf("couldn't access irec (getlastminum)");
 			return 0;
 		}		
 	}
@@ -1315,14 +1315,14 @@ unsigned long long getlastminum(void) { //! generalize
 	return lastinum;
 }
 
-unsigned long long miinitpos(unsigned long long iinum) {
+uint64_t miinitpos(uint64_t iinum) {
 	char buf[MAX_PATH*4], ch;
 	int i, c;
-	unsigned long long inum, pos = 0;
+	uint64_t inum, pos = 0;
 	FILE *irec;
 	
 	char *fileStrBase = "miRec";
-	unsigned char (*addtolastinum)(long long num, unsigned long long spot) = addtolastminum;
+	unsigned char (*addtolastinum)(long long num, uint64_t spot) = addtolastminum;
 	
 	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	
@@ -1333,7 +1333,7 @@ unsigned long long miinitpos(unsigned long long iinum) {
 		if (((irec = MBfopen(buf, "rb")) == NULL) || ((i = getc(irec)) == EOF)) {
 			if (irec != NULL)
 				fclose(irec);
-			errorf("couldn't access irec");
+			errorf("couldn't access irec (miinitpos)");
 			return 0;
 		}		
 	}
@@ -1354,7 +1354,7 @@ unsigned long long miinitpos(unsigned long long iinum) {
 	return pos;
 }
 
-unsigned long long mireg(char *miname) {
+uint64_t mireg(char *miname) {
 	int c;
 	oneslnk *link = malloc(sizeof(oneslnk));
 	link->next = NULL;
@@ -1365,13 +1365,13 @@ unsigned long long mireg(char *miname) {
 	return c;
 }
 
-char *miread(unsigned long long minum) {	// returns malloc memory
+char *miread(uint64_t minum) {	// returns malloc memory
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	FILE *indexF;
 	
-	unsigned long long entrynum = minum;
+	uint64_t entrynum = minum;
 	char *fileStrBase = "miIndex";
 	#define entryinitpos(entrynum) miinitpos(entrynum)
 	
@@ -1420,7 +1420,7 @@ char *miread(unsigned long long minum) {	// returns malloc memory
 	return 0;
 }
 
-// char mirmv___(unsigned long long dnum) {
+// char mirmv___(uint64_t dnum) {
 	// int c;
 	// oneslnk *link = malloc(sizeof(oneslnk));
 	// link->next = NULL;
@@ -1431,11 +1431,11 @@ char *miread(unsigned long long minum) {	// returns malloc memory
 	// return c;
 // }
 
-// char mirer___(unsigned long long dnum, char *dpath) {		// reroute
+// char mirer___(uint64_t dnum, char *dpath) {		// reroute
 	// FILE *dIndex, *tIndex;
 	// unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], fin = 0;
 	// int c, i, j;
-	// unsigned long long tnum;
+	// uint64_t tnum;
 	
 	// for (i = 0; dpath[i] != '\0' && i != MAX_PATH*4; i++);
 	// if (i >= MAX_PATH*4) {
@@ -1543,14 +1543,14 @@ int cmireg_(oneslnk *minamechn) {
 	struct arg_struct1 format_args = {};
 	
 	format_args.fileStrBase = "miIndex";
-	format_args.getlastentrynum = (unsigned long long (*)(void *)) funcarg_getlastentrynum;
+	format_args.getlastentrynum = (uint64_t (*)(void *)) funcarg_getlastentrynum;
 	format_args.getlastnum_args = getlastminum;
 	format_args.crentryreg = NULL;
 	format_args.crentryreg_args = NULL;
 	//!
 	//format_args.crentryreg = (char (*)(void *args, twoslnk *regchn)) funcarg_crentryreg;
 	//format_args.crentryreg_args = crmireg;
-	format_args.addtolastentrynum = (unsigned char (*)(void *args, long long num, unsigned long long spot)) funcarg_addtolastentrynum;
+	format_args.addtolastentrynum = (unsigned char (*)(void *args, long long num, uint64_t spot)) funcarg_addtolastentrynum;
 	format_args.addtolastentrynum_args = addtolastminum;
 	
 	int c = cregformat1(minamechn, &format_args);
@@ -1601,7 +1601,7 @@ int cmireg(oneslnk *minamechn) {
 		created = 1;
 	}
 	
-	unsigned long long lastentrynum = 0;
+	uint64_t lastentrynum = 0;
 	
 	//if (lastdnum = getlastdnum()) {
 	if ( (!created) && ((lastentrynum = getlastentrynum()) > 0) ) {
@@ -1662,7 +1662,7 @@ int cmirmv___(oneslnk *dnumchn) {
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
 	int c, i, j;
 	oneslnk *flink;
-	unsigned long long nremoved = 0, tnum;
+	uint64_t nremoved = 0, tnum;
 	
 	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
@@ -1782,7 +1782,7 @@ int cmirer___(twoslnk *rerchn) {		//! untested
 	int c, i, j;
 	twoslnk *flink;
 	oneslnk *foslnk = 0, *oslnk;
-	unsigned long long tnum;
+	uint64_t tnum;
 	
 	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
@@ -1908,10 +1908,10 @@ int cmirer___(twoslnk *rerchn) {		//! untested
 
 */
 
-oneslnk *imiread(unsigned long long start, unsigned long long intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *flnk, *lastlnk;
 	FILE *indexF;
 				
@@ -1920,7 +1920,7 @@ oneslnk *imiread(unsigned long long start, unsigned long long intrvl) {	// retur
 		return 0;
 	}
 	
-	unsigned long long entrynum = start;
+	uint64_t entrynum = start;
 	char *fileStrBase = "miIndex";
 	#define entryinitpos(ientrynum) miinitpos(ientrynum)
 	
@@ -2039,7 +2039,7 @@ void verDI___(VOID) { // check for order, duplicates, gaps, 0 character strings
 }
  */
  
-int existsmi(unsigned long long minum) {
+int existsmi(uint64_t minum) {
 	 char *p = 0;
 	 
 	 if ( (p = miread(minum)) != NULL ) {
@@ -2054,8 +2054,11 @@ int existsmi(unsigned long long minum) {
 
 //{ dir 2nd layer
 
-/* 
-unsigned char raddtolastdnum(unsigned long long minum, long long num) { // 0 to just refresh
+unsigned char raddtolastdnum(uint64_t minum, long long num) { // 0 to just refresh
+	return 0;
+	
+	//! TODO: implement
+
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2064,7 +2067,7 @@ unsigned char raddtolastdnum(unsigned long long minum, long long num) { // 0 to 
 	char buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], ch;
 	int i, c;
 	FILE *rdirec, *trdirec, *rdIndex;
-	unsigned long long dnum, gap, pos = 0;
+	uint64_t dnum, gap, pos = 0;
 
 	sprintf(buf, "%s\\rdiRec.tmp", g_prgDir);
 	if ((trdirec = MBfopen(buf, "wb")) == NULL) {
@@ -2075,7 +2078,7 @@ unsigned char raddtolastdnum(unsigned long long minum, long long num) { // 0 to 
 	sprintf(buf3, "%s\\rdIndex.bin", g_prgDir);
 
 	if (((rdirec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(rdirec)) != EOF)) {
-		unsigned long long olddnum = 0;
+		uint64_t olddnum = 0;
 		
 		for (; i > 0; i--) {
 			olddnum *= 256;
@@ -2171,8 +2174,9 @@ unsigned char raddtolastdnum(unsigned long long minum, long long num) { // 0 to 
 	MBrename(buf, buf2);
 	return 0;
 }
+/* 
 
-unsigned long long rdinitpos(unsigned long long minum, char *idir) {
+uint64_t rdinitpos(uint64_t minum, char *idir) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 0;
@@ -2180,7 +2184,7 @@ unsigned long long rdinitpos(unsigned long long minum, char *idir) {
 	
 	char buf[MAX_PATH*4], ch;
 	int i, c, remade = 0;
-	unsigned long long dnum, pos = 0, lastdnum = 0, gotdnum;
+	uint64_t dnum, pos = 0, lastdnum = 0, gotdnum;
 	FILE *rdirec;
 	
 	sprintf(buf, "%s\\rdiRec.bin", g_prgDir);
@@ -2259,7 +2263,7 @@ unsigned long long rdinitpos(unsigned long long minum, char *idir) {
 
 */
 
-char rdinit(unsigned long long minum) {
+char rdinit(uint64_t minum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (rdinit)", minum);
 		return 1;
@@ -2267,7 +2271,7 @@ char rdinit(unsigned long long minum) {
 	
 	unsigned char buf[MAX_PATH*4], *tfilestr;
 	FILE *rindexF, *indexF, *tfile;
-	unsigned long long cLen, ntfilesegs;
+	uint64_t cLen, ntfilesegs;
 	twoslnk *flink, *link;
 	int c, i;
 	
@@ -2287,7 +2291,7 @@ char rdinit(unsigned long long minum) {
 		return 1;
 	}
 	
-	#define raddtolastinum(num) raddtolastminum(num)
+	#define raddtolastinum(num) raddtolastdnum(minum, num)
 	
 	ntfilesegs = 0;
 	if ((tfilestr = reservetfile()) == 0) {
@@ -2307,7 +2311,7 @@ char rdinit(unsigned long long minum) {
 		for (i = 1; i <= link->u[0].str[0]; i++) {
 			link->u[0].str[i] = c = getc(indexF); 
 			if (c == EOF) {
-				errorf("EOF before end of number");
+				errorf("EOF before end of number (rdinit)");
 				fclose(indexF), killtwoschn(flink, 0), releasetfile(tfilestr, ntfilesegs);
 				return 1;
 			}
@@ -2393,7 +2397,7 @@ char rdinit(unsigned long long minum) {
 
 /*
 
-char rdreg___(unsigned long long minum, char *dpath, unsigned long long dnum) {
+char rdreg___(uint64_t minum, char *dpath, uint64_t dnum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2401,13 +2405,13 @@ char rdreg___(unsigned long long minum, char *dpath, unsigned long long dnum) {
 	
 	
 }
-unsigned long long rdread(unsigned long long minum, char *dpath) {		// reverse dread  //! untested
+uint64_t rdread(uint64_t minum, char *dpath) {		// reverse dread  //! untested
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 0;
 	}
 	
-	unsigned long long dnum = 0;
+	uint64_t dnum = 0;
 	FILE *rdIndex;
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
@@ -2450,7 +2454,7 @@ unsigned long long rdread(unsigned long long minum, char *dpath) {		// reverse d
 	return 0;
 }
 
-char rdrmv(unsigned long long minum, char *dpath) {  //! untested
+char rdrmv(uint64_t minum, char *dpath) {  //! untested
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2520,7 +2524,7 @@ char rdrmv(unsigned long long minum, char *dpath) {  //! untested
 	return 4;
 }
 
-char rdrer(unsigned long long minum, unsigned long long source, char *dest) {
+char rdrer(uint64_t minum, uint64_t source, char *dest) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2529,7 +2533,7 @@ char rdrer(unsigned long long minum, unsigned long long source, char *dest) {
 	FILE *rdIndex, *trdIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], bef[MAX_PATH*4], fin1 = 0, fin2 = 0;
 	int c, i;
-	unsigned long long dnum = 0;
+	uint64_t dnum = 0;
 	
 	sprintf(bef, "%s\\rdIndex.bin", g_prgDir);
 	
@@ -2600,7 +2604,7 @@ char rdrer(unsigned long long minum, unsigned long long source, char *dest) {
 	return 4;
 }
 
-char rdrmvnum(unsigned long long minum, unsigned long long dnum) {		//! not done
+char rdrmvnum(uint64_t minum, uint64_t dnum) {		//! not done
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2612,7 +2616,7 @@ char rdrmvnum(unsigned long long minum, unsigned long long dnum) {		//! not done
 
 */
 
-char crdreg(unsigned long long minum, twoslnk *regchn) {		//! not done
+char crdreg(uint64_t minum, twoslnk *regchn) {		//! not done
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (crdreg)", minum);
 		return 1;
@@ -2624,7 +2628,7 @@ char crdreg(unsigned long long minum, twoslnk *regchn) {		//! not done
 
 /*
 
-char crdrer(unsigned long long minum, oneslnk *rmchn, twoslnk *addchn) {		//! not done // assuming only one entry per dname, easily fixed by making rmchn twoslnk with dnum as well
+char crdrer(uint64_t minum, oneslnk *rmchn, twoslnk *addchn) {		//! not done // assuming only one entry per dname, easily fixed by making rmchn twoslnk with dnum as well
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2634,7 +2638,7 @@ char crdrer(unsigned long long minum, oneslnk *rmchn, twoslnk *addchn) {		//! no
 	return 1;
 }
 
-char crdrmvnum(unsigned long long minum, oneslnk *rmchn) {		//! not done
+char crdrmvnum(uint64_t minum, oneslnk *rmchn) {		//! not done
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2644,7 +2648,7 @@ char crdrmvnum(unsigned long long minum, oneslnk *rmchn) {		//! not done
 	return 1;
 }
 
-char dfrmv(unsigned long long minum, unsigned long long dnum) {		//! not done
+char dfrmv(uint64_t minum, uint64_t dnum) {		//! not done
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2654,7 +2658,7 @@ char dfrmv(unsigned long long minum, unsigned long long dnum) {		//! not done
 	return 1;
 }
 
-char cdfrmv(unsigned long long minum, oneslnk *dnumchm) {		//! not done
+char cdfrmv(uint64_t minum, oneslnk *dnumchm) {		//! not done
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -2664,14 +2668,14 @@ char cdfrmv(unsigned long long minum, oneslnk *dnumchm) {		//! not done
 	return 1;
 }
 
-char passdextra(unsigned long long minum, FILE *src, FILE *dst, unsigned long long ull) {
+char passdextra(uint64_t minum, FILE *src, FILE *dst, uint64_t ull) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
 	int c;
-	unsigned long long ull2;
+	uint64_t ull2;
 	if (ull == 0) {
 		ull2 = fgetull_pref(src, &c);
 		if (c != 0) {
@@ -2687,13 +2691,13 @@ char passdextra(unsigned long long minum, FILE *src, FILE *dst, unsigned long lo
 	}
 }
 
-char setdlastchecked(unsigned long long minum, unsigned long long dnum, unsigned long long ulltime) {		// no record for offsets in file	//! not extensively tested
+char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no record for offsets in file	//! not extensively tested
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
-	unsigned long long tnum, tnum2;
+	uint64_t tnum, tnum2;
 	FILE *dExtras, *tdExtras;
 	int c, i;
 	unsigned char fin = 0;
@@ -2802,13 +2806,13 @@ char setdlastchecked(unsigned long long minum, unsigned long long dnum, unsigned
 	return 0;
 }
 
-unsigned long long getdlastchecked(unsigned long long minum, unsigned long long dnum) {
+uint64_t getdlastchecked(uint64_t minum, uint64_t dnum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 0;
 	}
 	
-	unsigned long long ulltime, tnum, tnum2;
+	uint64_t ulltime, tnum, tnum2;
 	FILE *dExtras;
 	int c, i;
 	char buf[MAX_PATH*4];
@@ -2875,7 +2879,7 @@ unsigned long long getdlastchecked(unsigned long long minum, unsigned long long 
 
 //{ directory
 
-unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned long long spot) { // 0 as num to just refresh from spot
+unsigned char addtolastdnum(uint64_t minum, long long num, uint64_t spot) { // 0 as num to just refresh from spot
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (addtolastdnum)", minum);
 		return 1;
@@ -2897,9 +2901,9 @@ unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned lo
 	sprintf(buf2, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase); // rec
 	sprintf(buf3, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, indexStrBase); // index
 	
-	unsigned long long inum = 0, gap = 0, pos = 0;
+	uint64_t inum = 0, gap = 0, pos = 0;
 	if (((irec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(irec)) != EOF)) {
-		unsigned long long oldinum = 0;
+		uint64_t oldinum = 0;
 		
 		for (; i > 0; i--) {
 			oldinum *= 256;
@@ -2917,6 +2921,8 @@ unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned lo
 		}
 		inum = oldinum + num;
 		putull_pref(inum, tirec);
+errorf("new inum: %llu", inum);
+errorf("old inum was: %llu", oldinum);
 		
 		if ((gap = (long long) sqrt(inum)) == (long long) sqrt(oldinum)) {
 			if (num > 0) {
@@ -2983,7 +2989,7 @@ unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned lo
 				return 0;
 			} else {
 				oldinum = inum;
-				unsigned long long tpos;
+				uint64_t tpos;
 				while ((c = getc(irec)) != EOF) {
 					for (ch = c, i = 1, inum = 0; i++ <= ch && (c = getc(irec)) != EOF; inum *= 256, inum += c);
 					for (ch = getc(irec), i = 1, tpos = 0; i++ <= ch && (c = getc(irec)) != EOF; tpos *= 256, tpos += c);
@@ -3021,7 +3027,7 @@ unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned lo
 				inum *= 256;
 				inum += c = getc(indexF);
 				if (c == EOF) {
-					errorf("EOF before end of number");
+					errorf("EOF before end of number (addtolastinum 1)");
 					fclose(tirec), MBremove(buf), fclose(indexF);
 					return 2;
 				}
@@ -3045,6 +3051,8 @@ unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned lo
 			fclose(tirec), MBremove(buf);
 			return 3;
 		}
+		
+errorf("counted inum: %llu", inum);
 		
 		putull_pref(inum, tirec);
 		gap = sqrt(inum);
@@ -3106,7 +3114,7 @@ unsigned char addtolastdnum(unsigned long long minum, long long num, unsigned lo
 	return 0;
 }
 
-unsigned long long getlastdnum(unsigned long long minum) {
+uint64_t getlastdnum(uint64_t minum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (getlastdnum)", minum);
 		return 0;
@@ -3114,15 +3122,16 @@ unsigned long long getlastdnum(unsigned long long minum) {
 	
 	char buf[MAX_PATH*4];
 	int i, c;
-	unsigned long long lastinum = 0;
+	uint64_t lastinum = 0;
 	FILE *file;
 	
 	char *fileStrBase = "diRec";
-	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastdnum;
+	unsigned char (*addtolastinum)(uint64_t minum, long long num, uint64_t spot) = addtolastdnum;
 	
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	
 	if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
+errorf("had no dnum to fetch");
 		if (file != NULL) {
 			fclose(file);
 		}
@@ -3136,7 +3145,7 @@ unsigned long long getlastdnum(unsigned long long minum) {
 			if (file != NULL) {
 				fclose(file);
 			}
-			errorf("couldn't access irec");
+			errorf("couldn't access irec (getlastinum)");
 			return 0;
 		}		
 	}
@@ -3153,7 +3162,7 @@ unsigned long long getlastdnum(unsigned long long minum) {
 	return lastinum;
 }
 
-unsigned long long dinitpos(unsigned long long minum, unsigned long long idnum) {
+uint64_t dinitpos(uint64_t minum, uint64_t idnum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (dinitpos)", minum);
 		return 0;
@@ -3161,12 +3170,12 @@ unsigned long long dinitpos(unsigned long long minum, unsigned long long idnum) 
 	
 	char buf[MAX_PATH*4], ch;
 	int i, c;
-	unsigned long long inum, pos = 0;
+	uint64_t inum, pos = 0;
 	FILE *irec;
 	
-	unsigned long long iinum = idnum;
+	uint64_t iinum = idnum;
 	char *fileStrBase = "diRec";
-	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastdnum;
+	unsigned char (*addtolastinum)(uint64_t minum, long long num, uint64_t spot) = addtolastdnum;
 	
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, inum, fileStrBase);
 	
@@ -3177,7 +3186,7 @@ unsigned long long dinitpos(unsigned long long minum, unsigned long long idnum) 
 		if (((irec = MBfopen(buf, "rb")) == NULL) || ((i = getc(irec)) == EOF)) {
 			if (irec != NULL)
 				fclose(irec);
-			errorf("couldn't access irec");
+			errorf("couldn't access irec (dinitpos)");
 			return 0;
 		}		
 	}
@@ -3202,7 +3211,7 @@ unsigned long long dinitpos(unsigned long long minum, unsigned long long idnum) 
 
 */
 
-unsigned long long dreg(unsigned long long minum, char *dpath) {
+uint64_t dreg(uint64_t minum, char *dpath) {
 	int c;
 	oneslnk *link = malloc(sizeof(oneslnk));
 	link->next = NULL;
@@ -3213,7 +3222,7 @@ unsigned long long dreg(unsigned long long minum, char *dpath) {
 	return c;
 }
 
-char *dread(unsigned long long minum, unsigned long long dnum) {	// returns malloc memory
+char *dread(uint64_t minum, uint64_t dnum) {	// returns malloc memory
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (dread)", minum);
 		return 0;
@@ -3221,10 +3230,10 @@ char *dread(unsigned long long minum, unsigned long long dnum) {	// returns mall
 	
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	FILE *indexF;
 	
-	unsigned long long entrynum = dnum;
+	uint64_t entrynum = dnum;
 	char *fileStrBase = "dIndex";
 	#define entryinitpos(entrynum) dinitpos(minum, entrynum)
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
@@ -3274,7 +3283,7 @@ char *dread(unsigned long long minum, unsigned long long dnum) {	// returns mall
 
 /*
 
-char drmv(unsigned long long minum, unsigned long long dnum) {
+char drmv(uint64_t minum, uint64_t dnum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -3290,7 +3299,7 @@ char drmv(unsigned long long minum, unsigned long long dnum) {
 	return c;
 }
 
-char drer(unsigned long long minum, unsigned long long dnum, char *dpath) {		// reroute
+char drer(uint64_t minum, uint64_t dnum, char *dpath) {		// reroute
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -3299,7 +3308,7 @@ char drer(unsigned long long minum, unsigned long long dnum, char *dpath) {		// 
 	FILE *dIndex, *tIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], fin = 0;
 	int c, i, j;
-	unsigned long long tnum;
+	uint64_t tnum;
 	
 	for (i = 0; dpath[i] != '\0' && i != MAX_PATH*4; i++);
 	if (i >= MAX_PATH*4) {
@@ -3405,11 +3414,13 @@ char drer(unsigned long long minum, unsigned long long dnum, char *dpath) {		// 
 
 */
 
-int cdreg(unsigned long long minum, oneslnk *dpathchn) {
+int cdreg(uint64_t minum, oneslnk *dpathchn) {
+errorf("callign existsmi");
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (cdreg)", minum);
 		return 1;
 	}
+errorf("after existsmi");
 	
 	long int maxentrylen = MAX_PATH*4;
 	
@@ -3453,7 +3464,7 @@ int cdreg(unsigned long long minum, oneslnk *dpathchn) {
 		created = 1;
 	}
 	
-	unsigned long long lastentrynum = 0;
+	uint64_t lastentrynum = 0;
 	
 	//if (lastdnum = getlastdnum()) {
 	if ( (!created) && ((lastentrynum = getlastentrynum()) > 0) ) {
@@ -3462,6 +3473,7 @@ int cdreg(unsigned long long minum, oneslnk *dpathchn) {
 	} else {
 		int c;
 		while ((c = getc(indexF)) != EOF) {
+			//! TODO: check for cohesion
 			if (fseek(indexF, c, SEEK_CUR)) {
 				errorf("fseek failed");
 				fclose(indexF);
@@ -3498,15 +3510,17 @@ int cdreg(unsigned long long minum, oneslnk *dpathchn) {
 	crentryreg(numentrychn);
 	#undef crentryreg
 	killtwoschn(numentrychn, 3);
+	fclose(indexF);
+errorf("adding to last dnum");
+	// going to count wrong if indexF not closed
 	addtolastinum(i, 0);
 	#undef addtolastinum
-	fclose(indexF);
 	return 0;
 }
 
 /*
 
-oneslnk *cdread(unsigned long long minum, oneslnk *dnumchn) {		//! not done
+oneslnk *cdread(uint64_t minum, oneslnk *dnumchn) {		//! not done
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 0;
@@ -3516,7 +3530,7 @@ oneslnk *cdread(unsigned long long minum, oneslnk *dnumchn) {		//! not done
 	return NULL; //!
 }
 
-int cdrmv(unsigned long long minum, oneslnk *dnumchn) {
+int cdrmv(uint64_t minum, oneslnk *dnumchn) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -3526,7 +3540,7 @@ int cdrmv(unsigned long long minum, oneslnk *dnumchn) {
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
 	int c, i, j;
 	oneslnk *flink;
-	unsigned long long nremoved = 0, tnum;
+	uint64_t nremoved = 0, tnum;
 	
 	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
@@ -3640,7 +3654,7 @@ int cdrmv(unsigned long long minum, oneslnk *dnumchn) {
 	return 1;
 }
 
-int cdrer(unsigned long long minum, twoslnk *rerchn) {		//! untested
+int cdrer(uint64_t minum, twoslnk *rerchn) {		//! untested
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false", minum);
 		return 1;
@@ -3651,7 +3665,7 @@ int cdrer(unsigned long long minum, twoslnk *rerchn) {		//! untested
 	int c, i, j;
 	twoslnk *flink;
 	oneslnk *foslnk = 0, *oslnk;
-	unsigned long long tnum;
+	uint64_t tnum;
 	
 	sprintf(buf, "%s\\dIndex.bin", g_prgDir);
 	if ((dIndex = MBfopen(buf, "rb")) == NULL) {
@@ -3777,7 +3791,7 @@ int cdrer(unsigned long long minum, twoslnk *rerchn) {		//! untested
 
 */
 
-oneslnk *idread(unsigned long long minum, unsigned long long start, unsigned long long intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (idread)", minum);
 		return 0;
@@ -3785,7 +3799,7 @@ oneslnk *idread(unsigned long long minum, unsigned long long start, unsigned lon
 	
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *flnk, *lastlnk;
 	FILE *indexF;
 				
@@ -3794,7 +3808,7 @@ oneslnk *idread(unsigned long long minum, unsigned long long start, unsigned lon
 		return 0;
 	}
 	
-	unsigned long long entrynum = start;
+	uint64_t entrynum = start;
 	char *fileStrBase = "dIndex";
 	#define entryinitpos(ientrynum) dinitpos(minum, ientrynum)
 	
@@ -3923,9 +3937,9 @@ int readSubdirEntryTo(FILE *sourcef, struct subdirentry *dest) {
 	
 }
 
-unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned long long spot) { // 0 as num to just refresh from spot
+unsigned char addtolastsdnum(uint64_t minum, long long num, uint64_t spot) { // 0 as num to just refresh from spot
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (addtolastdnum)", minum);
+		errorf("existsmi(%llu) returned false (addtolastsdnum)", minum);
 		return 1;
 	}
 	
@@ -3945,9 +3959,9 @@ unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned l
 	sprintf(buf2, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase); // rec
 	sprintf(buf3, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, indexStrBase); // index
 	
-	unsigned long long inum = 0, gap = 0, pos = 0;
+	uint64_t inum = 0, gap = 0, pos = 0;
 	if (((irec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(irec)) != EOF)) {
-		unsigned long long oldinum = 0;
+		uint64_t oldinum = 0;
 		
 		for (; i > 0; i--) {
 			oldinum *= 256;
@@ -3965,6 +3979,7 @@ unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned l
 		}
 		inum = oldinum + num;
 		putull_pref(inum, tirec);
+errorf("new inum: %d", inum);
 		
 		if ((gap = (long long) sqrt(inum)) == (long long) sqrt(oldinum)) {
 			if (num > 0) {
@@ -4031,7 +4046,7 @@ unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned l
 				return 0;
 			} else {
 				oldinum = inum;
-				unsigned long long tpos;
+				uint64_t tpos;
 				while ((c = getc(irec)) != EOF) {
 					for (ch = c, i = 1, inum = 0; i++ <= ch && (c = getc(irec)) != EOF; inum *= 256, inum += c);
 					for (ch = getc(irec), i = 1, tpos = 0; i++ <= ch && (c = getc(irec)) != EOF; tpos *= 256, tpos += c);
@@ -4069,7 +4084,7 @@ unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned l
 				inum *= 256;
 				inum += c = getc(indexF);
 				if (c == EOF) {
-					errorf("EOF before end of number");
+					errorf("EOF before end of number (addtolastinum)");
 					fclose(tirec), MBremove(buf), fclose(indexF);
 					return 2;
 				}
@@ -4154,7 +4169,7 @@ unsigned char addtolastsdnum(unsigned long long minum, long long num, unsigned l
 	return 0;
 }
 
-unsigned long long getlastsdnum(unsigned long long minum) {
+uint64_t getlastsdnum(uint64_t minum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false ([func] getlastsdnum)", minum);
 		return 0;
@@ -4162,11 +4177,11 @@ unsigned long long getlastsdnum(unsigned long long minum) {
 	
 	char buf[MAX_PATH*4];
 	int i, c;
-	unsigned long long lastinum = 0;
+	uint64_t lastinum = 0;
 	FILE *file;
 	
 	char *fileStrBase = "sdiRec";
-	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastsdnum;
+	unsigned char (*addtolastinum)(uint64_t minum, long long num, uint64_t spot) = addtolastsdnum;
 	
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	
@@ -4201,7 +4216,7 @@ unsigned long long getlastsdnum(unsigned long long minum) {
 	return lastinum;
 }
 
-unsigned long long sdinitpos(unsigned long long minum, unsigned long long idnum) {
+uint64_t sdinitpos(uint64_t minum, uint64_t idnum) {
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false (dinitpos)", minum);
 		return 0;
@@ -4210,12 +4225,12 @@ unsigned long long sdinitpos(unsigned long long minum, unsigned long long idnum)
 	
 	char buf[MAX_PATH*4], ch;
 	int i, c;
-	unsigned long long inum, pos = 0;
+	uint64_t inum, pos = 0;
 	FILE *irec;
 	
-	unsigned long long iinum = idnum;
+	uint64_t iinum = idnum;
 	char *fileStrBase = "sdiRec";
-	unsigned char (*addtolastinum)(unsigned long long minum, long long num, unsigned long long spot) = addtolastdnum;
+	unsigned char (*addtolastinum)(uint64_t minum, long long num, uint64_t spot) = addtolastdnum;
 	
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, inum, fileStrBase);
 	
@@ -4226,7 +4241,7 @@ unsigned long long sdinitpos(unsigned long long minum, unsigned long long idnum)
 		if (((irec = MBfopen(buf, "rb")) == NULL) || ((i = getc(irec)) == EOF)) {
 			if (irec != NULL)
 				fclose(irec);
-			errorf("couldn't access irec");
+			errorf("couldn't access irec (sdinitpos)");
 			return 0;
 		}		
 	}
@@ -4247,7 +4262,7 @@ unsigned long long sdinitpos(unsigned long long minum, unsigned long long idnum)
 	return pos;
 }
 
-oneslnk *isdread(unsigned long long minum, unsigned long long start, unsigned long long intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
 	if (!existsmi(minum)) {
 		errorf("existsmi(%llu) returned false ([func] isdread)", minum);
 		return 0;
@@ -4255,7 +4270,7 @@ oneslnk *isdread(unsigned long long minum, unsigned long long start, unsigned lo
 	
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *flnk, *lastlnk;
 	FILE *indexF;
 				
@@ -4264,7 +4279,7 @@ oneslnk *isdread(unsigned long long minum, unsigned long long start, unsigned lo
 		return 0;
 	}
 	
-	unsigned long long entrynum = start;
+	uint64_t entrynum = start;
 	char *fileStrBase = "sdIndex";
 	#define entryinitpos(ientrynum) sdinitpos(minum, ientrynum)
 	
@@ -4377,7 +4392,7 @@ oneslnk *isdread(unsigned long long minum, unsigned long long start, unsigned lo
 //}
 
 //{ file 2nd layer
-char raddtolastfnum(unsigned long long dnum, long long num) {		//! not done
+char raddtolastfnum(uint64_t dnum, long long num) {		//! not done
 	if (dnum == 0) {
 		errorf("dnum is zero in raddtolastfnum");
 		return 0;
@@ -4385,10 +4400,10 @@ char raddtolastfnum(unsigned long long dnum, long long num) {		//! not done
 	return 0; //!
 }
 
-char rfinit(unsigned long long dnum) { //! untested
+char rfinit(uint64_t dnum) { //! untested
 	unsigned char buf[MAX_PATH*4], *tfilestr;
 	FILE *rfIndex, *fIndex, *tfile;
-	unsigned long long cLen, ntfilesegs;
+	uint64_t cLen, ntfilesegs;
 	twoslnk *flink, *link;
 	int c, i;
 
@@ -4424,7 +4439,7 @@ char rfinit(unsigned long long dnum) { //! untested
 		for (i = 1; i <= link->u[0].str[0]; i++) {
 			link->u[0].str[i] = c = getc(fIndex); 
 			if (c == EOF) {
-				errorf("EOF before end of number");
+				errorf("EOF before end of number (rfinit)");
 				fclose(fIndex), link->next = 0, killtwoschn(flink, 0), releasetfile(tfilestr, ntfilesegs);
 				return 2;
 			}
@@ -4519,7 +4534,7 @@ char rfinit(unsigned long long dnum) { //! untested
 	return 0;
 }
 
-char rfireg(unsigned long long dnum, char *fname, unsigned long long fnum) { //! untested
+char rfireg(uint64_t dnum, char *fname, uint64_t fnum) { //! untested
 	FILE *rfIndex, *trfIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], bif[MAX_PATH*4], done = 0;
 	int i, c, d;
@@ -4604,19 +4619,19 @@ char rfireg(unsigned long long dnum, char *fname, unsigned long long fnum) { //!
 	
 }
 
-unsigned long long rfiread(unsigned long long dnum, char *fname) { // Returns file entry number if entry exists or zero if it doesn't exist.		//! not done
+uint64_t rfiread(uint64_t dnum, char *fname) { // Returns file entry number if entry exists or zero if it doesn't exist.		//! not done
 
 	return 0; //!
 }
 
-unsigned char crfireg(unsigned long long dnum, twoslnk *regchn) {		//! not done
+unsigned char crfireg(uint64_t dnum, twoslnk *regchn) {		//! not done
 	rfinit(dnum);
 	return 0; //!
 }
 
-char passfextra(FILE *src, FILE *dst, unsigned long long ull) {
+char passfextra(FILE *src, FILE *dst, uint64_t ull) {
 	int c;
-	unsigned long long ull2;
+	uint64_t ull2;
 	if (ull == 0) {
 		ull2 = fgetull_pref(src, &c);
 		if (c != 0) {
@@ -4632,13 +4647,13 @@ char passfextra(FILE *src, FILE *dst, unsigned long long ull) {
 	}
 }
 
-int regfiledates(unsigned long long dnum, oneslnk *fnums) {
+int regfiledates(uint64_t dnum, oneslnk *fnums) {
 	unsigned char buf[MAX_PATH*4], buf2[MAX_PATH*4], nofile = 0;
 	FILE *fextras, *dst;
-	unsigned long long ull1, ull2;
+	uint64_t ull1, ull2;
 	int c;
 	
-	unsigned long long ulltime = time(0);
+	uint64_t ulltime = time(0);
 	
 	if (dnum == 0) {
 		errorf("dnum is 0 in regfiledates");
@@ -4762,12 +4777,12 @@ int regfiledates(unsigned long long dnum, oneslnk *fnums) {
 //}
 
 //{ file
-unsigned char addtolastfnum(unsigned long long dnum, long long num, unsigned long long spot) { // 0 as num to just refresh from spot		//! not done
+unsigned char addtolastfnum(uint64_t dnum, long long num, uint64_t spot) { // 0 as num to just refresh from spot		//! not done
 /*
 	char buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], ch;
 	int i, c;
 	FILE *direc, *tdirec, *dIndex;
-	unsigned long long dnum, gap, pos = 0;
+	uint64_t dnum, gap, pos = 0;
 
 	sprintf(buf, "%s\\diRec.tmp", g_prgDir);
 	if ((tdirec = MBfopen(buf, "wb")) == NULL) {
@@ -4778,7 +4793,7 @@ unsigned char addtolastfnum(unsigned long long dnum, long long num, unsigned lon
 	sprintf(buf3, "%s\\dIndex.bin", g_prgDir);
 
 	if (((direc = MBfopen(buf2, "rb")) != NULL) && ((i = getc(direc)) != EOF)) {
-		unsigned long long olddnum = 0;
+		uint64_t olddnum = 0;
 		
 		for (; i > 0; i--) {
 			olddnum *= 256;
@@ -4862,7 +4877,7 @@ unsigned char addtolastfnum(unsigned long long dnum, long long num, unsigned lon
 				return 0;
 			} else {
 				olddnum = dnum;
-				unsigned long long tpos;
+				uint64_t tpos;
 				while ((c = getc(direc)) != EOF) {
 					for (ch = c, i = 1, dnum = 0; i++ <= ch && (c = getc(direc)) != EOF; dnum *= 256, dnum += c);
 					for (ch = getc(direc), i = 1, tpos = 0; i++ <= ch && (c = getc(direc)) != EOF; tpos *= 256, tpos += c);
@@ -4978,11 +4993,11 @@ unsigned char addtolastfnum(unsigned long long dnum, long long num, unsigned lon
 	return 0; //!
 }
 
-unsigned long long getlastfnum(unsigned long long dnum) {		//! not done
+uint64_t getlastfnum(uint64_t dnum) {		//! not done
 	/*
 	char buf[MAX_PATH*4];
 	int i, c;
-	unsigned long long lastdnum = 0;
+	uint64_t lastdnum = 0;
 	FILE *file;
 	
 	sprintf(buf, "%s\\diRec.bin", g_prgDir);
@@ -5013,10 +5028,10 @@ unsigned long long getlastfnum(unsigned long long dnum) {		//! not done
 	return 0; //!
 }
 
-unsigned long long finitpos(unsigned long long dnum, unsigned long long ifnum) { /*		//! not done
+uint64_t finitpos(uint64_t dnum, uint64_t ifnum) { /*		//! not done
 	char buf[MAX_PATH*4], ch;
 	int i, c;
-	unsigned long long dnum, pos = 0;
+	uint64_t dnum, pos = 0;
 	FILE *direc;
 	
 	sprintf(buf, "%s\\diRec.bin", g_prgDir);
@@ -5051,7 +5066,7 @@ unsigned long long finitpos(unsigned long long dnum, unsigned long long ifnum) {
 	return 0;
 }
 
-unsigned long long fireg(unsigned long long dnum, char *fname) {
+uint64_t fireg(uint64_t dnum, char *fname) {
 	int c;
 	
 	oneslnk *fnamechn = malloc(sizeof(oneslnk));
@@ -5064,11 +5079,11 @@ unsigned long long fireg(unsigned long long dnum, char *fname) {
 	return c;
 }
 
-unsigned long long fireg_old(unsigned long long dnum, char *fname) {
+uint64_t fireg_old(uint64_t dnum, char *fname) {
 	FILE *fIndex;
 	unsigned char buf[MAX_PATH*4];
 	int c, i, j;
-	unsigned long long lastfnum = 0;
+	uint64_t lastfnum = 0;
 
 	if (dnum == 0) {
 		errorf("dnum is zero in fireg");
@@ -5132,11 +5147,11 @@ unsigned long long fireg_old(unsigned long long dnum, char *fname) {
 	return lastfnum;
 }
 
-char cfireadtag(unsigned long long dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **rettags, unsigned char presort) {	//! untested
+char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **rettags, unsigned char presort) {	//! untested
 	FILE *fIndex;
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *tlink, *link1, *link2, *link3, *link4, *link5;
 	
 	if (retfname)
@@ -5291,11 +5306,11 @@ char cfireadtag(unsigned long long dnum, oneslnk *fnums, oneslnk **retfname, one
 	return 0;
 }
 
-char *firead(unsigned long long dnum, unsigned long long fnum) {	//! untested // returns malloc memory		
+char *firead(uint64_t dnum, uint64_t fnum) {	//! untested // returns malloc memory		
 	FILE *fIndex;
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	
 	if (dnum == 0) {
 		errorf("dnum is 0");
@@ -5357,7 +5372,7 @@ char *firead(unsigned long long dnum, unsigned long long fnum) {	//! untested //
 	return 0;
 }
 
-oneslnk *cfiread(unsigned long long dnum, oneslnk *fnumchn) {
+oneslnk *cfiread(uint64_t dnum, oneslnk *fnumchn) {
 	int c;
 	oneslnk *retlnk;
 	
@@ -5371,16 +5386,16 @@ oneslnk *cfiread(unsigned long long dnum, oneslnk *fnumchn) {
 	}
 }
 
-unsigned char firmv(unsigned long long dnum, unsigned long long fnum) {		//! not done
+unsigned char firmv(uint64_t dnum, uint64_t fnum) {		//! not done
 	
 	return 0; //!
 }
 
-int cfireg(unsigned long long dnum, oneslnk *fnamechn) {
+int cfireg(uint64_t dnum, oneslnk *fnamechn) {
 	FILE *fIndex;
 	unsigned char buf[MAX_PATH*4];
 	int c, i, j;
-	unsigned long long lastfnum = 0;
+	uint64_t lastfnum = 0;
 	oneslnk *link, *link2, *link3;
 	twoslnk *numnamechn, *fnumname;
 	
@@ -5477,11 +5492,11 @@ int cfireg(unsigned long long dnum, oneslnk *fnamechn) {
 	return 0;
 }
 
-oneslnk *ifiread(unsigned long long dnum, unsigned long long start, unsigned long long intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *ifiread(uint64_t dnum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
 	FILE *fIndex;
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *flnk, *lastlnk;
 	
 	if (dnum == 0) {
@@ -5617,12 +5632,12 @@ oneslnk *ifiread(unsigned long long dnum, unsigned long long start, unsigned lon
 	return 0;
 }
 
-unsigned char addremfnumctagc(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *remtagnums) {		//! untested
+unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *remtagnums) {		//! untested
 	FILE *fIndex, *tfIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], done;
 	int c, i, j;
 	oneslnk *flink, *link1, *link2;
-	unsigned long long tnum;
+	uint64_t tnum;
 	
 	if (dnum == 0) {
 		errorf("dnum is 0");
@@ -5810,7 +5825,7 @@ unsigned char addremfnumctagc(unsigned long long dnum, oneslnk *fnums, oneslnk *
 	return 0;
 }
 
-unsigned char addfnumctag(unsigned long long dnum, oneslnk *fnums, unsigned long long tagnum) {	//!untested
+unsigned char addfnumctag(uint64_t dnum, oneslnk *fnums, uint64_t tagnum) {	//!untested
 	int c;
 	oneslnk *link;
 	
@@ -5827,9 +5842,9 @@ unsigned char addfnumctag(unsigned long long dnum, oneslnk *fnums, unsigned long
 	return c;
 }
 /*
-unsigned long long pfireg(char *fpath, unsigned char flag) {	// Registers file from path --  bit 1 of flag: register directory if not registered, 2: check whether file is already registered first, 3: return 0 if already registered
+uint64_t pfireg(char *fpath, unsigned char flag) {	// Registers file from path --  bit 1 of flag: register directory if not registered, 2: check whether file is already registered first, 3: return 0 if already registered
 	char buf1[MAX_PATH*4], buf2[MAX_PATH*4];
-	unsigned long long dnum, fnum;
+	uint64_t dnum, fnum;
 	
 	breakpathdf(fpath, buf1, buf2);
 	if ((dnum = rdread(buf1)) == 0) {
@@ -5854,7 +5869,7 @@ unsigned long long pfireg(char *fpath, unsigned char flag) {	// Registers file f
 */
 /*
 unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register directory if not registered, 2: remove files that only exist in index (maybe only if they have no tags or associated things), 3: register subdirectories, 4: reinitialize rfIndex, 5: set dir checked date, 6: don't mark missing files as missing, 7: register files from directories recursively
-	unsigned long long dnum;
+	uint64_t dnum;
 	char *s, *s2, buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], firecfin = 0, keep = 0, empty = 0, skipdirs = 1, recdirs = 0;
 	FILE *tfile, *tfile2, *rfIndex;
 	int c, i;
@@ -5863,7 +5878,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 	skipdirs = !(flag & (1 << (3-1)));
 	recdirs = !!(flag & (1 << (7-1)));
 	
-	unsigned long long ulltime = time(0);
+	uint64_t ulltime = time(0);
 	
 	if ((dnum = rdread(path)) == 0) {
 		if (flag & 1) {
@@ -5927,9 +5942,9 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 			keep = 1;
 			term_fputs(buf, tfile2);
 			sprintf(buf3, "%s\\%s", path, buf);
-			unsigned long long ull = getfilemodified(buf3);
+			uint64_t ull = getfilemodified(buf3);
 			putull_pref(ull, tfile2);
-//char *timetostr(unsigned long long ulltime);
+//char *timetostr(uint64_t ulltime);
 //char *buf6 = timetostr(getfilemodified(buf3));
 //errorf("file: %s \ntime: %llu\nreal: %s", buf3, ull, buf6);
 //free(buf6);
@@ -5967,7 +5982,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 		}
 		fgetull_pref(tfile2, &c);
 		
-//unsigned long long ull = fgetull_pref(tfile2, &c);
+//uint64_t ull = fgetull_pref(tfile2, &c);
 //errorf("2: file: %s \n time: %llu", buf, ull);
 		if (c) {
 			errorf("fgetull_pref error");
@@ -6166,13 +6181,13 @@ errorf("buf: %s", buf);
 	return 0;
 }
 		
-SEARCHSTRUCT *initftagsearch(char *searchstr, unsigned char *retarg, unsigned long long dnum) { //! implement
+SEARCHSTRUCT *initftagsearch(char *searchstr, unsigned char *retarg, uint64_t dnum) { //! implement
 	retarg? *retarg = 0:0;
 	if (!searchstr) {	
 		return NULL;
 	}
 	long long i;
-	unsigned long long subexp_layers;
+	uint64_t subexp_layers;
 	unsigned char uc, do_implicit, saved_expr, neg, anyneg;
 	twoslnk *numstack, *aliasstack, *nextlnk;	// one for the pointer back, one for the number
 	SREXP *sexp1, *sexp2, *rootexp;
@@ -6443,7 +6458,7 @@ if (aliasstack) {
 	
 	lnk = aliasstack;
 	i = 0;
-	unsigned long long prev = 0;
+	uint64_t prev = 0;
 	
 	while (lnk != NULL) {
 		nextlnk = lnk->next;
@@ -6551,7 +6566,7 @@ void killsearchexpr(struct searchexpr *sexp) {
 }
 
 int srexpvalue(SREXP *sexp, SEARCHSTRUCT *sstruct) {
-	unsigned short exprtype = sexp->exprtype;
+	uint16_t exprtype = sexp->exprtype;
 	if (exprtype == SREXP_TYPE_TAGNUM) {
 		return sstruct->tagnumarray[sexp->refnum].state;
 	} else if (exprtype == SREXP_TYPE_AND) {
@@ -6574,9 +6589,9 @@ int srexpvalue(SREXP *sexp, SEARCHSTRUCT *sstruct) {
 	}
 }
 
-unsigned char ftagcheck(FILE *file, unsigned long long fnum, SEARCHSTRUCT *sstruct) {
+unsigned char ftagcheck(FILE *file, uint64_t fnum, SEARCHSTRUCT *sstruct) {
 	long long i;
-	unsigned long long tagnum;
+	uint64_t tagnum;
 	int c;
 	
 	if (sstruct->ntagnums <= 0) {
@@ -6631,11 +6646,11 @@ void endsearch(SEARCHSTRUCT *sstruct) {
 	free(sstruct);
 }
 
-char *ffireadtagext(unsigned long long dnum, char *searchstr, char *exts) {	// returns tfile
+char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfile
 	FILE *fIndex, *tfile, *tfilerec;
 	unsigned char buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], *p, *p2, *p3, ascending = 0, uc;
 	int c, i, flag;
-	unsigned long long tnum, nPut = 0, gap, nPos, fPos;
+	uint64_t tnum, nPut = 0, gap, nPos, fPos;
 	char *tfstr;
 	SEARCHSTRUCT *sstruct;
 	
@@ -6782,9 +6797,9 @@ char *ffireadtagext(unsigned long long dnum, char *searchstr, char *exts) {	// r
 	}
 }
 
-unsigned long long getframount(char *tfstr) {
+uint64_t getframount(char *tfstr) {
 	int i, c;
-	unsigned long long fram = 0;
+	uint64_t fram = 0;
 	FILE *file;
 	
 	if (tfstr == 0) {
@@ -6811,10 +6826,10 @@ unsigned long long getframount(char *tfstr) {
 	return fram;
 }
 
-unsigned long long frinitpos(char *tfstr, unsigned long long inpos, unsigned long long *retnpos) {
+uint64_t frinitpos(char *tfstr, uint64_t inpos, uint64_t *retnpos) {
 	char buf[MAX_PATH*4], ch;
 	int i, c;
-	unsigned long long npos, pos = 0, lastnpos = 0;
+	uint64_t npos, pos = 0, lastnpos = 0;
 	FILE *file;
 	
 	if (!retnpos) {
@@ -6853,11 +6868,11 @@ unsigned long long frinitpos(char *tfstr, unsigned long long inpos, unsigned lon
 	return pos;
 }
 
-oneslnk *ifrread(char *tfstr, unsigned long long start, unsigned long long intrvl) {
+oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
 	FILE *tfile;
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
-	unsigned long long tnum, npos;
+	uint64_t tnum, npos;
 	oneslnk *flnk, *lastlnk;
 	
 	if (tfstr == 0) {
@@ -6932,7 +6947,7 @@ oneslnk *ifrread(char *tfstr, unsigned long long start, unsigned long long intrv
 //}
 //{ tag 2nd layer
 
-char reftaliasrec(unsigned long long dnum) {	//ref for refresh		//! not done
+char reftaliasrec(uint64_t dnum) {	//ref for refresh		//! not done
 	if (dnum == 0) {
 		errorf("dnum is zero in refaliasrec");
 		return 1;
@@ -6940,12 +6955,12 @@ char reftaliasrec(unsigned long long dnum) {	//ref for refresh		//! not done
 	return 0;
 }
 
-unsigned long long tainitpos(unsigned long long dnum, char *aliasstr) {
+uint64_t tainitpos(uint64_t dnum, char *aliasstr) {
 	return 0;
 }
 
-char aliasentryto(FILE *fromfile, FILE *tofile, unsigned long long aliascode) {	// doesn't write aliascode		//! untested
-	unsigned long long tnum;
+char aliasentryto(FILE *fromfile, FILE *tofile, uint64_t aliascode) {	// doesn't write aliascode		//! untested
+	uint64_t tnum;
 	int c;
 	
 	switch (aliascode) {
@@ -6964,11 +6979,11 @@ char aliasentryto(FILE *fromfile, FILE *tofile, unsigned long long aliascode) {	
 	return 0;
 }
 
-char crtreg(unsigned long long dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
+char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 	FILE *tAlias, *ttAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
 	int i, c, j;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *link1, *link2;
 	twoslnk *ftwolink, *twolink, twolink2;
 	
@@ -7103,7 +7118,7 @@ char crtreg(unsigned long long dnum, oneslnk *tagnames, oneslnk *tagnums) { //! 
 	return 0;
 }
 
-char rtreg(unsigned long long dnum, char *tname, unsigned long long tagnum) { //! untested
+char rtreg(uint64_t dnum, char *tname, uint64_t tagnum) { //! untested
 	int i;
 	oneslnk *link1, *link2;
 	
@@ -7137,11 +7152,11 @@ char rtreg(unsigned long long dnum, char *tname, unsigned long long tagnum) { //
 	return 0;
 }
 
-oneslnk *tnumfromalias(unsigned long long dnum, oneslnk *aliaschn, oneslnk **retalias) { //! untested	//! in the future: resolve multiple tags from alias and alias from alias -- option to read only original tag aliases
+oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { //! untested	//! in the future: resolve multiple tags from alias and alias from alias -- option to read only original tag aliases
 	FILE *tAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], done = 0;
 	int i, c, d;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *retchn, *retlnk, *aretlnk, *flink;
 	
 	if (retalias) {
@@ -7247,11 +7262,11 @@ oneslnk *tnumfromalias(unsigned long long dnum, oneslnk *aliaschn, oneslnk **ret
 	return retlnk;
 }
 
-int tnumfromalias2(unsigned long long dnum, twoslnk **sourcelist) {
+int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 	FILE *tAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], done = 0;
 	int i, c, d;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *retchn, *retlnk, *aretlnk;
 	
 	if (dnum == 0) {
@@ -7339,10 +7354,10 @@ int tnumfromalias2(unsigned long long dnum, twoslnk **sourcelist) {
 
 //}
 //{ tag
-unsigned long long tinitpos(unsigned long long dnum, unsigned long long ifnum) { /*		//! not done
+uint64_t tinitpos(uint64_t dnum, uint64_t ifnum) { /*		//! not done
 	char buf[MAX_PATH*4], ch;
 	int i, c;
-	unsigned long long dnum, pos = 0;
+	uint64_t dnum, pos = 0;
 	FILE *direc;
 	
 	sprintf(buf, "%s\\diRec.bin", g_prgDir);
@@ -7377,17 +7392,17 @@ unsigned long long tinitpos(unsigned long long dnum, unsigned long long ifnum) {
 	return 0;
 }
 
-unsigned char addtolasttnum(unsigned long long dnum, long long num, unsigned long long spot) { // 0 as num to just refresh from spot		//! not done -- make sure it refreshes from beginning even when num is positive
+unsigned char addtolasttnum(uint64_t dnum, long long num, uint64_t spot) { // 0 as num to just refresh from spot		//! not done -- make sure it refreshes from beginning even when num is positive
 
 	return 0; //!
 }
 
-unsigned long long getlasttnum(unsigned long long dnum) {		//! not done
+uint64_t getlasttnum(uint64_t dnum) {		//! not done
 	return 0;
 	/*
 	char buf[MAX_PATH*4];
 	int i, c;
-	unsigned long long lastdnum = 0;
+	uint64_t lastdnum = 0;
 	FILE *file;
 	
 	sprintf(buf, "%s\\diRec.bin", g_prgDir);
@@ -7417,11 +7432,11 @@ unsigned long long getlasttnum(unsigned long long dnum) {		//! not done
 	*/
 }
 
-char tcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk **newtagnums, oneslnk *remtagnums) {	//! untested
+char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk **newtagnums, oneslnk *remtagnums) {	//! untested
 	FILE *tIndex, *ttIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
 	int c, i;
-	unsigned long long j, tnum, lasttnum = 0;
+	uint64_t j, tnum, lasttnum = 0;
 	oneslnk *link1, *link2, *faddtagnums, *fregtagnames, *fnewtagnums, *fremtagnums;
 
 	if (dnum == 0) {
@@ -7711,9 +7726,9 @@ char tcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, o
 	return 0;
 }
 
-unsigned long long treg(unsigned long long dnum, char *tname, oneslnk *fnums) {
+uint64_t treg(uint64_t dnum, char *tname, oneslnk *fnums) {
 	int c, i;
-	unsigned long long lasttnum = 0;
+	uint64_t lasttnum = 0;
 	oneslnk *link, *rettagnum;
 
 	if (tname) {
@@ -7738,11 +7753,11 @@ unsigned long long treg(unsigned long long dnum, char *tname, oneslnk *fnums) {
 	return lasttnum;
 }
 
-char ctread(unsigned long long dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **retfnums, unsigned char presort) {	//! untested
+char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **retfnums, unsigned char presort) {	//! untested
 	FILE *tIndex;
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
-	unsigned long long tnum;
+	uint64_t tnum;
 	oneslnk *link1, *link2, *link3, *link4, *link5, *tlink;
 	
 	if (rettagname)
@@ -7898,7 +7913,7 @@ char ctread(unsigned long long dnum, oneslnk *tagnums, oneslnk **rettagname, one
 	return 0;
 }
 
-char twowaytcregaddrem(unsigned long long dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk *remtagnums, unsigned char presort) { // presort for 1: fnums, 2: addtagnums, 4: remtagnums	//! add presort functionality
+char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk *remtagnums, unsigned char presort) { // presort for 1: fnums, 2: addtagnums, 4: remtagnums	//! add presort functionality
 	oneslnk *tnums, *link1, *link2;
 	char buf1[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], buf4[MAX_PATH*4];
 	int c;

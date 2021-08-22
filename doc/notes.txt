@@ -2,7 +2,7 @@
 
 replace malloc and calloc
 
-safes casting of windowclasses
+//safe casting of windowclasses
 
 check if fstream actually supports multibyte directories
 
@@ -89,6 +89,8 @@ OpenCL
 	
 
 - - - little things
+
+redraw after going out of maximize
 
 make list column headers not overlap
 
