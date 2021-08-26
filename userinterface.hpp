@@ -1,9 +1,9 @@
 #pragma once
 
+#include <windows.h>
+
 #include <memory>
 #include <map>
-
-#include <windows.h>
 
 //{ Structs
 

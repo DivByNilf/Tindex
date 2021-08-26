@@ -1,3 +1,6 @@
+#define ULL_READ_EOF 1
+#define ULL_READ_LATE_EOF 2
+#define ULL_READ_OVERFLOW 3
 #define ULL_READ_NULL 4
 
 void term_fputs(char *string, FILE *file);

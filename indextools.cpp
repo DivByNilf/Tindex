@@ -2,13 +2,17 @@
 
 //to do: directory index record
 
-#include "fentries.h"
+#include "indextools.hpp"
+#include "indextools_static.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
 
+#include <string>
+
+extern "C" {
 #include "stringchains.h"
 #include "arrayarithmetic.h"
 #include "bytearithmetic.h"
@@ -18,6 +22,18 @@
 #include "dupstr.h"
 #include "breakpath.h"
 #include "dirfiles.h"
+
+//! TEMP:
+#include "errorf.h"
+}
+
+#include "errorf.hpp"
+
+//#define errorf(...) g_errorf(__VA_ARGS__)
+
+#define errorf(str) g_errorfStdStr(str)
+//! TEMP
+#define errorf_old(...) g_errorf(__VA_ARGS__)
 
 extern char *g_prgDir;
 
@@ -48,53 +64,6 @@ extern char *g_prgDir;
 #define SRPAR_TYPE_ALIAS 6
 #define SRPAR_NO_EXPR 7
 
-#include "errorf.h"
-#define errorf(...) g_errorf(__VA_ARGS__)
-
-FILE *MBfopen(char*, char*);
-
-unsigned char raddtolastminum(long long num);
-
-uint64_t rmiinitpos(char *idir);
-
-char rmiinit();
-
-char rmireg(char *entrystr, uint64_t inum);
-
-unsigned char addtolastminum(long long num, uint64_t spot);
-
-uint64_t miinitpos(uint64_t iinum);
-
-
-
-unsigned char raddtolastdnum(uint64_t minum, long long num);
-
-uint64_t rdinitpos(uint64_t minum, char *idir);
-
-char rdinit(uint64_t minum);
-
-// // char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime);
-
-// // uint64_t getdlastchecked(uint64_t minum, uint64_t dnum);
-
-unsigned char addtolastdnum(uint64_t minum, long long num, uint64_t spot);
-
-uint64_t dinitpos(uint64_t minum, uint64_t idnum);
-
-
-
-
-unsigned char addtolastsdnum(uint64_t minum, long long num, uint64_t spot);
-
-uint64_t sdinitpos(uint64_t minum, uint64_t idnum);
-
-
-
-int cfireg(uint64_t dnum, oneslnk *fnamechn); //!
-
-
-int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist);
-
 struct arg_struct1 {
 	char *fileStrBase;
 	uint64_t (*getlastentrynum)(void *args);
@@ -105,6 +74,8 @@ struct arg_struct1 {
 	void *addtolastentrynum_args;
 };
 
+//! TODO: make references to sessionhandler atomic and thread safe
+IndexSessionHandler g_indexSessionHandler = IndexSessionHandler();
 
 //{ general
 int cregformat1(oneslnk *inputchn, struct arg_struct1 *args) {
@@ -152,7 +123,7 @@ int cregformat1(oneslnk *inputchn, struct arg_struct1 *args) {
 	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
 		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create indexF");
-			errorf("tried to create: \"%s\"", buf);
+			errorf_old("tried to create: \"%s\"", buf);
 			return 1;
 		}
 		created = 1;
@@ -170,7 +141,7 @@ int cregformat1(oneslnk *inputchn, struct arg_struct1 *args) {
 			}
 			
 			if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
-				errorf("indexF read error: %d", c);
+				errorf_old("indexF read error: %d", c);
 				fclose(indexF);
 				return 0;
 			}
@@ -237,7 +208,7 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 	sprintf(buf, "%s\\%s.tmp", g_prgDir, rrecStrBase);
 	if ((trirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create trirec (raddtolastminum)");
-		errorf("tried to create: %s", buf);
+		errorf_old("tried to create: %s", buf);
 		return 1;
 	}
 	sprintf(buf2, "%s\\%s.bin", g_prgDir, rrecStrBase);
@@ -281,7 +252,7 @@ unsigned char raddtolastminum(long long num) { // 0 to just refresh
 				if (c == 1) {
 					break;
 				} else {
-					errorf("null_fgets: %d", c);
+					errorf_old("null_fgets: %d", c);
 					fclose(trirec), MBremove(buf), fclose(rIndex);
 					return 5;
 				}
@@ -403,7 +374,7 @@ uint64_t rmiinitpos___(char *idir) {
 		if ((c = null_fgets(buf, MAX_PATH*4, rdirec)) != 0) {
 			if (c == 1)
 				break;
-			errorf("rdiRec num read error: %d", c);
+			errorf_old("rdiRec num read error: %d", c);
 			fclose(rdirec);
 			return 0;
 		}
@@ -412,7 +383,7 @@ uint64_t rmiinitpos___(char *idir) {
 			break;
 
 		if (pos = fgetull_pref(rdirec, &c) == 0) {
-			errorf("rdiRec num read error %c", c);
+			errorf_old("rdiRec num read error %c", c);
 			fclose(rdirec);
 			return 0;
 		}
@@ -443,7 +414,7 @@ char rmiinit() {
 	sprintf(buf, "%s\\%s.bin", g_prgDir, indexStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("indexF file not found");
-		errorf("looked for: %s", buf);
+		errorf_old("looked for: %s", buf);
 		return 1;
 	}
 	
@@ -650,14 +621,14 @@ uint64_t rmiread___(char *dpath) {		// reverse dread  //! untested
 		if ((c = null_fgets(buf, MAX_PATH*4, rdIndex)) != 0) {
 			if (c == 1)
 				break;
-			errorf("null_fgets: %d", c);
+			errorf_old("null_fgets: %d", c);
 			fclose(rdIndex);
 			return 0;
 		}
 		
 		if ((c = strcmp(dpath, buf)) > 0) {
 			if ((i = pref_fgets(0, 9, rdIndex)) != 0) {
-				errorf("pref_fgets: %d", i);
+				errorf_old("pref_fgets: %d", i);
 				fclose(rdIndex);
 				return 0;
 			}
@@ -665,7 +636,7 @@ uint64_t rmiread___(char *dpath) {		// reverse dread  //! untested
 			dnum = fgetull_pref(rdIndex, &c);
 			fclose (rdIndex);
 			if (c != 0) {
-				errorf("rdindex read: %d", c);
+				errorf_old("rdindex read: %d", c);
 				return 0;
 			}
 			return dnum;
@@ -709,7 +680,7 @@ char rmirmv___(char *dpath) {  //! untested
 		if ((c = null_fgets(buf, MAX_PATH*4, rdIndex)) != 0) {
 			if (c == 1)
 				break;
-			errorf("rdIndex read error: %d", c);
+			errorf_old("rdIndex read error: %d", c);
 			fclose(rdIndex), MBremove(buf), fclose(trdIndex), MBremove(baf);
 			return 2;
 		}
@@ -776,13 +747,13 @@ char rmirer___(uint64_t source, char *dest) {
 		if ((c = null_fgets(buf, MAX_PATH*4, rdIndex)) != 0) {
 			if (c == 1)
 				break;
-			errorf("rdIndex read error: %d", c);
+			errorf_old("rdIndex read error: %d", c);
 			fclose(rdIndex), MBremove(bef), fclose(trdIndex), MBremove(baf);
 			return 2;
 		}
 		dnum = fgetull_pref(rdIndex, &c);
 		if (c != 0) {
-			errorf("rdIndex read error: %d", c);
+			errorf_old("rdIndex read error: %d", c);
 			fclose(rdIndex), MBremove(bef), fclose(trdIndex), MBremove(baf);
 			return 2;
 		}
@@ -856,14 +827,14 @@ char passmiextra___(FILE *src, FILE *dst, uint64_t ull) {
 	if (ull == 0) {
 		ull2 = fgetull_pref(src, &c);
 		if (c != 0) {
-			errorf("4 - dExtras num read failed: %d", c);
+			errorf_old("4 - dExtras num read failed: %d", c);
 			return 1;
 		}
 		if (dst)
 			putull_pref(ull2, dst);
 		return 0;
 	} else {
-		errorf("unknown dExtras parameter: %llu", ull);
+		errorf_old("unknown dExtras parameter: %llu", ull);
 		return 1;
 	}
 }
@@ -902,7 +873,7 @@ char setmilastchecked___(uint64_t dnum, uint64_t ulltime) {		// no record for of
 				dExtras = NULL;
 				break;
 			}
-			errorf("dExtras num read failed: %d", c);
+			errorf_old("dExtras num read failed: %d", c);
 			fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 			return 1;
 		}
@@ -920,7 +891,7 @@ char setmilastchecked___(uint64_t dnum, uint64_t ulltime) {		// no record for of
 			if (c != 0) {
 				if (c == ULL_READ_NULL)
 					break;
-				errorf("2 - dExtras num read failed: %d", c);
+				errorf_old("2 - dExtras num read failed: %d", c);
 				fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 				return 1;
 			}
@@ -929,7 +900,7 @@ char setmilastchecked___(uint64_t dnum, uint64_t ulltime) {		// no record for of
 				if (tnum2 == 0) {
 					fgetull_pref(dExtras, &c);
 					if (c != 0) {
-						errorf("3 - dExtras num read failed: %d", c);
+						errorf_old("3 - dExtras num read failed: %d", c);
 						fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 						return 1;
 					}
@@ -939,7 +910,7 @@ char setmilastchecked___(uint64_t dnum, uint64_t ulltime) {		// no record for of
 			} else {
 				putull_pref(tnum2, tdExtras);
 				if (passdextra(dExtras, tdExtras, tnum2)) {
-					errorf("passdextras failed: %d", c);
+					errorf_old("passdextras failed: %d", c);
 					fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 					return 1;
 				}
@@ -965,7 +936,7 @@ char setmilastchecked___(uint64_t dnum, uint64_t ulltime) {		// no record for of
 	MBremove(buf3);
 	if (MBrename(buf, buf3)) {
 		errorf("rename1 failed");
-		errorf("%s->%s", buf, buf3);
+		errorf_old("%s->%s", buf, buf3);
 		return 3;
 	}
 	if (MBrename(buf2, buf)) {
@@ -1000,7 +971,7 @@ uint64_t getmilastchecked___(uint64_t dnum) {
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("dExtras num read failed: %d", c);
+			errorf_old("dExtras num read failed: %d", c);
 			fclose(dExtras);
 			return 0;
 		}
@@ -1009,7 +980,7 @@ uint64_t getmilastchecked___(uint64_t dnum) {
 			if (c != 0) {
 				if (c == 4)
 					break;
-				errorf("2 - dExtras num read failed: %d", c);
+				errorf_old("2 - dExtras num read failed: %d", c);
 				fclose(dExtras);
 				return 0;
 			}
@@ -1017,7 +988,7 @@ uint64_t getmilastchecked___(uint64_t dnum) {
 				tnum2 = fgetull_pref(dExtras, &c);
 				fclose(dExtras);
 				if (c != 0) {
-					errorf("3 - dExtras num read failed: %d", c);
+					errorf_old("3 - dExtras num read failed: %d", c);
 					return 0;
 				}
 				return tnum2;
@@ -1025,12 +996,12 @@ uint64_t getmilastchecked___(uint64_t dnum) {
 				if (tnum2 == 0) {
 					fgetull_pref(dExtras, &c);
 					if (c != 0) {
-						errorf("4 - dExtras num read failed: %d", c);
+						errorf_old("4 - dExtras num read failed: %d", c);
 						fclose(dExtras);
 						return 0;
 					}
 				} else {
-					errorf("unknown dExtras parameter (getdlast): %llu", tnum2);
+					errorf_old("unknown dExtras parameter (getdlast): %llu", tnum2);
 					fclose(dExtras);
 					return 0;
 				}
@@ -1057,7 +1028,7 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 	sprintf(buf, "%s\\%s.tmp", g_prgDir, recStrBase);
 	if ((tirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create tirec");
-		errorf("tried to create: \"%s\"", buf);
+		errorf_old("tried to create: \"%s\"", buf);
 		return 1;
 	}
 	sprintf(buf2, "%s\\%s.bin", g_prgDir, recStrBase); // rec
@@ -1065,17 +1036,15 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 	
 
 	if (((irec = MBfopen(buf2, "rb")) != NULL) && ((i = getc(irec)) != EOF)) {
-		uint64_t oldinum = 0;
 		
-		for (; i > 0; i--) {
-			oldinum *= 256;
-			oldinum += c = getc(irec);
-			if (c == EOF) {
-				fclose(irec), fclose(tirec), MBremove(buf), MBremove(buf2);
-				errorf("EOF before end of number in irec");
-				return 2;
-			}
+		int32_t feedback = 0;
+		uint64_t oldinum = fgetull_len(irec, i, &feedback);
+		if (feedback) {
+			errorf("fgetull_len error");
+			fclose(irec), fclose(tirec), MBremove(buf), MBremove(buf2);
+			return 2;
 		}
+		
 		if ((num < 0) && (oldinum <= -num)) {
 			fclose(irec), fclose(tirec), MBremove(buf), MBremove(buf2);
 			errorf("lastinum going less than one");
@@ -1084,28 +1053,28 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 		inum = oldinum + num;
 		putull_pref(inum, tirec);
 		
+		// indexed positions have a gap of sqrt(nEntries)
+		// if gap doesn't change ...
 		if ((gap = (long long) sqrt(inum)) == (long long) sqrt(oldinum)) {
 			if (num > 0) {
+				// copy the old irec to tirec (and delete old irec) -- save last pos as 'pos'
+				while ((c = getc(irec)) != EOF) {
+					for (putc(c, tirec), i = c; i > 0 && (c = getc(irec)) != EOF; i--, putc(c, tirec));
+					for (putc((ch = getc(irec)), tirec), i = 1, pos = 0; i++ <= ch && (c = getc(irec)) != EOF; pos *= 256, pos += c, putc(c, tirec));
+					if (c == EOF) {
+						errorf("EOF before finished irec entry (1)");
+						fclose(irec), fclose(tirec), MBremove(buf), MBremove(buf2);
+						return 1;
+					}
+				} fclose(irec), MBremove(buf2);
+				
+				// if number of indexed entries increased, append them
 				if (inum / gap == oldinum / gap) {
-					while ((c = getc(irec)) != EOF) {
-						putc(c, tirec);
-					} fclose(irec), MBremove(buf2);
-				} else {
-					while ((c = getc(irec)) != EOF) {
-						for (putc(c, tirec), i = c; i > 0 && (c = getc(irec)) != EOF; i--, putc(c, tirec));
-						for (putc((ch = getc(irec)), tirec), i = 1, pos = 0; i++ <= ch && (c = getc(irec)) != EOF; pos *= 256, pos += c, putc(c, tirec));
-						if (c == EOF) {
-							errorf("EOF before finished irec entry (1)");
-							fclose(irec), fclose(tirec), MBremove(buf), MBremove(buf2);
-							return 1;
-						}
-					} fclose(irec), MBremove(buf2);
-					
 					if ((indexF = MBfopen(buf3, "rb")) != NULL) {
 						fseek64(indexF, pos, SEEK_SET);
 						fseek(indexF, (c = getc(indexF)), SEEK_CUR);
 						if (c == EOF) {
-							errorf("EOF before irectory in indexF");
+							errorf("EOF before directory in indexF");
 							fclose(indexF), fclose(tirec), MBremove(buf);
 							return 1;
 						}
@@ -1147,6 +1116,8 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 				}
 				fclose(tirec), MBrename(buf, buf2);
 				return 0;
+			// copy irec until reaching either the new inum (oldinum + num) or specified spot in the tracked index file
+			//! TODO: does it make sense in the case that the gap should be decreased?
 			} else {
 				oldinum = inum;
 				uint64_t tpos;
@@ -1168,17 +1139,18 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 			}
 		}
 		fclose(irec), MBremove(buf2);
-		
+	
+	// calculate the number of entries in the tracked index
 	} else {
 		if (irec != NULL) {
 			fclose(irec);
 		}
 		MBremove(buf2);
 		
-		if ((indexF = MBfopen(buf3, "rb")) == NULL) {	// it is valid for the index file not to exist
+		if ((indexF = MBfopen(buf3, "rb")) == NULL) {	// it is valid for the index file not to exist (such as trying to get the number of entries when there are none)
 			fclose(tirec), MBremove(buf);
 			// errorf("indexF file not found (addtolastinum 1)");
-			// errorf("looked for file: %s", buf3);
+			// errorf_old("looked for file: %s", buf3);
 			return 3;
 		}
 		inum = 0;
@@ -1219,9 +1191,11 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 	if ((indexF = MBfopen(buf3, "rb")) == NULL) {
 		fclose(tirec), MBremove(buf);
 		errorf("indexF file not found (addtolastinum 2)");
-		errorf("looked for file: %s", buf3);
+		errorf_old("looked for file: %s", buf3);
 		return 3;
 	}
+	
+	// skip to the position from where the tracked index has been updated
 	if (pos) {
 		fseek64(indexF, pos, SEEK_SET);
 		fseek(indexF, (c = getc(indexF)), SEEK_CUR);
@@ -1239,6 +1213,7 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 			return 5;
 		}
 	}
+	// read the tracked index and add the positions to this tracking record
 	for (pos = ftell64(indexF), inum = 0; (i = getc(indexF)) != EOF; pos = ftell64(indexF), inum = 0) {
 		for (; i > 0; i--) {
 			inum *= 256;
@@ -1378,7 +1353,7 @@ char *miread(uint64_t minum) {	// returns malloc memory
 	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("index file not found (read)");
-		errorf("looked for: %s", buf);
+		errorf_old("looked for: %s", buf);
 		return 0;
 	}
 	
@@ -1390,19 +1365,19 @@ char *miread(uint64_t minum) {	// returns malloc memory
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("indexF num read failed: %d", c);
+			errorf_old("indexF num read failed: %d", c);
 			fclose(indexF);
 			return 0;
 		}
 		if (entrynum > tnum) {
 			if ((c = null_fgets(0, MAX_PATH*4, indexF)) != 0) {
-				errorf("indexF read error: %d", c);
+				errorf_old("indexF read error: %d", c);
 				fclose(indexF);
 				return 0;
 			}
 		} else if (entrynum == tnum) {
 			if ((c = null_fgets(buf, MAX_PATH*4, indexF)) != 0) {
-				errorf("indexF read error: %d", c);
+				errorf_old("indexF read error: %d", c);
 				fclose(indexF);
 				return 0;
 			}
@@ -1463,7 +1438,7 @@ char *miread(uint64_t minum) {	// returns malloc memory
 		// if (c != 0) {
 			// if (c == 1)
 				// break;
-			// errorf("dIndex num read failed: %d", c);
+			// errorf_old("dIndex num read failed: %d", c);
 			// fclose(dIndex);
 			// return 0;
 		// }
@@ -1559,6 +1534,9 @@ int cmireg_(oneslnk *minamechn) {
 }
 
 int cmireg(oneslnk *minamechn) {
+	
+	
+	/*
 	long int maxentrylen = MAX_PATH*4;
 	
 	oneslnk *inputchn = minamechn;
@@ -1595,7 +1573,7 @@ int cmireg(oneslnk *minamechn) {
 	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
 		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create indexF");
-			errorf("tried to create: \"%s\"", buf);
+			errorf_old("tried to create: \"%s\"", buf);
 			return 1;
 		}
 		created = 1;
@@ -1617,7 +1595,102 @@ int cmireg(oneslnk *minamechn) {
 			}
 			
 			if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
-				errorf("indexF read error: %d", c);
+				errorf_old("indexF read error: %d", c);
+				fclose(indexF);
+				return 0;
+			}
+			lastentrynum++;		// assuming there are no entry number gaps
+		}
+	}
+	
+	twoslnk *numentrychn, *fnumentry;
+	
+	fnumentry = numentrychn = malloc(sizeof(twoslnk));
+	numentrychn->u[0].str = 0;
+	
+	int i = 0;
+	{
+		oneslnk *link = inputchn;
+		for (; link != 0; link = link->next, i++) {
+			putull_pref(++lastentrynum, indexF);
+			term_fputs(link->str, indexF);
+			numentrychn = numentrychn->next = malloc(sizeof(twoslnk));
+			numentrychn->u[0].str = link->str, numentrychn->u[1].ull = lastentrynum;
+		}
+	}
+	fclose(indexF);
+	numentrychn->next = 0;
+	numentrychn = fnumentry->next, free(fnumentry);
+	crentryreg(numentrychn);
+	#undef crentryreg
+	killtwoschn(numentrychn, 3);
+	addtolastinum(i, 0);
+	#undef addtolastinum
+	
+	return 0;
+	*/
+}
+
+int cmireg_old(oneslnk *minamechn) {
+	long int maxentrylen = MAX_PATH*4;
+	
+	oneslnk *inputchn = minamechn;
+	char *fileStrBase = "miIndex";
+	#define getlastentrynum() getlastminum()
+	#define addtolastinum(num1, num2) addtolastminum(num1, num2)
+	#define crentryreg(numentrychn) crmireg(numentrychn)
+	
+	unsigned char buf[MAX_PATH*4];
+	
+	if (inputchn == 0) {
+		errorf("inputchn is null");
+		return 1;
+	}
+	
+	for (oneslnk *link = inputchn; link != 0; link = link->next) {
+		int i = 0;
+		if (link->str) {
+			for (i = 0; link->str[i] != '\0' && i != maxentrylen; i++);
+			if (i >= maxentrylen) {
+				errorf("input string too long");
+				return 1;
+			}
+		} if (i == 0 || link->str == 0) {
+			errorf("empty string");
+			return 1;
+		}
+	}
+	
+	FILE *indexF;
+	char created = 0;
+	
+	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
+	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
+		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
+			errorf("couldn't create indexF");
+			errorf_old("tried to create: \"%s\"", buf);
+			return 1;
+		}
+		created = 1;
+	}
+	
+	uint64_t lastentrynum = 0;
+	
+	//if (lastdnum = getlastdnum()) {
+	if ( (!created) && ((lastentrynum = getlastentrynum()) > 0) ) {
+		#undef getlastentrynum
+		fseek(indexF, 0, SEEK_END);
+	} else {
+		int c;
+		while ((c = getc(indexF)) != EOF) {
+			if (fseek(indexF, c, SEEK_CUR)) {
+				errorf("fseek failed");
+				fclose(indexF);
+				return 0;
+			}
+			
+			if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
+				errorf_old("indexF read error: %d", c);
 				fclose(indexF);
 				return 0;
 			}
@@ -1699,7 +1772,7 @@ int cmirmv___(oneslnk *dnumchn) {
 				c = EOF;
 				break;
 			}
-			errorf("dIndex num read failed: %d", c);
+			errorf_old("dIndex num read failed: %d", c);
 			fclose(dIndex), fclose(tIndex), MBremove(baf), killoneschn(flink, 1);
 			return 0;
 		}
@@ -1822,7 +1895,7 @@ int cmirer___(twoslnk *rerchn) {		//! untested
 				c = EOF;
 				break;
 			}
-			errorf("dIndex num read failed: %d", c);
+			errorf_old("dIndex num read failed: %d", c);
 			fclose(dIndex), fclose(tIndex), MBremove(baf), killtwoschn(flink, 1), killoneschn(foslnk, 1);
 			return 2;
 		}
@@ -1846,7 +1919,7 @@ int cmirer___(twoslnk *rerchn) {		//! untested
 			
 		} else if (tnum == rerchn->u[0].ull) {
 			if ((c = null_fgets(buf, MAX_PATH*4, dIndex)) != 0) {
-				errorf("dIndex read error: %d", c);
+				errorf_old("dIndex read error: %d", c);
 				fclose(dIndex);
 				return 2;
 			}
@@ -1927,7 +2000,7 @@ oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (th
 	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		//errorf("indexF file not found (imiread)");
-		//errorf("looked for file: %s", buf);
+		//errorf_old("looked for file: %s", buf);
 		return 0;
 	}
 	
@@ -1940,7 +2013,7 @@ oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (th
 			if (c == 1) {
 				break;
 			}
-			errorf("1 - indexF num read failed: %d", c);
+			errorf_old("1 - indexF num read failed: %d", c);
 			fclose(indexF);
 			return 0;
 		}
@@ -2015,7 +2088,7 @@ oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (th
 				if (c != 0) {
 					if (c == 1)
 						break;
-					errorf("2 - indexF num read failed: %d", c);
+					errorf_old("2 - indexF num read failed: %d", c);
 					lastlnk->next = 0;
 					fclose(indexF), killoneschn(flnk, 0);
 					return 0;
@@ -2060,7 +2133,7 @@ unsigned char raddtolastdnum(uint64_t minum, long long num) { // 0 to just refre
 	//! TODO: implement
 
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2115,7 +2188,7 @@ unsigned char raddtolastdnum(uint64_t minum, long long num) { // 0 to just refre
 				if (c == 1) {
 					break;
 				} else {
-					errorf("null_fgets: %d", c);
+					errorf_old("null_fgets: %d", c);
 					fclose(trdirec), MBremove(buf), fclose(rdIndex);
 					return 5;
 				}
@@ -2178,7 +2251,7 @@ unsigned char raddtolastdnum(uint64_t minum, long long num) { // 0 to just refre
 
 uint64_t rdinitpos(uint64_t minum, char *idir) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 0;
 	}
 	
@@ -2242,7 +2315,7 @@ uint64_t rdinitpos(uint64_t minum, char *idir) {
 		if ((c = null_fgets(buf, MAX_PATH*4, rdirec)) != 0) {
 			if (c == 1)
 				break;
-			errorf("rdiRec num read error: %d", c);
+			errorf_old("rdiRec num read error: %d", c);
 			fclose(rdirec);
 			return 0;
 		}
@@ -2251,7 +2324,7 @@ uint64_t rdinitpos(uint64_t minum, char *idir) {
 			break;
 
 		if (pos = fgetull_pref(rdirec, &c) == 0) {
-			errorf("rdiRec num read error %c", c);
+			errorf_old("rdiRec num read error %c", c);
 			fclose(rdirec);
 			return 0;
 		}
@@ -2265,7 +2338,7 @@ uint64_t rdinitpos(uint64_t minum, char *idir) {
 
 char rdinit(uint64_t minum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (rdinit)", minum);
+		errorf_old("existsmi(%llu) returned false (rdinit)", minum);
 		return 1;
 	}
 	
@@ -2287,7 +2360,7 @@ char rdinit(uint64_t minum) {
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, indexStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("indexF file not found (rdinit)");
-		errorf("looked for: %s", buf);
+		errorf_old("looked for: %s", buf);
 		return 1;
 	}
 	
@@ -2399,7 +2472,7 @@ char rdinit(uint64_t minum) {
 
 char rdreg___(uint64_t minum, char *dpath, uint64_t dnum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2407,7 +2480,7 @@ char rdreg___(uint64_t minum, char *dpath, uint64_t dnum) {
 }
 uint64_t rdread(uint64_t minum, char *dpath) {		// reverse dread  //! untested
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 0;
 	}
 	
@@ -2428,14 +2501,14 @@ uint64_t rdread(uint64_t minum, char *dpath) {		// reverse dread  //! untested
 		if ((c = null_fgets(buf, MAX_PATH*4, rdIndex)) != 0) {
 			if (c == 1)
 				break;
-			errorf("null_fgets: %d", c);
+			errorf_old("null_fgets: %d", c);
 			fclose(rdIndex);
 			return 0;
 		}
 		
 		if ((c = strcmp(dpath, buf)) > 0) {
 			if ((i = pref_fgets(0, 9, rdIndex)) != 0) {
-				errorf("pref_fgets: %d", i);
+				errorf_old("pref_fgets: %d", i);
 				fclose(rdIndex);
 				return 0;
 			}
@@ -2443,7 +2516,7 @@ uint64_t rdread(uint64_t minum, char *dpath) {		// reverse dread  //! untested
 			dnum = fgetull_pref(rdIndex, &c);
 			fclose (rdIndex);
 			if (c != 0) {
-				errorf("rdindex read: %d", c);
+				errorf_old("rdindex read: %d", c);
 				return 0;
 			}
 			return dnum;
@@ -2456,7 +2529,7 @@ uint64_t rdread(uint64_t minum, char *dpath) {		// reverse dread  //! untested
 
 char rdrmv(uint64_t minum, char *dpath) {  //! untested
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2492,7 +2565,7 @@ char rdrmv(uint64_t minum, char *dpath) {  //! untested
 		if ((c = null_fgets(buf, MAX_PATH*4, rdIndex)) != 0) {
 			if (c == 1)
 				break;
-			errorf("rdIndex read error: %d", c);
+			errorf_old("rdIndex read error: %d", c);
 			fclose(rdIndex), MBremove(buf), fclose(trdIndex), MBremove(baf);
 			return 2;
 		}
@@ -2526,7 +2599,7 @@ char rdrmv(uint64_t minum, char *dpath) {  //! untested
 
 char rdrer(uint64_t minum, uint64_t source, char *dest) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2564,13 +2637,13 @@ char rdrer(uint64_t minum, uint64_t source, char *dest) {
 		if ((c = null_fgets(buf, MAX_PATH*4, rdIndex)) != 0) {
 			if (c == 1)
 				break;
-			errorf("rdIndex read error: %d", c);
+			errorf_old("rdIndex read error: %d", c);
 			fclose(rdIndex), MBremove(bef), fclose(trdIndex), MBremove(baf);
 			return 2;
 		}
 		dnum = fgetull_pref(rdIndex, &c);
 		if (c != 0) {
-			errorf("rdIndex read error: %d", c);
+			errorf_old("rdIndex read error: %d", c);
 			fclose(rdIndex), MBremove(bef), fclose(trdIndex), MBremove(baf);
 			return 2;
 		}
@@ -2606,7 +2679,7 @@ char rdrer(uint64_t minum, uint64_t source, char *dest) {
 
 char rdrmvnum(uint64_t minum, uint64_t dnum) {		//! not done
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2618,7 +2691,7 @@ char rdrmvnum(uint64_t minum, uint64_t dnum) {		//! not done
 
 char crdreg(uint64_t minum, twoslnk *regchn) {		//! not done
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (crdreg)", minum);
+		errorf_old("existsmi(%llu) returned false (crdreg)", minum);
 		return 1;
 	}
 	
@@ -2630,7 +2703,7 @@ char crdreg(uint64_t minum, twoslnk *regchn) {		//! not done
 
 char crdrer(uint64_t minum, oneslnk *rmchn, twoslnk *addchn) {		//! not done // assuming only one entry per dname, easily fixed by making rmchn twoslnk with dnum as well
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2640,7 +2713,7 @@ char crdrer(uint64_t minum, oneslnk *rmchn, twoslnk *addchn) {		//! not done // 
 
 char crdrmvnum(uint64_t minum, oneslnk *rmchn) {		//! not done
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2650,7 +2723,7 @@ char crdrmvnum(uint64_t minum, oneslnk *rmchn) {		//! not done
 
 char dfrmv(uint64_t minum, uint64_t dnum) {		//! not done
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2660,7 +2733,7 @@ char dfrmv(uint64_t minum, uint64_t dnum) {		//! not done
 
 char cdfrmv(uint64_t minum, oneslnk *dnumchm) {		//! not done
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2670,7 +2743,7 @@ char cdfrmv(uint64_t minum, oneslnk *dnumchm) {		//! not done
 
 char passdextra(uint64_t minum, FILE *src, FILE *dst, uint64_t ull) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2679,21 +2752,21 @@ char passdextra(uint64_t minum, FILE *src, FILE *dst, uint64_t ull) {
 	if (ull == 0) {
 		ull2 = fgetull_pref(src, &c);
 		if (c != 0) {
-			errorf("4 - dExtras num read failed: %d", c);
+			errorf_old("4 - dExtras num read failed: %d", c);
 			return 1;
 		}
 		if (dst)
 			putull_pref(ull2, dst);
 		return 0;
 	} else {
-		errorf("unknown dExtras parameter: %llu", ull);
+		errorf_old("unknown dExtras parameter: %llu", ull);
 		return 1;
 	}
 }
 
 char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no record for offsets in file	//! not extensively tested
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -2730,7 +2803,7 @@ char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no r
 				dExtras = NULL;
 				break;
 			}
-			errorf("dExtras num read failed: %d", c);
+			errorf_old("dExtras num read failed: %d", c);
 			fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 			return 1;
 		}
@@ -2748,7 +2821,7 @@ char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no r
 			if (c != 0) {
 				if (c == ULL_READ_NULL)
 					break;
-				errorf("2 - dExtras num read failed: %d", c);
+				errorf_old("2 - dExtras num read failed: %d", c);
 				fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 				return 1;
 			}
@@ -2757,7 +2830,7 @@ char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no r
 				if (tnum2 == 0) {
 					fgetull_pref(dExtras, &c);
 					if (c != 0) {
-						errorf("3 - dExtras num read failed: %d", c);
+						errorf_old("3 - dExtras num read failed: %d", c);
 						fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 						return 1;
 					}
@@ -2767,7 +2840,7 @@ char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no r
 			} else {
 				putull_pref(tnum2, tdExtras);
 				if (passdextra(dExtras, tdExtras, tnum2)) {
-					errorf("passdextras failed: %d", c);
+					errorf_old("passdextras failed: %d", c);
 					fclose(dExtras), fclose(tdExtras), MBremove(buf2);
 					return 1;
 				}
@@ -2793,7 +2866,7 @@ char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no r
 	MBremove(buf3);
 	if (MBrename(buf, buf3)) {
 		errorf("rename1 failed");
-		errorf("%s->%s", buf, buf3);
+		errorf_old("%s->%s", buf, buf3);
 		return 3;
 	}
 	if (MBrename(buf2, buf)) {
@@ -2808,7 +2881,7 @@ char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime) {		// no r
 
 uint64_t getdlastchecked(uint64_t minum, uint64_t dnum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 0;
 	}
 	
@@ -2833,7 +2906,7 @@ uint64_t getdlastchecked(uint64_t minum, uint64_t dnum) {
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("dExtras num read failed: %d", c);
+			errorf_old("dExtras num read failed: %d", c);
 			fclose(dExtras);
 			return 0;
 		}
@@ -2842,7 +2915,7 @@ uint64_t getdlastchecked(uint64_t minum, uint64_t dnum) {
 			if (c != 0) {
 				if (c == 4)
 					break;
-				errorf("2 - dExtras num read failed: %d", c);
+				errorf_old("2 - dExtras num read failed: %d", c);
 				fclose(dExtras);
 				return 0;
 			}
@@ -2850,7 +2923,7 @@ uint64_t getdlastchecked(uint64_t minum, uint64_t dnum) {
 				tnum2 = fgetull_pref(dExtras, &c);
 				fclose(dExtras);
 				if (c != 0) {
-					errorf("3 - dExtras num read failed: %d", c);
+					errorf_old("3 - dExtras num read failed: %d", c);
 					return 0;
 				}
 				return tnum2;
@@ -2858,12 +2931,12 @@ uint64_t getdlastchecked(uint64_t minum, uint64_t dnum) {
 				if (tnum2 == 0) {
 					fgetull_pref(dExtras, &c);
 					if (c != 0) {
-						errorf("4 - dExtras num read failed: %d", c);
+						errorf_old("4 - dExtras num read failed: %d", c);
 						fclose(dExtras);
 						return 0;
 					}
 				} else {
-					errorf("unknown dExtras parameter (getdlast): %llu", tnum2);
+					errorf_old("unknown dExtras parameter (getdlast): %llu", tnum2);
 					fclose(dExtras);
 					return 0;
 				}
@@ -2881,7 +2954,7 @@ uint64_t getdlastchecked(uint64_t minum, uint64_t dnum) {
 
 unsigned char addtolastdnum(uint64_t minum, long long num, uint64_t spot) { // 0 as num to just refresh from spot
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (addtolastdnum)", minum);
+		errorf_old("existsmi(%llu) returned false (addtolastdnum)", minum);
 		return 1;
 	}
 	
@@ -2895,7 +2968,7 @@ unsigned char addtolastdnum(uint64_t minum, long long num, uint64_t spot) { // 0
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase);
 	if ((tirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create tirec");
-		errorf("tried to create: \"%s\"", buf);
+		errorf_old("tried to create: \"%s\"", buf);
 		return 1;
 	}
 	sprintf(buf2, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase); // rec
@@ -2921,8 +2994,8 @@ unsigned char addtolastdnum(uint64_t minum, long long num, uint64_t spot) { // 0
 		}
 		inum = oldinum + num;
 		putull_pref(inum, tirec);
-errorf("new inum: %llu", inum);
-errorf("old inum was: %llu", oldinum);
+errorf_old("new inum: %llu", inum);
+errorf_old("old inum was: %llu", oldinum);
 		
 		if ((gap = (long long) sqrt(inum)) == (long long) sqrt(oldinum)) {
 			if (num > 0) {
@@ -3018,7 +3091,7 @@ errorf("old inum was: %llu", oldinum);
 		if ((indexF = MBfopen(buf3, "rb")) == NULL) {	// it is valid for the index file not to exist
 			fclose(tirec), MBremove(buf);
 			// errorf("indexF file not found (addtolastinum 1)");
-			// errorf("looked for file: %s", buf3);
+			// errorf_old("looked for file: %s", buf3);
 			return 3;
 		}
 		inum = 0;
@@ -3052,7 +3125,7 @@ errorf("old inum was: %llu", oldinum);
 			return 3;
 		}
 		
-errorf("counted inum: %llu", inum);
+errorf_old("counted inum: %llu", inum);
 		
 		putull_pref(inum, tirec);
 		gap = sqrt(inum);
@@ -3061,7 +3134,7 @@ errorf("counted inum: %llu", inum);
 	if ((indexF = MBfopen(buf3, "rb")) == NULL) {
 		fclose(tirec), MBremove(buf);
 		errorf("indexF file not found (addtolastinum 2)");
-		errorf("looked for file: %s", buf3);
+		errorf_old("looked for file: %s", buf3);
 		return 3;
 	}
 	if (pos) {
@@ -3116,7 +3189,7 @@ errorf("counted inum: %llu", inum);
 
 uint64_t getlastdnum(uint64_t minum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (getlastdnum)", minum);
+		errorf_old("existsmi(%llu) returned false (getlastdnum)", minum);
 		return 0;
 	}
 	
@@ -3164,7 +3237,7 @@ errorf("had no dnum to fetch");
 
 uint64_t dinitpos(uint64_t minum, uint64_t idnum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (dinitpos)", minum);
+		errorf_old("existsmi(%llu) returned false (dinitpos)", minum);
 		return 0;
 	}
 	
@@ -3224,7 +3297,7 @@ uint64_t dreg(uint64_t minum, char *dpath) {
 
 char *dread(uint64_t minum, uint64_t dnum) {	// returns malloc memory
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (dread)", minum);
+		errorf_old("existsmi(%llu) returned false (dread)", minum);
 		return 0;
 	}
 	
@@ -3239,7 +3312,7 @@ char *dread(uint64_t minum, uint64_t dnum) {	// returns malloc memory
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		errorf("index file not found (read)");
-		errorf("looked for: %s", buf);
+		errorf_old("looked for: %s", buf);
 		return 0;
 	}
 	
@@ -3251,19 +3324,19 @@ char *dread(uint64_t minum, uint64_t dnum) {	// returns malloc memory
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("indexF num read failed: %d", c);
+			errorf_old("indexF num read failed: %d", c);
 			fclose(indexF);
 			return 0;
 		}
 		if (entrynum > tnum) {
 			if ((c = null_fgets(0, MAX_PATH*4, indexF)) != 0) {
-				errorf("indexF read error: %d", c);
+				errorf_old("indexF read error: %d", c);
 				fclose(indexF);
 				return 0;
 			}
 		} else if (entrynum == tnum) {
 			if ((c = null_fgets(buf, MAX_PATH*4, indexF)) != 0) {
-				errorf("indexF read error: %d", c);
+				errorf_old("indexF read error: %d", c);
 				fclose(indexF);
 				return 0;
 			}
@@ -3285,7 +3358,7 @@ char *dread(uint64_t minum, uint64_t dnum) {	// returns malloc memory
 
 char drmv(uint64_t minum, uint64_t dnum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -3301,7 +3374,7 @@ char drmv(uint64_t minum, uint64_t dnum) {
 
 char drer(uint64_t minum, uint64_t dnum, char *dpath) {		// reroute
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -3336,7 +3409,7 @@ char drer(uint64_t minum, uint64_t dnum, char *dpath) {		// reroute
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("dIndex num read failed: %d", c);
+			errorf_old("dIndex num read failed: %d", c);
 			fclose(dIndex);
 			return 0;
 		}
@@ -3417,7 +3490,7 @@ char drer(uint64_t minum, uint64_t dnum, char *dpath) {		// reroute
 int cdreg(uint64_t minum, oneslnk *dpathchn) {
 errorf("callign existsmi");
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (cdreg)", minum);
+		errorf_old("existsmi(%llu) returned false (cdreg)", minum);
 		return 1;
 	}
 errorf("after existsmi");
@@ -3458,7 +3531,7 @@ errorf("after existsmi");
 	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
 		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create indexF");
-			errorf("tried to create: \"%s\"", buf);
+			errorf_old("tried to create: \"%s\"", buf);
 			return 1;
 		}
 		created = 1;
@@ -3481,7 +3554,7 @@ errorf("after existsmi");
 			}
 			
 			if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
-				errorf("indexF read error: %d", c);
+				errorf_old("indexF read error: %d", c);
 				fclose(indexF);
 				return 0;
 			}
@@ -3522,7 +3595,7 @@ errorf("adding to last dnum");
 
 oneslnk *cdread(uint64_t minum, oneslnk *dnumchn) {		//! not done
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 0;
 	}
 	
@@ -3532,7 +3605,7 @@ oneslnk *cdread(uint64_t minum, oneslnk *dnumchn) {		//! not done
 
 int cdrmv(uint64_t minum, oneslnk *dnumchn) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -3577,7 +3650,7 @@ int cdrmv(uint64_t minum, oneslnk *dnumchn) {
 				c = EOF;
 				break;
 			}
-			errorf("dIndex num read failed: %d", c);
+			errorf_old("dIndex num read failed: %d", c);
 			fclose(dIndex), fclose(tIndex), MBremove(baf), killoneschn(flink, 1);
 			return 0;
 		}
@@ -3656,7 +3729,7 @@ int cdrmv(uint64_t minum, oneslnk *dnumchn) {
 
 int cdrer(uint64_t minum, twoslnk *rerchn) {		//! untested
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false", minum);
+		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
 	}
 	
@@ -3705,7 +3778,7 @@ int cdrer(uint64_t minum, twoslnk *rerchn) {		//! untested
 				c = EOF;
 				break;
 			}
-			errorf("dIndex num read failed: %d", c);
+			errorf_old("dIndex num read failed: %d", c);
 			fclose(dIndex), fclose(tIndex), MBremove(baf), killtwoschn(flink, 1), killoneschn(foslnk, 1);
 			return 2;
 		}
@@ -3729,7 +3802,7 @@ int cdrer(uint64_t minum, twoslnk *rerchn) {		//! untested
 			
 		} else if (tnum == rerchn->u[0].ull) {
 			if ((c = null_fgets(buf, MAX_PATH*4, dIndex)) != 0) {
-				errorf("dIndex read error: %d", c);
+				errorf_old("dIndex read error: %d", c);
 				fclose(dIndex);
 				return 2;
 			}
@@ -3793,7 +3866,7 @@ int cdrer(uint64_t minum, twoslnk *rerchn) {		//! untested
 
 oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (idread)", minum);
+		errorf_old("existsmi(%llu) returned false (idread)", minum);
 		return 0;
 	}
 	
@@ -3815,7 +3888,7 @@ oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns ma
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		//errorf("indexF file not found (imiread)");
-		//errorf("looked for file: %s", buf);
+		//errorf_old("looked for file: %s", buf);
 		return 0;
 	}
 	
@@ -3828,7 +3901,7 @@ oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns ma
 			if (c == 1) {
 				break;
 			}
-			errorf("1 - indexF num read failed: %d", c);
+			errorf_old("1 - indexF num read failed: %d", c);
 			fclose(indexF);
 			return 0;
 		}
@@ -3903,7 +3976,7 @@ oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns ma
 				if (c != 0) {
 					if (c == 1)
 						break;
-					errorf("2 - indexF num read failed: %d", c);
+					errorf_old("2 - indexF num read failed: %d", c);
 					lastlnk->next = 0;
 					fclose(indexF), killoneschn(flnk, 0);
 					return 0;
@@ -3939,7 +4012,7 @@ int readSubdirEntryTo(FILE *sourcef, struct subdirentry *dest) {
 
 unsigned char addtolastsdnum(uint64_t minum, long long num, uint64_t spot) { // 0 as num to just refresh from spot
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (addtolastsdnum)", minum);
+		errorf_old("existsmi(%llu) returned false (addtolastsdnum)", minum);
 		return 1;
 	}
 	
@@ -3953,7 +4026,7 @@ unsigned char addtolastsdnum(uint64_t minum, long long num, uint64_t spot) { // 
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase);
 	if ((tirec = MBfopen(buf, "wb")) == NULL) {
 		errorf("failed to create tirec");
-		errorf("tried to create: \"%s\"", buf);
+		errorf_old("tried to create: \"%s\"", buf);
 		return 1;
 	}
 	sprintf(buf2, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, recStrBase); // rec
@@ -3979,7 +4052,7 @@ unsigned char addtolastsdnum(uint64_t minum, long long num, uint64_t spot) { // 
 		}
 		inum = oldinum + num;
 		putull_pref(inum, tirec);
-errorf("new inum: %d", inum);
+errorf_old("new inum: %d", inum);
 		
 		if ((gap = (long long) sqrt(inum)) == (long long) sqrt(oldinum)) {
 			if (num > 0) {
@@ -4075,7 +4148,7 @@ errorf("new inum: %d", inum);
 		if ((indexF = MBfopen(buf3, "rb")) == NULL) {	// it is valid for the index file not to exist
 			fclose(tirec), MBremove(buf);
 			// errorf("indexF file not found (addtolastinum 1)");
-			// errorf("looked for file: %s", buf3);
+			// errorf_old("looked for file: %s", buf3);
 			return 3;
 		}
 		inum = 0;
@@ -4116,7 +4189,7 @@ errorf("new inum: %d", inum);
 	if ((indexF = MBfopen(buf3, "rb")) == NULL) {
 		fclose(tirec), MBremove(buf);
 		errorf("indexF file not found (addtolastinum 2)");
-		errorf("looked for file: %s", buf3);
+		errorf_old("looked for file: %s", buf3);
 		return 3;
 	}
 	if (pos) {
@@ -4171,7 +4244,7 @@ errorf("new inum: %d", inum);
 
 uint64_t getlastsdnum(uint64_t minum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false ([func] getlastsdnum)", minum);
+		errorf_old("existsmi(%llu) returned false ([func] getlastsdnum)", minum);
 		return 0;
 	}
 	
@@ -4218,7 +4291,7 @@ uint64_t getlastsdnum(uint64_t minum) {
 
 uint64_t sdinitpos(uint64_t minum, uint64_t idnum) {
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false (dinitpos)", minum);
+		errorf_old("existsmi(%llu) returned false (dinitpos)", minum);
 		return 0;
 	}
 	
@@ -4264,7 +4337,7 @@ uint64_t sdinitpos(uint64_t minum, uint64_t idnum) {
 
 oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
 	if (!existsmi(minum)) {
-		errorf("existsmi(%llu) returned false ([func] isdread)", minum);
+		errorf_old("existsmi(%llu) returned false ([func] isdread)", minum);
 		return 0;
 	}
 	
@@ -4286,7 +4359,7 @@ oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns m
 	sprintf(buf, "%s\\i\\%llu\\%s.bin", g_prgDir, minum, fileStrBase);
 	if ((indexF = MBfopen(buf, "rb")) == NULL) {
 		//errorf("indexF file not found (imiread)");
-		//errorf("looked for file: %s", buf);
+		//errorf_old("looked for file: %s", buf);
 		return 0;
 	}
 	
@@ -4301,7 +4374,7 @@ oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns m
 			if (c == 1) {
 				break;
 			}
-			errorf("1 - indexF num read failed: %d ([func] isdread)", c);
+			errorf_old("1 - indexF num read failed: %d ([func] isdread)", c);
 			fclose(indexF);
 			return 0;
 		}
@@ -4310,7 +4383,7 @@ oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns m
 			c = readSubdirEntryTo(indexF, &sd_struct);
 			
 			if (c != 0) {
-				errorf("1 - indexF entry read failed: %d ([func] isdread)", c);
+				errorf_old("1 - indexF entry read failed: %d ([func] isdread)", c);
 				fclose(indexF);
 				return 0;
 			}
@@ -4372,7 +4445,7 @@ oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns m
 				if (c != 0) {
 					if (c == 1)
 						break;
-					errorf("2 - indexF num read failed: %d ([func] isdread)", c);
+					errorf_old("2 - indexF num read failed: %d ([func] isdread)", c);
 					lastlnk->next = 0;
 					fclose(indexF), killoneschn(flnk, 0);
 					return 0;
@@ -4635,7 +4708,7 @@ char passfextra(FILE *src, FILE *dst, uint64_t ull) {
 	if (ull == 0) {
 		ull2 = fgetull_pref(src, &c);
 		if (c != 0) {
-			errorf("4 - fExtras num read failed: %d", c);
+			errorf_old("4 - fExtras num read failed: %d", c);
 			return 1;
 		}
 		if (dst)
@@ -4691,7 +4764,7 @@ int regfiledates(uint64_t dnum, oneslnk *fnums) {
 				fextras = NULL;
 				break;
 			}
-			errorf("fExtras num read failed: %d", c);
+			errorf_old("fExtras num read failed: %d", c);
 			fclose(fextras), fclose(dst), MBremove(buf2);
 			return 1;
 		}
@@ -4709,7 +4782,7 @@ int regfiledates(uint64_t dnum, oneslnk *fnums) {
 			if (c != 0) {
 				if (c == ULL_READ_NULL)
 					break;
-				errorf("2 - fExtras num read failed: %d", c);
+				errorf_old("2 - fExtras num read failed: %d", c);
 				fclose(fextras), fclose(dst), MBremove(buf2);
 				return 1;
 			}
@@ -4759,7 +4832,7 @@ int regfiledates(uint64_t dnum, oneslnk *fnums) {
 		MBremove(buf3);
 		if (MBrename(buf, buf3)) {
 			errorf("rename1 failed");
-			errorf("%s->%s", buf, buf3);
+			errorf_old("%s->%s", buf, buf3);
 			return 3;
 		}
 	}
@@ -5118,7 +5191,7 @@ uint64_t fireg_old(uint64_t dnum, char *fname) {
 			}
 			
 			if ((c = null_fgets(0, MAX_PATH*4, fIndex)) != 0) {
-				errorf("fIndex read error: %d", c);
+				errorf_old("fIndex read error: %d", c);
 				fclose(fIndex);
 				return 0;
 			}
@@ -5207,13 +5280,13 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("fIndex num read failed: %d", c);
+			errorf_old("fIndex num read failed: %d", c);
 			fclose(fIndex), presort? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 			return 1;
 		}
 		if (link1->ull > tnum) {
 			if ((c = null_fgets(0, MAX_PATH*4, fIndex)) != 0) {
-				errorf("fIndex read error: %d", c);
+				errorf_old("fIndex read error: %d", c);
 				fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
@@ -5231,14 +5304,14 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 			}
 		} else if (link1->ull == tnum) {
 			if ((c = null_fgets(buf, MAX_PATH*4, fIndex)) != 0) {
-				errorf("fIndex read error: %d", c);
+				errorf_old("fIndex read error: %d", c);
 				fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
 			if (retfname) {
 				link3 = link3->next = malloc(sizeof(oneslnk));
 				if (!(link3->str = dupstr(buf, MAX_PATH*4, 0))) {
-					errorf("failed to duplicate buf: %s", buf);
+					errorf_old("failed to duplicate buf: %s", buf);
 				}
 			}
 			if (rettags) {
@@ -5258,7 +5331,7 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 						if (c == 4) {
 							break;
 						}
-						errorf("fIndex tag read failed: %d", c);
+						errorf_old("fIndex tag read failed: %d", c);
 						tlink->next = 0, fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0, tlink->next = 0;
 						return 1;
 					} tlink = tlink->next = malloc(sizeof(oneslnk));
@@ -5287,7 +5360,7 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 	fclose(fIndex);
 	
 	if (link1) {
-		errorf("tried to read non-existent fnum: %d -- last read %d", link1->ull, tnum);
+		errorf_old("tried to read non-existent fnum: %d -- last read %d", link1->ull, tnum);
 		presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 		return 1;
 	}
@@ -5330,13 +5403,13 @@ char *firead(uint64_t dnum, uint64_t fnum) {	//! untested // returns malloc memo
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("fIndex num read failed: %d", c);
+			errorf_old("fIndex num read failed: %d", c);
 			fclose(fIndex);
 			return 0;
 		}
 		if (fnum > tnum) {
 			if ((c = null_fgets(0, MAX_PATH*4, fIndex)) != 0) {
-				errorf("fIndex read error: %d", c);
+				errorf_old("fIndex read error: %d", c);
 				fclose(fIndex);
 				return 0;
 			}
@@ -5354,7 +5427,7 @@ char *firead(uint64_t dnum, uint64_t fnum) {	//! untested // returns malloc memo
 			}
 		} else if (fnum == tnum) {
 			if ((c = null_fgets(buf, MAX_PATH*4, fIndex)) != 0) {
-				errorf("fIndex read error: %d", c);
+				errorf_old("fIndex read error: %d", c);
 				fclose(fIndex);
 				return 0;
 			}
@@ -5393,7 +5466,7 @@ unsigned char firmv(uint64_t dnum, uint64_t fnum) {		//! not done
 
 int cfireg(uint64_t dnum, oneslnk *fnamechn) {
 	FILE *fIndex;
-	unsigned char buf[MAX_PATH*4];
+	char buf[MAX_PATH*4];
 	int c, i, j;
 	uint64_t lastfnum = 0;
 	oneslnk *link, *link2, *link3;
@@ -5426,7 +5499,7 @@ int cfireg(uint64_t dnum, oneslnk *fnamechn) {
 	if ((fIndex = MBfopen(buf, "rb+")) == NULL) {
 		if ((fIndex = MBfopen(buf, "wb+")) == NULL) {
 			errorf("couldn't create fIndex (3)");
-			errorf(buf);
+			errorf(std::string(buf));
 			return 1;
 		}
 	}
@@ -5442,7 +5515,7 @@ int cfireg(uint64_t dnum, oneslnk *fnamechn) {
 			}
 			
 			if ((c = null_fgets(0, MAX_PATH*4, fIndex)) != 0) {
-				errorf("fIndex read error: %d", c);
+				errorf_old("fIndex read error: %d", c);
 				fclose(fIndex);
 				return 0;
 			}
@@ -5522,7 +5595,7 @@ oneslnk *ifiread(uint64_t dnum, uint64_t start, uint64_t intrvl) {	// returns ma
 			if (c == 1) {
 				break;
 			}
-			errorf("1 - fIndex num read failed: %d", c);
+			errorf_old("1 - fIndex num read failed: %d", c);
 			fclose(fIndex);
 			return 0;
 		}
@@ -5616,7 +5689,7 @@ oneslnk *ifiread(uint64_t dnum, uint64_t start, uint64_t intrvl) {	// returns ma
 				if (c != 0) {
 					if (c == 1)
 						break;
-					errorf("2 - fIndex num read failed: %d", c);
+					errorf_old("2 - fIndex num read failed: %d", c);
 					lastlnk->next = 0, fclose(fIndex), killoneschn(flnk, 0);
 					return 0;
 				}
@@ -5655,7 +5728,7 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 	}
 	sprintf(baf, "%s\\i\\%llu\\fIndex.tmp", g_prgDir, dnum);
 	if ((tfIndex = MBfopen(baf, "wb")) == NULL) {
-		errorf("couldn't create i\\%llu\\fIndex.tmp", dnum);
+		errorf_old("couldn't create i\\%llu\\fIndex.tmp", dnum);
 		fclose(fIndex);
 		return 2;
 	}
@@ -5725,7 +5798,7 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 				c = EOF;
 				break;
 			}
-			errorf("fIndex num read failed: %d", c);
+			errorf_old("fIndex num read failed: %d", c);
 			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
 			return 2;
 		} putull_pref(tnum, tfIndex);
@@ -5751,7 +5824,7 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 					if (c == 4) {
 						break;
 					}
-					errorf("fIndex tag read failed: %d", c);
+					errorf_old("fIndex tag read failed: %d", c);
 					fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
 					return 1;
 				}
@@ -5765,7 +5838,7 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 					if (c == 4) {
 						break;
 					}
-					errorf("fIndex tag read failed: %d", c);
+					errorf_old("fIndex tag read failed: %d", c);
 					fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
 					return 1;
 				}
@@ -5917,7 +5990,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 		if ((c = null_fgets(buf, MAX_PATH*4, tfile)) != 0) {
 			if (c == 1)
 				break;
-			errorf("1-read failed: %d", c);
+			errorf_old("1-read failed: %d", c);
 			(empty?0:fclose(rfIndex)), fclose(tfile), releasetfile(s, 1), fclose(tfile2), releasetfile(s2, 1);
 			return 4;
 		}
@@ -5926,13 +5999,13 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 				if (c == 1) {
 					firecfin = 1;
 				} else {
-					errorf("2-read failed: %d", c);
+					errorf_old("2-read failed: %d", c);
 					(empty?0:fclose(rfIndex)), fclose(tfile), releasetfile(s, 1), fclose(tfile2), releasetfile(s2, 1);
 					return 4;
 				}
 			} else {
 				if ((c = pref_fgets(0, 9, rfIndex)) != 0) {
-					errorf("3-read failed: %d", c);
+					errorf_old("3-read failed: %d", c);
 					(empty?0:fclose(rfIndex)), fclose(tfile), releasetfile(s, 1), fclose(tfile2), releasetfile(s2, 1);
 					return 4;
 				}
@@ -5946,7 +6019,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 			putull_pref(ull, tfile2);
 //char *timetostr(uint64_t ulltime);
 //char *buf6 = timetostr(getfilemodified(buf3));
-//errorf("file: %s \ntime: %llu\nreal: %s", buf3, ull, buf6);
+//errorf_old("file: %s \ntime: %llu\nreal: %s", buf3, ull, buf6);
 //free(buf6);
 			
 		} else {
@@ -5976,14 +6049,14 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 		if ((c = null_fgets(buf, MAX_PATH*4, tfile2)) != 0) {
 			if (c == 1)
 				break;
-			errorf("4-read failed: %d", c);
+			errorf_old("4-read failed: %d", c);
 			fclose(tfile2), releasetfile(s2, 1), link->next = 0, killoneschn(flink, 0);
 			return 4;
 		}
 		fgetull_pref(tfile2, &c);
 		
 //uint64_t ull = fgetull_pref(tfile2, &c);
-//errorf("2: file: %s \n time: %llu", buf, ull);
+//errorf_old("2: file: %s \n time: %llu", buf, ull);
 		if (c) {
 			errorf("fgetull_pref error");
 			fclose(tfile2), releasetfile(s2, 1), link->next = 0, killoneschn(flink, 0);
@@ -6118,7 +6191,7 @@ int stack_srch_alias(char **sp, twoslnk **aliasstack, SREXP *sexp) {
 	
 	char *buf = malloc(i+1-j-quotes);
 	
-	errorf("i: %d, j: %d", i, j);
+	errorf_old("i: %d, j: %d", i, j);
 	
 	i = j = 0;
 	outerpar = 0;
@@ -6161,7 +6234,7 @@ int stack_srch_alias(char **sp, twoslnk **aliasstack, SREXP *sexp) {
 		i++;
 	}
 	
-	errorf("i: %d, j: %d", i, j);
+	errorf_old("i: %d, j: %d", i, j);
 	
 	buf[i-j-!!quotes] = '\0';
 	
@@ -6169,8 +6242,8 @@ int stack_srch_alias(char **sp, twoslnk **aliasstack, SREXP *sexp) {
 	
 	while (j < i) j++, (*sp)++;
 
-errorf("s: %s", s);
-errorf("buf: %s", buf);
+errorf_old("s: %s", s);
+errorf_old("buf: %s", buf);
 	
 	twoslnk *astack = malloc(sizeof(twoslnk));
 	astack->next = *aliasstack;
@@ -6410,7 +6483,7 @@ errorf("srpar alias");
 	
 errorf("initftag2");
 if (aliasstack) {
-	errorf("alias: %s", aliasstack->u[1].str);
+	errorf_old("alias: %s", aliasstack->u[1].str);
 }
 	
 	while (buildstack != NULL) {
@@ -6452,75 +6525,78 @@ if (aliasstack) {
 		goto search_cleanup1;
 	}
 	
-	tnumfromalias2(dnum, &aliasstack);
-	
-	twoslnk *lnk;
-	
-	lnk = aliasstack;
-	i = 0;
-	uint64_t prev = 0;
-	
-	while (lnk != NULL) {
-		nextlnk = lnk->next;
-		sexp1 = lnk->u[0].vp;
+	{
+		tnumfromalias2(dnum, &aliasstack);
 		
-		if (lnk->u[1].ull == 0) {
-			sexp1->exprtype = SREXP_TYPE_NULL;
-		} else {
-			sexp1->exprtype = SREXP_TYPE_TAGNUM;
-			if (prev == 0) {
-				prev = lnk->u[1].ull;
-			} else if (prev != lnk->u[1].ull) {
-				i++;
-				prev = lnk->u[1].ull;
+		twoslnk *lnk;
+		
+		lnk = aliasstack;
+		i = 0;
+		uint64_t prev = 0;
+		
+		while (lnk != NULL) {
+			nextlnk = lnk->next;
+			sexp1 = lnk->u[0].vp;
+			
+			if (lnk->u[1].ull == 0) {
+				sexp1->exprtype = SREXP_TYPE_NULL;
+			} else {
+				sexp1->exprtype = SREXP_TYPE_TAGNUM;
+				if (prev == 0) {
+					prev = lnk->u[1].ull;
+				} else if (prev != lnk->u[1].ull) {
+					i++;
+					prev = lnk->u[1].ull;
+				}
+				sexp1->refnum = i;
 			}
-			sexp1->refnum = i;
+			
+			lnk = nextlnk;
+		}
+	
+		unsigned long ntagnums = i+1;
+		
+		TAGNUMNODE *tagnumarray = malloc(sizeof(TAGNUMNODE)*(ntagnums));
+		
+		lnk = aliasstack;
+		i = 0;
+		prev = 0;
+		
+		while (lnk != NULL) {
+			nextlnk = lnk->next;
+			
+			if (lnk->u[1].ull == 0) {
+			} else {
+				if (prev == 0) {
+					prev = tagnumarray[i].tagnum = lnk->u[1].ull;
+				} else if (prev != lnk->u[1].ull) {
+					i++;
+					prev = tagnumarray[i].tagnum = lnk->u[1].ull;
+				}
+			}
+			
+			lnk = nextlnk;
 		}
 		
-		lnk = nextlnk;
+		killtwoschn(aliasstack, 3);
+		
+		SEARCHSTRUCT *retstruct = malloc(sizeof(SEARCHSTRUCT));
+		
+		retstruct->tagnumarray = tagnumarray;
+		retstruct->ntagnums = ntagnums;
+		retstruct->rootexpr = rootexp->expr1;
+		retstruct->dnum = dnum;
+		free(rootexp);
+		
+		return retstruct;
+		
+		// build the search expression and when encountering tag aliases, link them to 
+		
+		return NULL;
+	
 	}
 	
-	unsigned long ntagnums = i+1;
-	
-	TAGNUMNODE *tagnumarray = malloc(sizeof(TAGNUMNODE)*(ntagnums));
-	
-	lnk = aliasstack;
-	i = 0;
-	prev = 0;
-	
-	while (lnk != NULL) {
-		nextlnk = lnk->next;
-		
-		if (lnk->u[1].ull == 0) {
-		} else {
-			if (prev == 0) {
-				prev = tagnumarray[i].tagnum = lnk->u[1].ull;
-			} else if (prev != lnk->u[1].ull) {
-				i++;
-				prev = tagnumarray[i].tagnum = lnk->u[1].ull;
-			}
-		}
-		
-		lnk = nextlnk;
-	}
-	
-	killtwoschn(aliasstack, 3);
-	
-	SEARCHSTRUCT *retstruct = malloc(sizeof(SEARCHSTRUCT));
-	
-	retstruct->tagnumarray = tagnumarray;
-	retstruct->ntagnums = ntagnums;
-	retstruct->rootexpr = rootexp->expr1;
-	retstruct->dnum = dnum;
-	free(rootexp);
-	
-	return retstruct;
-	
-	// build the search expression and when encountering tag aliases, link them to 
-	
-	return NULL;
-	
-	search_cleanup1:
+	search_cleanup1: {
 		retarg && *retarg == 0? *retarg = 1:0;
 		
 		while (buildstack != NULL) {
@@ -6559,6 +6635,7 @@ if (aliasstack) {
 		freesrexp(rootexp);
 		
 		return NULL;
+	}
 }
 
 void killsearchexpr(struct searchexpr *sexp) {
@@ -6584,7 +6661,7 @@ int srexpvalue(SREXP *sexp, SEARCHSTRUCT *sstruct) {
 	} else if (exprtype == SREXP_TYPE_NULL) {
 		return 0;
 	} else {
-		errorf("unknown srexp (%d) (srexpvalue)", exprtype);
+		errorf_old("unknown srexp (%d) (srexpvalue)", exprtype);
 		return 0;
 	}
 }
@@ -6604,7 +6681,7 @@ unsigned char ftagcheck(FILE *file, uint64_t fnum, SEARCHSTRUCT *sstruct) {
 		if (c != 0) {
 			if (c == 1 || c == 4)
 				break;
-			errorf("fIndex tag num read failed: %d", c);
+			errorf_old("fIndex tag num read failed: %d", c);
 			return 2;
 		}
 		c = 0;
@@ -6708,18 +6785,18 @@ char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfi
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("fIndex num read failed: %d", c);
+			errorf_old("fIndex num read failed: %d", c);
 			fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endsearch(sstruct);
 			return 0;
 		}
 		if ((c = null_fgets(buf, MAX_PATH*4, fIndex)) != 0) {
-			errorf("fIndex read error: %d", c);
+			errorf_old("fIndex read error: %d", c);
 			fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endsearch(sstruct);
 			return 0;
 		}
 		c = 0;
 		if (exts != 0) {
-// errorf("buf: %s", buf);
+// errorf_old("buf: %s", buf);
 			breakfname(buf, 0, buf2);
 			for (i = 0; exts[i++] == '.';) {
 				for (c = 0; exts[i] != '.' && exts[i] != '\0'; i++, c++) {
@@ -6777,7 +6854,7 @@ char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfi
 			if (c != 0) {
 				if (c == 1)
 					break;
-				errorf("tfile num read failed: %d", c);
+				errorf_old("tfile num read failed: %d", c);
 				fclose(tfile), fclose(tfilerec), releasetfile(tfstr, 2);
 				return 0;
 			}
@@ -6901,7 +6978,7 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
 			if (c == 1) {
 				break;
 			}
-			errorf("tfile num read failed: %d", c);
+			errorf_old("tfile num read failed: %d", c);
 			fclose(tfile);
 			return 0;
 		}
@@ -6928,7 +7005,7 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
 				if (c != 0) {
 					if (c == 1)
 						break;
-					errorf("2 - tfile num read failed: %d", c);
+					errorf_old("2 - tfile num read failed: %d", c);
 					lastlnk->next = 0, fclose(tfile), killoneschn(flnk, 1);
 					return 0;
 				}
@@ -6967,7 +7044,7 @@ char aliasentryto(FILE *fromfile, FILE *tofile, uint64_t aliascode) {	// doesn't
 	case 0: case 1:		// 0 for tag name, 1 for alternative tag name
 		tnum = fgetull_pref(fromfile, &c);
 		if (c) {
-			errorf("aliasentryto fgetull_pref: %d", c);
+			errorf_old("aliasentryto fgetull_pref: %d", c);
 			return 1;
 		} putull_pref(tnum, tofile);
 		break;
@@ -7046,7 +7123,7 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 			if ((c = null_fgets(buf, MAX_PATH*4, tAlias)) != 0) {
 				if (c == 1)
 					break;
-				errorf("null_fgets: %d", c);
+				errorf_old("null_fgets: %d", c);
 				fclose(tAlias), fclose(ttAlias), MBremove(baf), killtwoschn(ftwolink, 3);
 				return 1;
 			}
@@ -7070,7 +7147,7 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 			term_fputs(buf, ttAlias);
 			tnum = fgetull_pref(tAlias, &c);
 			if (c != 0) {
-				errorf("alias code read failed: %d", c);
+				errorf_old("alias code read failed: %d", c);
 				fclose(tAlias), fclose(ttAlias), MBremove(baf), killtwoschn(ftwolink, 3);
 				return 6;
 			}
@@ -7205,13 +7282,13 @@ oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { /
 			if ((c = null_fgets(buf, MAX_ALIAS*4, tAlias)) != 0) {
 				if (c == 1)
 					break;
-				errorf("null_fgets: %d", c);
+				errorf_old("null_fgets: %d", c);
 				fclose(tAlias);
 				return 0;
 			}
 			tnum = fgetull_pref(tAlias, &c);
 			if (c != 0) {
-				errorf("tnumfromalias - tAlias num read failed: %d", c);
+				errorf_old("tnumfromalias - tAlias num read failed: %d", c);
 				fclose(tAlias);
 				return 0;
 			}
@@ -7235,7 +7312,7 @@ oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { /
 			} else {
 				tnum = fgetull_pref(tAlias, &c);
 				if (c != 0) {
-					errorf("tAlias num read failed: %d", c);
+					errorf_old("tAlias num read failed: %d", c);
 					fclose(tAlias);
 					return 0;
 				}
@@ -7302,13 +7379,13 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 			if ((c = null_fgets(buf, MAX_ALIAS*4, tAlias)) != 0) {
 				if (c == 1)
 					break;
-				errorf("null_fgets: %d", c);
+				errorf_old("null_fgets: %d", c);
 				fclose(tAlias);
 				return 1;
 			}
 			tnum = fgetull_pref(tAlias, &c);
 			if (c != 0) {
-				errorf("tnumfromalias - tAlias num read failed: %d", c);
+				errorf_old("tnumfromalias - tAlias num read failed: %d", c);
 				fclose(tAlias);
 				return 1;
 			}
@@ -7330,7 +7407,7 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 			} else {
 				tnum = fgetull_pref(tAlias, &c);
 				if (c != 0) {
-					errorf("tAlias num read failed: %d", c);
+					errorf_old("tAlias num read failed: %d", c);
 					fclose(tAlias);
 					return 1;
 				}
@@ -7535,7 +7612,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 					c = EOF;
 					break;
 				}
-				errorf("tIndex num read failed: %d", c);
+				errorf_old("tIndex num read failed: %d", c);
 				fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 				return 1;
 			} putull_pref(tnum, ttIndex);
@@ -7561,7 +7638,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 						if (c == 4) {
 							break;
 						}
-						errorf("tIndex tag read failed: %d", c);
+						errorf_old("tIndex tag read failed: %d", c);
 						fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 						return 1;
 					}
@@ -7586,7 +7663,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 							if (c == 4) {
 								break;
 							}
-							errorf("tIndex tag read failed: %d", c);
+							errorf_old("tIndex tag read failed: %d", c);
 							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 							return 1;
 						}
@@ -7609,7 +7686,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 							if (c == 4) {
 								break;
 							}
-							errorf("tIndex tag read failed: %d", c);
+							errorf_old("tIndex tag read failed: %d", c);
 							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 							return 1;
 						}
@@ -7628,7 +7705,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 							if (c == 4) {
 								break;
 							}
-							errorf("tIndex tag read failed: %d", c);
+							errorf_old("tIndex tag read failed: %d", c);
 							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 							return 1;
 						}
@@ -7638,15 +7715,15 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 				while (remtagnums && remtagnums->ull == lasttnum)
 					remtagnums = remtagnums->next;
 				while (addtagnums && addtagnums->ull == lasttnum) {
-					errorf("add matched: %llu", lasttnum);
+					errorf_old("add matched: %llu", lasttnum);
 					addtagnums = addtagnums->next;
 				}
 			}
 		}
 		if (!ALLOW_TAGGING_NOTHING && (addtagnums || remtagnums)) {
 			errorf("tried to add or remove fnums to non-existent tagnum");
-			if (addtagnums) errorf("addtagnums->ull: %llu", addtagnums->ull);
-			if (remtagnums) errorf("remtagnums->ull: %llu", remtagnums->ull);
+			if (addtagnums) errorf_old("addtagnums->ull: %llu", addtagnums->ull);
+			if (remtagnums) errorf_old("remtagnums->ull: %llu", remtagnums->ull);
 		}
 		faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 		if (addtagnums || remtagnums) {
@@ -7663,7 +7740,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 		if (regtagnames->str) {
 			for (i = 0; regtagnames->str[i] != '\0' && i != MAX_ALIAS*4; i++);
 			if (i >= MAX_ALIAS*4) {
-				errorf("regtagnames->str too long -- max: %d", MAX_ALIAS*4);
+				errorf_old("regtagnames->str too long -- max: %d", MAX_ALIAS*4);
 				fclose(ttIndex), MBremove(baf), link1->next = 0, killoneschn(fnewtagnums, 1), killoneschn(fnums, 1);
 				return 1;
 			}
@@ -7698,7 +7775,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 	MBremove(bif);
 	if (MBrename(buf, bif)) {
 		errorf("rename1 failed");
-		errorf("%s -> %s", buf, bif);
+		errorf_old("%s -> %s", buf, bif);
 		fnewtagnums? killoneschn(fnewtagnums, 1) : 0;
 		return 1;
 	}
@@ -7710,7 +7787,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 	
 	if (fregtagnames) {
 		if (c = crtreg(dnum, fregtagnames, fnewtagnums)) {
-			errorf("crtreg failed: %d", c);
+			errorf_old("crtreg failed: %d", c);
 			MBremove(buf), MBrename(bif, buf);
 			return 1;
 		}
@@ -7815,13 +7892,13 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 		if (c != 0) {
 			if (c == 1)
 				break;
-			errorf("tIndex num read failed: %d", c);
+			errorf_old("tIndex num read failed: %d", c);
 			fclose(tIndex), presort? 0:killoneschn(tagnums, 1), rettagname? killoneschn(link2, 0):0, retfnums? killoneschnchn(link4, 1):0;
 			return 1;
 		}
 		if (link1->ull > tnum) {
 			if ((c = null_fgets(0, MAX_ALIAS*4, tIndex)) != 0) {
-				errorf("tIndex read error: %d", c);
+				errorf_old("tIndex read error: %d", c);
 				fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
@@ -7839,14 +7916,14 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 			}
 		} else if (link1->ull == tnum) {
 			if ((c = null_fgets(buf, MAX_ALIAS*4, tIndex)) != 0) {
-				errorf("tIndex read error: %d", c);
+				errorf_old("tIndex read error: %d", c);
 				fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
 			if (rettagname) {
 				link3 = link3->next = malloc(sizeof(oneslnk));
 				if (!(link3->str = dupstr(buf, MAX_ALIAS*4, 0))) {
-					errorf("failed to duplicate buf: %s", buf);
+					errorf_old("failed to duplicate buf: %s", buf);
 				}
 			}
 			if (retfnums) {
@@ -7866,7 +7943,7 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 						if (c == 4) {
 							break;
 						}
-						errorf("tIndex tag read failed: %d", c);
+						errorf_old("tIndex tag read failed: %d", c);
 						tlink->next = 0, fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0, tlink->next = 0;
 						return 1;
 					} tlink = tlink->next = malloc(sizeof(oneslnk));
@@ -7895,7 +7972,7 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 	fclose(tIndex);
 	
 	if (link1) {
-		errorf("tried to read non-existent tagnum: %d -- last read %d", link1->ull, tnum);
+		errorf_old("tried to read non-existent tagnum: %d -- last read %d", link1->ull, tnum);
 		presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 		return 1;
 	}
@@ -7943,7 +8020,7 @@ char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, onesl
 			}
 			fclose(file2);
 		} else {
-			errorf("couldn't create %s", buf2);
+			errorf_old("couldn't create %s", buf2);
 		}
 		fclose(file1);
 	}
@@ -7958,7 +8035,7 @@ char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, onesl
 			}
 			fclose(file2);
 		} else {
-			errorf("couldn't create %s", buf4);
+			errorf_old("couldn't create %s", buf4);
 		}
 		fclose(file1);
 	}

@@ -1,4 +1,4 @@
-objects = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o fentries.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o
+objects = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o indextools.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o
 
 #listdirobj = dupstr.c stringchains.c portables.c breakpath.c
 listdirobj = arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o fentries.o images.o ioextras.o stringchains.o tfiles.o dupstr.o
@@ -30,4 +30,6 @@ clean:
 resources.o: resources.rc Application.manifest
 	windres resources.rc -o resources.o --use-temp-file
 
-main.o : userinterface.hpp breakpath.h fentries.h stringchains.h images.h dupstr.h arrayarithmetic.h bytearithmetic.h portables.h tfiles.h errorf.hpp userinterface.hpp uiutils.hpp portables.hpp
+main.o : userinterface.hpp breakpath.h indextools.hpp stringchains.h images.h dupstr.h arrayarithmetic.h bytearithmetic.h portables.h tfiles.h errorf.hpp userinterface.hpp uiutils.hpp portables.hpp
+
+indextools.o : indextools.hpp indextools_static.hpp

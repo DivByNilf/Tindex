@@ -96,11 +96,11 @@ uint64_t fgetull_pref(FILE *stream, int32_t *feedback) {
 	c = getc(stream);
 	if (c == EOF) {
 		if (feedback)
-			*feedback = 1;
+			*feedback = ULL_READ_EOF;
 		return 0;
 	} if (c >= 9) {
 		if (feedback)
-			*feedback = 3;
+			*feedback = ULL_READ_OVERFLOW;
 		return 0;
 	} if (c == 0) {
 		if (feedback)
@@ -111,7 +111,7 @@ uint64_t fgetull_pref(FILE *stream, int32_t *feedback) {
 		d = getc(stream);
 		if (d == EOF) {
 			if (feedback)
-				*feedback = 2;
+				*feedback = ULL_READ_LATE_EOF;
 			return 0;
 		} result *= 256, result += d;
 	}
@@ -128,7 +128,7 @@ uint64_t fgetull_len(FILE *stream, uint8_t len, int32_t *feedback) {
 		d = getc(stream);
 		if (d == EOF) {
 			if (feedback)
-				*feedback = 2;
+				*feedback = ULL_READ_LATE_EOF;
 			return 0;
 		} result *= 256, result += d;
 	}

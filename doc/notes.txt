@@ -162,6 +162,14 @@ _get_pgmptr to get the path to the executable instead
 audio and video
 	player needs: fetchable duration and position, settable position, feedback when end is reached, maybe feedback when position changes
 		perhaps only feedback when end is reached and feedback when changing video forward or backward
+		
+- - - ideas
+
+createWindowInstance could probably be templated to something like:
+	template <class T>
+	HWND createWindowInstance<T>(args<T>, CreateWinArgs) {
+	
+	}
 
 - - - debugging
 

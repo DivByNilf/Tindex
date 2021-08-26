@@ -18,7 +18,6 @@
 
 extern "C" {
 #include "breakpath.h"
-#include "fentries.h"
 #include "stringchains.h"
 #include "images.h"
 #include "dupstr.h"
@@ -35,6 +34,7 @@ extern "C" {
 #include "userinterface.hpp"
 #include "uiutils.hpp"
 #include "portables.hpp"
+#include "indextools.hpp"
 
 
 #define IDM_FILE_MIMAN 1

@@ -1,48 +1,11 @@
-#ifndef _FENTRIES_H
-#define _FENTRIES_H
+#pragma once
 
+extern "C" {
 #include "stringchains.h"
+}
 
 #include <stdio.h>
 #include <stdint.h>
-
-typedef struct searchexpr {
-	unsigned short exprtype;
-	struct {
-		struct searchexpr *expr1;
-		union {
-			struct searchexpr *expr2;
-			uint64_t refnum;
-		};
-	};
-} SREXP;
-
-typedef struct srexplist {
-	SREXP *expr;
-	struct srexplist *next;
-} SREXPLIST;
-
-typedef struct superexpstack {
-	SREXP *expr;
-	uint64_t subexp_layers;
-	struct superexpstack *next;
-} SUPEXPSTACK;
-
-typedef struct tagnumstruct {
-	uint64_t tagnum;
-	unsigned char state;
-} TAGNUMNODE;
-
-typedef struct sstruct {
-	TAGNUMNODE *tagnumarray;
-	unsigned long ntagnums;
-	struct searchexpr *rootexpr;
-	uint64_t dnum;
-} SEARCHSTRUCT;
-
-struct subdirentry {
-	char *subdirstr;
-};
 
 uint64_t rmiread(char *entrystr);
 
@@ -224,5 +187,3 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 
 char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk *remtagnums, unsigned char presort);
 */
-
-#endif
