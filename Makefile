@@ -1,4 +1,4 @@
-objects = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o indextools.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o
+objects = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o indextools.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o ioextrascpp.o
 
 #listdirobj = dupstr.c stringchains.c portables.c breakpath.c
 listdirobj = arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o fentries.o images.o ioextras.o stringchains.o tfiles.o dupstr.o
@@ -8,6 +8,9 @@ listdirobj = arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpat
 CFLAGS = -ggdb -w
 
 CPPFLAGS = $(CFLAGS)
+
+# for std::filesystem
+CPPFLAGS += -std=c++20
 
 # !! For C conversion:
 CPPFLAGS += -fpermissive
@@ -32,4 +35,4 @@ resources.o: resources.rc Application.manifest
 
 main.o : userinterface.hpp breakpath.h indextools.hpp stringchains.h images.h dupstr.h arrayarithmetic.h bytearithmetic.h portables.h tfiles.h errorf.hpp userinterface.hpp uiutils.hpp portables.hpp
 
-indextools.o : indextools.hpp indextools_static.hpp
+indextools.o : indextools.hpp indextools_static.hpp ioextras.hpp

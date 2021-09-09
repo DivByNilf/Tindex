@@ -15,6 +15,7 @@
 #include <locale>
 #include <map>
 #include <algorithm>
+#include <filesystem>
 
 extern "C" {
 #include "breakpath.h"
@@ -97,6 +98,9 @@ enum { WPARAM_SLV_GETREF = 5 };
 #define errorf_old(...) g_errorf(__VA_ARGS__)
 
 char *g_prgDir;
+std::string g_stdPrgDir;
+std::filesystem::path g_fsPrgDirPath;
+
 
 HINSTANCE ghInstance;
 
@@ -259,6 +263,11 @@ int PrgDirInit(void) {
 		free(g_prgDir);
 		return 1;
 	}
+	
+	g_stdPrgDir = std::string(g_prgDir);
+	g_fsPrgDirPath = std::filesystem::current_path();
+	
+g_errorfStream << "g_fsPrgDirPath was: " << g_fsPrgDirPath << std::flush;
 	
 	return 0;
 }
@@ -483,7 +492,7 @@ char *toRelativePath(char *cbuf) { // returns dynamic memory
 			}
 			return std::shared_ptr<WindowClass>();
 		}
-		return (*findIt).second;
+		return findIt->second;
 	}
 	
 	//static
@@ -2687,9 +2696,13 @@ errorf("miman 7");
 					if (buf != NULL) {
 						
 						errorf_old("WM_U_PLV -- Received: \"%s\"", buf);
-						mireg(buf);
+						uint64_t uint = mireg(buf);
 						errorf("after mireg");
-						SendMessage(hwnd, WM_USER, 0, 0);
+						if (uint == 0) {
+							errorf("mireg failed");
+						} else {
+							SendMessage(hwnd, WM_USER, 0, 0);
+						}
 					}
 				}
 				

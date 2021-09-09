@@ -73,6 +73,8 @@ objects
 
 directory partial aliases -- maybe format "ALIAS:/{aliasname}/..."
 
+handle io exceptions
+
 - - - optimizations
 
 informing of being pre-sorted

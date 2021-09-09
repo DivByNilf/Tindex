@@ -1330,6 +1330,37 @@ uint64_t miinitpos(uint64_t iinum) {
 }
 
 uint64_t mireg(char *miname) {
+	if (miname == NULL) {
+		errorf("miname was NULL");
+		return 0;
+	}
+errorf("(mireg) spot 1");
+try {
+	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
+	if (indexSession == nullptr) {
+		errorf("(mireg) could not open session");
+		return 0;
+	}
+errorf("(mireg) spot 2");
+	std::string str = std::string(miname);
+	uint64_t res = indexSession->addEntry(str);
+errorf("(mireg) spot 3");
+	if (!res) {
+		errorf("failed to register miname");
+		return 0;
+	} else {
+		return res;
+	}
+errorf("(mireg) spot 4");
+	
+} catch (std::exception &e) {
+	errorf("threw");
+	g_errorfStream << "Threw: " << e.what() << std::flush;
+}
+	return 0;
+}
+
+uint64_t mireg_old(char *miname) {
 	int c;
 	oneslnk *link = malloc(sizeof(oneslnk));
 	link->next = NULL;

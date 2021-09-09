@@ -8,12 +8,22 @@ extern "C" {
 #include <stdint.h>
 
 #include <map>
+#include <forward_list>
+#include <list>
 #include <string>
-//#include <memory>
+#include <memory>
+#include <filesystem>
+#include <fstream>
+#include <type_traits> //!
+#include <utility> //!
 
 #include "errorf.hpp"
 
 #define errorf(str) g_errorfStdStr(str)
+
+#include "ioextras.hpp"
+
+extern std::filesystem::path g_fsPrgDirPath;
 
 typedef struct searchexpr {
 	unsigned short exprtype;
@@ -66,7 +76,87 @@ public:
 			fclose(fp);
 		}
 	}
+	
+	void release(void) {
+		released = true;
+	}
 };
+
+class FilePathDeleter {
+public:
+	const std::filesystem::path fpath;
+	bool released = false;
+	
+	FilePathDeleter() = delete;
+	FilePathDeleter(std::filesystem::path &fpath_) : fpath{fpath_} {}
+	
+	~FilePathDeleter() {
+		if (!released) {
+			bool success = remove(fpath);
+			if (!success) {
+				errorf("FilePathDeleter remove failed");
+			}
+		}
+	}
+	
+	void release(void) {
+		released = true;
+	}
+};
+
+class FileRenameOp {
+public:
+	const std::filesystem::path from;
+	const std::filesystem::path to;
+	const std::filesystem::path bak;
+	
+	FileRenameOp() = delete;
+	FileRenameOp(std::filesystem::path from_, std::filesystem::path to_, std::filesystem::path bak_) : from{from_}, to(to_), bak(bak_) {}
+	
+	
+	bool firstExecute(void) {
+		if (firstExecuted) {
+			errorf("already firstExecuted");
+			return false;
+		} else {
+			return false;
+		}
+	}
+	
+	bool secondExecute(void) {
+		if (!firstExecuted) {
+			errorf("haven't firstExecuted");
+			return false;
+		} else {
+			return false;
+		}
+	}
+	
+protected:
+	bool firstExecuted = false;
+	bool secondExecuted = false;
+	
+};
+
+bool executeRenameOpList(const std::list<FileRenameOp> opList) {
+	for (auto op : opList) {
+		bool success = op.firstExecute();
+		if (!success) {
+			errorf("firstExecute failed in list");
+			return false;
+		}
+	}
+	for (auto op : opList) {
+		bool success = op.secondExecute();
+		if (!success) {
+			errorf("secondExecute failed in list");
+			return false;
+		}
+	}
+	return true;
+}
+
+///////////////////////
 
 class IndexSession;
 class IndexSessionHandler;
@@ -76,6 +166,14 @@ class IndexSessionPointer;
 
 template <class T>
 class HandlerIndexSessionPointer;
+
+template <class U, class ... Ts>
+IndexSessionPointer<U> openSession(Ts&& ... args);
+
+class TopIndex;
+class SubIndex;
+
+class MainIndexIndex; //!
 
 class IndexID {
 public:
@@ -89,7 +187,13 @@ public:
 	}
 };
 
-//! TODO: make reference to parent atomic
+class HandlerAccessor {
+	friend class IndexSession;
+private:
+	static removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr);
+};
+
+//! TODO: make reference to parent (handler?) atomic
 
 class IndexSession {
 public:
@@ -97,12 +201,21 @@ public:
 	const IndexID &indexID;
 
 	IndexSession() = delete;
-	IndexSession(IndexSessionHandler &handler_, IndexID &indexID_) : handler{handler_}, indexID{indexID_}, nrefs{0}, nHandlerRefs{0} {
+	IndexSession(IndexSessionHandler &handler_, const IndexID &indexID_) : handler{handler_}, indexID{indexID_}, nrefs{0}, nHandlerRefs{0} {
 		
 	}
 	IndexSessionHandler &getHandler(void) {
 		return this->handler;
 	}
+	
+	bool hasNoRefs(void) const {
+		return (this->nrefs <= this->nHandlerRefs);
+	}
+	
+	~IndexSession(void) {
+errorf("IndexSession deleter");
+	}
+	
 protected:
 	IndexSessionHandler &handler;
 	
@@ -114,207 +227,622 @@ private:
 	template<typename T> friend class HandlerIndexSessionPointer;
 	
 	void addRef(void) {
-		nrefs++;
+		this->nrefs++;
+g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
 	}
 	// forward declared
-	void removeRef(void);
+	void removeHandlerRefs(void);
+
+	void removeRef(void) {
+errorf("removeRef 1");
+		nrefs--;
+		if (this->nrefs <= this->nHandlerRefs) {
+			if (this->nrefs < this->nHandlerRefs) {
+				errorf("fewer nrefs than nHandlerRefs");
+			}
+errorf("removeRef 4");
+			this->removeHandlerRefs();
+errorf("removeRef 5.1");
+		}
+errorf("removeRef 6");
+g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
+	}
 	
 	void addHandlerRef(void) {
-		nHandlerRefs++;
+		this->nHandlerRefs++;
+g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
 	}
 	void removeHandlerRef(void) {
-		nHandlerRefs--;
+		this->nHandlerRefs--;
+g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
 	}
 };
 
-template <class T>
-class IndexSessionPointer {
+//{ Index Subclasses
+
+class TopIndex : public IndexSession {
 public:
-	IndexSessionPointer() = delete;
-	IndexSessionPointer(const IndexSessionPointer &) = delete;
-	IndexSessionPointer &operator=(const IndexSessionPointer &) = delete;
-	IndexSessionPointer &operator=(IndexSessionPointer &&) = delete;
-	IndexSessionPointer(const volatile IndexSessionPointer &&) = delete;
+	TopIndex(IndexSessionHandler &handler_, const IndexID &indexID_) : IndexSession(handler_, indexID_) {}
 	
-	IndexSessionPointer(IndexSession *init_ptr) : ptr{init_ptr}  {
-		//! TODO: prevent null in the first place
-		if (ptr != NULL) {
-			ptr->addRef();
-		}
-	}
+	virtual ~TopIndex(void) {}
 	
-	~IndexSessionPointer() {
-		if (ptr != NULL) {
-			ptr->removeRef();
-		}
-	}
-	
-	T *get() {
-		return this->ptr;
-	}
-	
-	template <class U> 
-	operator HandlerIndexSessionPointer<U>() {
-		return HandlerIndexSessionPointer<U>(*this);
-	}
-	
-	template <class ... Ts, class U>
-	static IndexSessionPointer<U> make(Ts&& ... args) {
-		U *created_ptr = new U(args...);
-		IndexSessionPointer<U> created_isp = IndexSessionPointer<U>(created_ptr);
-		return created_isp;
-	}
-	
-	///
-	
-	template <class U> 
-	bool operator==(const IndexSessionPointer<U>& rhs) const {
-		this->ptr == rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator!=(const IndexSessionPointer<U>& rhs) const {
-		this->ptr != rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator==(const U* rhs) const {
-		this->ptr == rhs;
-	}
-	
-	template <class U> 
-	bool operator!=(const U* rhs) const {
-		this->ptr != rhs;
-	}
-	
-protected:
-	T *ptr;
 };
 
-template <class T>
-struct std::hash<IndexSessionPointer<T>> {
-	std::size_t operator()(IndexSessionPointer<T> const& s) const noexcept {
-		return std::hash<T*>()(s.get());
-    }
-};
-
-template <class T>
-class HandlerIndexSessionPointer : public IndexSessionPointer<T> {
+class SubIndex : public IndexSession {
 public:
-	HandlerIndexSessionPointer() = delete;
-	HandlerIndexSessionPointer(const HandlerIndexSessionPointer &) = delete;
-	HandlerIndexSessionPointer &operator=(const HandlerIndexSessionPointer &) = delete;
-	HandlerIndexSessionPointer &operator=(HandlerIndexSessionPointer &&) = delete;
-	HandlerIndexSessionPointer(const volatile HandlerIndexSessionPointer &&) = delete;
-	
-	HandlerIndexSessionPointer(IndexSession *init_ptr) : IndexSessionPointer<T>(init_ptr) {
-		init_ptr->addHandlerRef();
-	};
-	
-	~HandlerIndexSessionPointer() {
-		if (this->ptr != NULL) {
-			this->ptr->removeHandlerRef();
-		}
-	}
-	
-	HandlerIndexSessionPointer(IndexSessionPointer<T> isp) : HandlerIndexSessionPointer(isp.get()) {};
-	
-	///
-	
-	template <class U> 
-	bool operator==(const HandlerIndexSessionPointer<U>& rhs) const {
-		this->ptr == rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator!=(const HandlerIndexSessionPointer<U>& rhs) const {
-		this->ptr != rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator==(const U* rhs) const {
-		this->ptr == rhs;
-	}
-	
-	template <class U> 
-	bool operator!=(const U* rhs) const {
-		this->ptr != rhs;
-	}
 	
 };
 
+/*
 template <class T>
 struct std::hash<HandlerIndexSessionPointer<T>> {
 	std::size_t operator()(HandlerIndexSessionPointer<T> const& s) const noexcept {
 		return std::hash<T*>()(s.get());
     }
 };
+*/
 
-// every session knows an instance of IndexSessionHandler
-// IndexSessionHandler contains a list of every session or sub-sessionhandler containing the session
-// when there are no more references to a session, the session is removed from the list
+template <class KeyT>
+class AutoKey;
 
-class IndexSessionHandler {
-public:
-	template <class ... Ts, class U>
-	IndexSessionPointer<U> openSession(Ts&& ... args) {
-		auto findIt = openSessions.find(U::indexID);
-		if (findIt != openSessions.end()) {
-			return findIt->second;
-		} else {
-			IndexSessionPointer<U> session_ptr = IndexSessionPointer<U>(*this, args...);
-			HandlerIndexSessionPointer<U> handler_session_ptr = session_ptr;
-			auto resPair = openSessions.emplace(U::indexID, handler_session_ptr);
-			if (resPair.first == openSessions.end()) {
-				errorf("failed to emplace handler_session_ptr");
-			} else if (resPair.second == false) {
-				errorf("indexID already registered");
-			} else {
-				return session_ptr;
-			}
-		}
-		return IndexSessionPointer<U>();
+/*
+template <class KeyT>
+class AutoKey<uint64_t> {
+	
+}
+*/
+
+template <class T>
+struct IOSpec;
+
+template<>
+struct IOSpec<uint64_t> {
+	static void write(std::fstream &fs, uint64_t &entry) {
+		put_u64_stream_pref(fs, entry);
 	}
 	
-protected:
-	std::map<IndexID, HandlerIndexSessionPointer<IndexSession>> openSessions{};
-	
-	// can't declare a private method as friend so has to be whole class
-	friend class IndexSession;
-	
-	bool removeRefs(const IndexID &indexID, const IndexSession *session_ptr) {
-		auto findIt = openSessions.find(indexID);
-		if (findIt == openSessions.end()) {
-			errorf("(removeRefs) couldn't find indexID entry");
+	static uint64_t read(std::fstream &fs) {
+		bool b_gotNull = false;
+		uint64_t uint = get_u64_stream_pref(fs, b_gotNull);
+		if (b_gotNull) {
+			errorf("IOSpec<uint64_t>::get -- b_gotNull");
+			fs.setstate(std::ios_base::failbit);
+			return 0;
 		} else {
-			if (findIt->second.get() == session_ptr) {
-				openSessions.erase(findIt);
-				return true;
-			}
+			return uint;
 		}
+	}
+	
+	static void skip(std::fstream &fs) {
+		bool b_gotNull = false;
+		uint64_t uint = get_u64_stream_pref(fs, b_gotNull);
+		if (b_gotNull) {
+			errorf("IOSpec<uint64_t>::skip -- b_gotNull");
+			fs.setstate(std::ios_base::failbit);
+		}
+	}
+};
+
+template<>
+struct IOSpec<std::string> {
+	static void write(std::fstream &fs, const std::string &entry) {
+		fs << entry;
+	}
+	
+	static std::string read(std::fstream &fs) {
+		std::string str;
+		
+		//! TODO: limit reading to MAX_PATH or something
+		std::getline(fs, str, '\0');
+		return str;
+	}
+	
+	static void skip(std::fstream &fs) {
+		std::string str;
+		
+		//! TODO: limit reading to MAX_PATH or something
+		std::getline(fs, str, '\0');
+	}
+};
+
+template <class KeyT, class InnerKeyT, class EntryT, class InnerEntryT>
+class StandardIndex {
+public:
+	bool removeEntry(KeyT);
+	KeyT replaceEntry(KeyT, EntryT);
+	
+	virtual ~StandardIndex(void) {
+
+	}
+	
+};
+
+template <class KeyT, class InnerKeyT, class EntryT, class InnerEntryT>
+class StandardManualKeyIndex : public StandardIndex<KeyT, InnerKeyT, EntryT, InnerEntryT> {
+public:
+	KeyT addEntry(KeyT, EntryT);
+	
+	virtual ~StandardManualKeyIndex(void) {
+
+	}
+};
+
+template <class KeyT, class InnerKeyT, class EntryT, class InnerEntryT>
+class StandardAutoKeyIndex : public StandardIndex<KeyT, InnerKeyT, EntryT, InnerEntryT> {
+public:
+	typedef std::pair<KeyT, EntryT> EntryPair;
+	
+	//typedef std::conditional<true, int, double>::type InnerKeyT;
+	
+	virtual const std::string getFileStrBase(void) = 0;
+	
+	virtual const std::filesystem::path getDirPath(void) = 0;
+	
+	virtual bool isValidInputEntry(EntryT) = 0;
+	
+	virtual std::list<FileRenameOp> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList, bool &argFail) = 0;
+	
+	virtual ~StandardAutoKeyIndex(void) {
+
+	}
+	
+	KeyT skipEntryGetKey(std::fstream &fs) {
+		KeyT key = IOSpec<KeyT>::read(fs);
+		
+		IOSpec<EntryT>::skip(fs);
+		
+		//! TODO: maybe verify content
+		
+		return key;
+	}
+	
+	std::shared_ptr<EntryPair> writeEntryGetPair(std::fstream &fs, KeyT entryKey, EntryT &inputEntry) {
+		IOSpec<KeyT>::write(fs, entryKey);
+		
+		if (fs.fail() || fs.bad()) {
+			fs.setstate(std::ios_base::badbit);
+			return {};
+		}
+		
+		IOSpec<EntryT>::write(fs, inputEntry);
+		
+		if (fs.fail() || fs.bad()) {
+			fs.setstate(std::ios_base::badbit);
+			return {};
+		}
+		
+		return std::make_shared<EntryPair>(entryKey, inputEntry);
+	}
+	
+	/*
+	void skipEntry(std::fstream &fs) {
+		
+		//! TODO: maybe verify content
+		KeyT key = 
+	}
+	*/
+	
+	bool clearRec(void) {
+		//! TODO:
 		return false;
 	}
 	
-};
-
-void IndexSession::removeRef(void) {
-	nrefs--;
-	if (nrefs <= nHandlerRefs) {
-		if (nrefs < nHandlerRefs) {
-			errorf("fewer nrefs than nHandlerRefs");
-		}
-		handler.removeRefs(this->indexID, this);
-		delete this;
+	KeyT getLastKey(void) {
+		//! TODO:
+		return 0;
 	}
-}
+	
+	std::list<FileRenameOp> addToLastEntryNum(long long num, uint64_t spot, bool &b_argFail) {
+		//! TODO:
+		b_argFail = true;
+		return {};
+	}
 
-class MainIndexIndex {
-public:
-	addEntry(std::string entryName);
-	removeEntry(uint64_t inum);
-	replaceEntry(uint64_t inum, std::string newName);
+	KeyT addEntry(EntryT &argEntry) {
+		const auto inputList = std::forward_list<EntryT>{ argEntry };
+		
+		std::forward_list<KeyT> retList = this->addEntries(inputList);
+		
+		if (retList.empty()) {
+			errorf("addEntry received empty list");
+		} else if (std::next(retList.begin()) != retList.end()) {
+			errorf("addEntry received multiple keys");
+		} else {
+			return (KeyT) (*retList.begin());
+		}
+		
+		return 0;
+	}
+	
+	KeyT addEntry(InnerEntryT *argEntry) {
+		static_assert(!std::is_same<InnerEntryT, EntryT>::value);
+		
+		auto argPtr = &argEntry;		
+		const auto inputList = std::forward_list<InnerEntryT *>{ argPtr };
+		
+		std::forward_list<KeyT> retList = this->addEntries(inputList);
+		
+		if (retList.empty()) {
+			errorf("addEntry received empty list");
+		} else if (std::next(retList.begin()) != retList.end()) {
+			errorf("addEntry received multiple keys");
+		} else {
+			return (KeyT) (*retList.begin());
+		}
+		
+		return 0;
+	}
+	
+	/*
+	std::shared_ptr<KeyT> addEntry(std::shared_ptr<const EntryT> argPtr) {
+		const auto inputList = std::forward_list<std::shared_ptr<const EntryT>>(argPtr);
+		std::forward_list<KeyT> retList = this->addEntries(inputList);
+		if (retList.empty()) {
+			errorf("addEntry received empty list");
+		} else if (retList.end() - retList.begin() > 1) {
+			errorf("addEntry received multiple keys");
+		} else {
+			return std::shared_ptr<KeyT>(retList.begin());
+		}
+	}
+	*/
+
+	std::forward_list<KeyT> addEntries(const std::forward_list<EntryT> inputList) {
+		if (inputList.empty()) {
+			errorf("(StandardAutoKeyIndex.addEntries) inputList was empty");
+			return {};
+		}
+		/*
+		if (inputchn == 0) {
+			errorf("inputchn is null");
+			return 1;
+		}
+		*/
+		
+		/*
+		long int maxentrylen = MAX_PATH*4;
+		
+		oneslnk *inputchn = minamechn;
+		char *fileStrBase = "miIndex";
+		#define getlastentrynum() getlastminum()
+		#define addtolastinum(num1, num2) addtolastminum(num1, num2)
+		#define crentryreg(numentrychn) crmireg(numentrychn)
+		
+		unsigned char buf[MAX_PATH*4];
+		*/
+		
+		for (auto inputEntry : inputList) {
+			if (!this->isValidInputEntry(inputEntry)) {
+				errorf("(StandardAutoKeyIndex.addEntries) inputList contained invalid entry");
+				return {}; 
+			}
+		}
+		
+		/*
+		for (oneslnk *link = inputchn; link != 0; link = link->next) {
+			int i = 0;
+			if (link->str) {
+				for (i = 0; link->str[i] != '\0' && i != maxentrylen; i++);
+				if (i >= maxentrylen) {
+					errorf("input string too long");
+					return 1;
+				}
+			} if (i == 0 || link->str == 0) {
+				errorf("empty string");
+				return 1;
+			}
+		}
+		*/
+		
+		std::filesystem::path indexFilePath = this->getDirPath() / (this->getFileStrBase() + ".bin");
+		
+		std::filesystem::path tempIndexPath = (indexFilePath);
+		tempIndexPath.replace_extension("tmp");
+		
+		if (tempIndexPath.extension() != ".tmp") {
+			errorf("failed to create tempIndexPath");
+			return {};
+		}
+		std::shared_ptr<FilePathDeleter> fpathDeleterPtr; // assuming class deleters are called in reverse order of appearance
+		
+		std::fstream tempIndexStream;
+		
+		FILE *indexF;
+		char created = 0;
+		
+		uint64_t lastEntryKey = 0;
+		//! TODO: replace by something that checks existence otherwise (e.g. if renamed to .bak)
+		if (std::filesystem::exists(indexFilePath)) {
+			lastEntryKey = this->getLastKey();
+			
+			std::error_code ec;
+			bool copyres = std::filesystem::copy_file(indexFilePath, tempIndexPath, ec);
+			
+			if (!copyres) {
+				errorf("(StandardAutoKeyIndex.addEntries) failed to copy to temp file");
+				g_errorfStream << "tried to copy \"" << indexFilePath << "\" to \"" << tempIndexPath << "\"" << std::flush;
+				g_errorfStream << "error code was: " << ec << std::flush;
+				return {};
+			}
+			
+			//! TODO: make a deleter for the copy
+			fpathDeleterPtr = std::make_shared<FilePathDeleter>(tempIndexPath);
+			
+			tempIndexStream = std::fstream(tempIndexPath, std::ios::binary | std::ios::out | std::ios::in);
+	
+			if (!tempIndexStream.is_open()) {
+				errorf("failed to open tempIndexStream for read and write");
+				return {};
+			}
+			
+			//! skip to end
+			
+			if (lastEntryKey > 0) {
+				//sets the output position
+				tempIndexStream.seekp(0, std::ios::end);
+				if (tempIndexStream.fail()) {
+					errorf("seekp failed");
+					return {};
+				}
+			} else {
+				//! skip to end manually
+				KeyT tempEntryKey = lastEntryKey;
+				tempEntryKey = this->skipEntryGetKey(tempIndexStream);
+				while (!tempIndexStream.eof()) {
+					if (tempEntryKey <= lastEntryKey) {
+						errorf("tempEntryKey <= lastEntryKey");
+						return {};
+					} else {
+						lastEntryKey = tempEntryKey;
+					}
+					tempEntryKey = this->skipEntryGetKey(tempIndexStream);
+				}
+				if (tempIndexStream.fail()) {
+					errorf("tempIndexStream entry read fail (1)");
+					return {};
+				}
+			}
+		} else {
+			bool clearRes = this->clearRec();
+			
+			if (!clearRes) {
+				errorf("clearRec() failed");
+				return {};
+			}
+			
+			tempIndexStream = std::fstream(tempIndexPath, std::ios::binary | std::ios::out | std::ios::trunc);
+			fpathDeleterPtr = std::make_shared<FilePathDeleter>(tempIndexPath);
+			
+			if (!tempIndexStream.is_open()) {
+				errorf("failed to open tempIndexStream for read and write");
+				return {};
+			}
+		}
+		
+		/*
+		
+		sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
+		if ((indexF = MBfopen(buf, "rb+")) == NULL) {
+			if ((indexF = MBfopen(buf, "wb+")) == NULL) {
+				errorf("couldn't create indexF");
+				errorf_old("tried to create: \"%s\"", buf);
+				return {};
+			}
+			created = 1;
+		}
+		
+		uint64_t lastentrynum = 0;
+		
+		//if (lastdnum = getlastdnum()) {
+		if ( (!created) && ((lastentrynum = getlastentrynum()) > 0) ) {
+			fseek(indexF, 0, SEEK_END);
+		} else {
+			int c;
+			while ((c = getc(indexF)) != EOF) {
+				if (fseek(indexF, c, SEEK_CUR)) {
+					errorf("fseek failed");
+					fclose(indexF);
+					return {};
+				}
+				
+				if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
+					errorf_old("indexF read error: %d", c);
+					fclose(indexF);
+					return {};
+				}
+				lastentrynum++;		// assuming there are no entry number gaps
+			}
+		}
+		
+		*/
+		
+		std::forward_list<EntryPair> regEntryPairList;
+		
+		{
+			auto insertPos = regEntryPairList.begin();
+			
+			for (auto inputEntry : inputList) {
+				lastEntryKey++;
+				std::shared_ptr<EntryPair> entryPairPtr = this->writeEntryGetPair(tempIndexStream, lastEntryKey, inputEntry);
+				if (tempIndexStream.bad()) {
+					errorf("tempIndexStream write failed");
+					return {};
+				} else if (!entryPairPtr) {
+					errorf("entryPairPtr is null");
+					return {};
+				} else {
+					insertPos = regEntryPairList.insert_after(insertPos, *entryPairPtr);
+				}
+			}
+		}
+		
+		tempIndexStream.close();
+		
+		if (tempIndexStream.fail()) {
+			errorf("tempIndexStream close fail");
+			return {};
+		}
+		
+		/*
+		
+		twoslnk *numentrychn, *fnumentry;
+		
+		fnumentry = numentrychn = malloc(sizeof(twoslnk));
+		numentrychn->u[0].str = 0;
+		
+		int i = 0;
+		{
+			oneslnk *link = inputchn;
+			for (; link != 0; link = link->next, i++) {
+				putull_pref(++lastentrynum, indexF);
+				term_fputs(link->str, indexF);
+				numentrychn = numentrychn->next = malloc(sizeof(twoslnk));
+				numentrychn->u[0].str = link->str, numentrychn->u[1].ull = lastentrynum;
+			}
+		}
+		fclose(indexF);
+		
+		numentrychn->next = 0;
+		numentrychn = fnumentry->next, free(fnumentry);
+		*/
+		
+		//! TODO: return an object for atomic multi-file operation
+		bool reverseAddSuccess = false;
+		std::list<FileRenameOp> reverseOpList = this->reverseAddEntries(regEntryPairList, reverseAddSuccess);
+		
+		if (!reverseAddSuccess) {
+			return {};
+		}
+		
+		uint64_t nRegEntries = std::distance(regEntryPairList.begin(), regEntryPairList.end());
+		
+		//! TODO: add start and entry range as file positions
+		bool addToLastFail = false;
+		std::list<FileRenameOp> addToLastOpList = this->addToLastEntryNum(nRegEntries, 0, addToLastFail);
+		
+		//! TODO: automatically remove the .tmp files of opList on return
+		
+		if (addToLastFail) {
+			//! TODO: cancel each in reverseOpList 
+			
+			return {};
+		}
+		
+		/*
+		crentryreg(numentrychn);
+		killtwoschn(numentrychn, 3);
+		addtolastinum(i, 0);
+		*/
+		
+		if (fpathDeleterPtr) {
+			fpathDeleterPtr->release();
+		} else {
+			errorf("fpathDeleterPtr is null");
+			return {};
+		}
+		
+		std::filesystem::path bakIndexPath = (indexFilePath);
+		bakIndexPath.replace_extension("bak");
+		
+		if (bakIndexPath.extension() != ".bak") {
+			errorf("failed to create bakIndexPath");
+			return {};
+		}
+		
+		
+		//! TODO: do rename from temp
+		std::list<FileRenameOp> renameOpList;
+		renameOpList.emplace_back(tempIndexPath, indexFilePath, bakIndexPath);
+		renameOpList.insert(renameOpList.end(), reverseOpList.begin(), reverseOpList.end());
+		renameOpList.insert(renameOpList.end(), addToLastOpList.begin(), addToLastOpList.end());
+		
+		bool success = executeRenameOpList(renameOpList);
+		if (!success) {
+			errorf("executeRenameOpList failed");
+			//! TODO: remove tmp files
+			return {};
+		}
+		
+		std::forward_list<KeyT> retList;
+		
+		for (auto entryPair : regEntryPairList) {
+			retList.insert_after(retList.end(), entryPair.first);
+		}
+		
+		return retList;
+	}
+
+	//std::forward_list<KeyT> addEntries(const std::forward_list<std::shared_ptr<const EntryT>>);
 	
 };
+
+template <class KeyT, class EntryT>
+class StandardAutoKeyIndexI : public StandardAutoKeyIndex<KeyT, KeyT, EntryT, EntryT> {
+public:
+	
+	virtual ~StandardAutoKeyIndexI(void) {
+		
+	}
+};
+
+template <class InnerKeyT, class InnerEntryT>
+class StandardAutoKeyIndexI<std::shared_ptr<InnerKeyT>, std::shared_ptr<InnerEntryT>> : public StandardAutoKeyIndex<std::shared_ptr<InnerKeyT>, InnerKeyT, std::shared_ptr<InnerEntryT>, InnerEntryT> {
+public:
+	
+	
+	virtual ~StandardAutoKeyIndexI(void) {
+		
+	}
+};
+
+template <class InnerKeyT, class EntryT>
+class StandardAutoKeyIndexI<std::shared_ptr<InnerKeyT>, EntryT> : public StandardAutoKeyIndex<std::shared_ptr<InnerKeyT>, InnerKeyT, EntryT, EntryT> {
+public:
+	virtual ~StandardAutoKeyIndexI(void) {
+		
+	}
+};
+
+template <class KeyT, class InnerEntryT>
+class StandardAutoKeyIndexI<KeyT, std::shared_ptr<InnerEntryT>> : public StandardAutoKeyIndex<KeyT, KeyT, std::shared_ptr<InnerEntryT>, InnerEntryT> {
+public:
+	virtual ~StandardAutoKeyIndexI(void) {
+		
+	}
+};
+
+class MainIndexIndex : public TopIndex, public StandardAutoKeyIndexI<uint64_t, std::string>  {
+public:
+	static const IndexID indexID;
+	
+	MainIndexIndex(IndexSessionHandler &handler_) : TopIndex(handler_, this->indexID) {}
+	
+	const std::string getFileStrBase(void) {
+		return "miIndex";
+	}
+	
+	const std::filesystem::path getDirPath(void) {
+		return g_fsPrgDirPath;
+	}
+	
+	bool isValidInputEntry(std::string) {
+		//! TODO:
+		return false;
+	}
+	
+	std::list<FileRenameOp> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList, bool &argFail) {
+		//! TODO:
+		argFail = true;
+		return {};
+	}
+	
+	virtual ~MainIndexIndex(void) {
+errorf("mii deleter");
+	}
+	
+};
+
+const IndexID MainIndexIndex::indexID = IndexID("1");
 
 class MainIndexExtras {
 public:
@@ -360,7 +888,404 @@ public:
 	removeEntry(uint64_t inum);
 	replaceEntry(uint64_t inum, std::string newSubpath);
 };
+
+//}
+
+template <class T>
+class IndexSessionPointer {
+static_assert(std::is_base_of<IndexSession, T>::value == true);
+
+public:
+	IndexSessionPointer() : IndexSessionPointer<T>( (T*) nullptr ) {};
 	
+	IndexSessionPointer(const IndexSessionPointer &other) : IndexSessionPointer<T>( other.get() ) {};
+	
+	// template <class U>
+	// IndexSessionPointer(const HandlerIndexSessionPointer<U> &other) : IndexSessionPointer<T>( other.get() ) {}
+	
+	template <class U>
+	IndexSessionPointer(const IndexSessionPointer<U> &other) : IndexSessionPointer<T>( other.get() ) {}
+	
+	// template <class U>
+	// IndexSessionPointer &operator=(const HandlerIndexSessionPointer<U> &other) {
+		// this->innerDeleter();
+		// this->ptr = other.get();
+		// this->innerConstructor();
+	// }
+	
+	//! TODO: ensure no default is used instead of template or that any arguments are implicitly cast between ISP and HISP
+	
+	template <class U>
+	IndexSessionPointer &operator=(const IndexSessionPointer<U> &other) {
+		this->innerDeleter();
+		this->ptr = other.get();
+		this->innerConstructor();
+	}
+	
+	template <class U> 
+	IndexSessionPointer(volatile HandlerIndexSessionPointer<U> &&other) = delete;
+	//IndexSessionPointer(const volatile HandlerIndexSessionPointer<U> &&other) : ptr{ other.get() } {}
+	
+	template <class U> 
+	IndexSessionPointer(volatile IndexSessionPointer<U> &&other) : ptr{ other.get() } {
+		other.ptr = nullptr;
+	};
+	
+	
+	template <class U> 
+	IndexSessionPointer &operator=(HandlerIndexSessionPointer<U> &&other) = delete;
+	
+	template <class U> 
+	IndexSessionPointer &operator=(IndexSessionPointer<U> &&other) {
+		this->ptr = other.ptr;
+		other.ptr = nullptr;
+	}
+	
+	template <class U>
+	IndexSessionPointer(U *init_ptr) : ptr{init_ptr}  {
+		innerConstructor();
+	}
+	
+	~IndexSessionPointer() {
+		this->innerDeleter();
+	}
+	
+	T *get() {
+errorf("called isp->get()");
+		return this->ptr;
+	}
+	
+	template <class ... Ts>
+	static IndexSessionPointer<T> make(Ts&& ... args) {
+		T *created_ptr = new T(args...);
+		IndexSessionPointer<T> created_isp = IndexSessionPointer<T>(created_ptr);
+		return created_isp;
+	}
+	
+	T& operator*() const  {
+		return *(this->ptr);
+	}
+	
+	T* operator->() const {
+		return this->ptr;
+	}
+	
+	bool isNull() const {
+		return ptr == nullptr;
+	}
+	
+	///
+	
+	template <class U> 
+	bool operator==(const IndexSessionPointer<U>& rhs) const {
+		this->ptr == rhs.ptr;
+	}
+	
+	template <class U> 
+	bool operator!=(const IndexSessionPointer<U>& rhs) const {
+		this->ptr != rhs.ptr;
+	}
+	
+	template <class U> 
+	bool operator==(const U* rhs) const {
+		this->ptr == rhs;
+	}
+	
+	template <class U> 
+	bool operator!=(const U* rhs) const {
+		this->ptr != rhs;
+	}
+	
+protected:
+	T *ptr;
+	
+	void innerDeleter(void) {
+errorf("isp deleter 1");
+		if (this->ptr != nullptr) {
+			this->ptr->removeRef();
+errorf("isp deleter 3");
+			if (this->ptr->hasNoRefs()) {
+errorf("isp deleter 3.1");
+				delete this->ptr;
+			}
+errorf("isp deleter 4");
+			this->ptr = nullptr;
+		}
+errorf("isp deleter 5");
+	}
+	
+	void innerConstructor(void) {
+errorf("IndexSessionPointer constructor 1");
+		if (this->ptr != nullptr) {
+			this->ptr->addRef();
+		}
+	}
+	
+};
+
+template <class T>
+struct std::hash<IndexSessionPointer<T>> {
+	std::size_t operator()(IndexSessionPointer<T> const& s) const noexcept {
+		return std::hash<T*>()(s.get());
+    }
+};
+
+template <class T>
+class HandlerIndexSessionPointer : public IndexSessionPointer<T> {
+public:
+	HandlerIndexSessionPointer() = delete;
+	
+	HandlerIndexSessionPointer(const HandlerIndexSessionPointer &other) : HandlerIndexSessionPointer<T>( other.get() ) {};
+	
+	//template <class U>
+	//HandlerIndexSessionPointer(const HandlerIndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( other.get() ) {}
+	//HandlerIndexSessionPointer(const HandlerIndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( (errorf("hisp tructor 1"), other.get()) ) {}
+	
+	template <class U>
+	//HandlerIndexSessionPointer(const IndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( other.get() ) {}
+	HandlerIndexSessionPointer(const IndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( (errorf("hisp tructor 2"), other.get()) ) {}
+	
+	template <class U>
+	HandlerIndexSessionPointer &operator=(const HandlerIndexSessionPointer<U> &other) {
+errorf("hisp assign 1");
+		this->HandlerIndexSessionPointer<T>::innerDeleter();
+		this->ptr = other.get();
+		this->HandlerIndexSessionPointer<T>::innerConstructor();
+	}
+	
+	template <class U>
+	HandlerIndexSessionPointer &operator=(const IndexSessionPointer<U> &other) {
+errorf("hisp assign 2");
+		this->HandlerIndexSessionPointer<T>::innerDeleter();
+		this->ptr = other.get();
+		this->HandlerIndexSessionPointer<T>::innerConstructor();
+	}
+	
+	template <class U>
+	HandlerIndexSessionPointer(volatile HandlerIndexSessionPointer<U> &&other) {
+errorf("hisp move 1");
+		other.ptr = nullptr;
+	}
+	
+	template <class U>
+	HandlerIndexSessionPointer(volatile IndexSessionPointer<U> &&other) = delete;
+	//HandlerIndexSessionPointer(volatile IndexSessionPointer<U> &&other) : ptr{ other.get() } {
+	//	other.ptr = nullptr;
+	//};
+	
+	template <class U>
+	HandlerIndexSessionPointer &operator=(HandlerIndexSessionPointer<U> &&other) = delete;
+	
+	template <class U>
+	HandlerIndexSessionPointer &operator=(IndexSessionPointer<U> &&other) = delete;
+	
+	template <class U>
+	HandlerIndexSessionPointer(U *init_ptr) : IndexSessionPointer<T>(init_ptr) {
+errorf("hisp ptr constructor");
+		this->HandlerIndexSessionPointer<T>::partialInnerConstructor();
+	};
+	
+	~HandlerIndexSessionPointer() {
+		this->partialInnerDeleter();
+	}
+	
+	//HandlerIndexSessionPointer(IndexSessionPointer<T> isp) : HandlerIndexSessionPointer(isp.get()) {};
+	
+	template <class U> 
+	explicit operator IndexSessionPointer<U>() {
+errorf("isp cast 1");
+		return IndexSessionPointer<U>(this->ptr);
+	}
+	
+	///
+	
+	template <class U> 
+	bool operator==(const HandlerIndexSessionPointer<U>& rhs) const {
+		this->ptr == rhs.ptr;
+	}
+	
+	template <class U> 
+	bool operator!=(const HandlerIndexSessionPointer<U>& rhs) const {
+		this->ptr != rhs.ptr;
+	}
+	
+	template <class U> 
+	bool operator==(const U* rhs) const {
+		this->ptr == rhs;
+	}
+	
+	template <class U> 
+	bool operator!=(const U* rhs) const {
+		this->ptr != rhs;
+	}
+	
+protected:
+	void partialInnerDeleter(void) {
+errorf("hisp deleter 1");
+		if (this->ptr != nullptr) {
+			this->ptr->removeHandlerRef();
+		}
+errorf("hisp deleter 5");
+	}
+
+	void innerDeleter(void) {
+		this->partialInnerDeleter();
+		this->IndexSessionPointer<T>::innerDeleter();
+	}
+	
+	void partialInnerConstructor(void) {
+errorf("HandlerIndexSessionPointer constructor 1");
+		if (this->ptr != nullptr) {
+			this->ptr->addHandlerRef();
+		}
+errorf("HandlerIndexSessionPointer constructor 1.9");
+	}
+
+	void innerConstructor(void) {
+		this->IndexSessionPointer<T>::innerConstructor();
+		this->partialInnerConstructor();
+	}
+	
+};
+
+template <class T>
+struct std::hash<HandlerIndexSessionPointer<T>> {
+	std::size_t operator()(HandlerIndexSessionPointer<T> const& s) const noexcept {
+		return std::hash<T*>()(s.get());
+    }
+};
+	
+template <class T, class ... Ts>
+static std::shared_ptr<T> g_MakeSharedIndexSession(Ts&& ... args) {
+	std::shared_ptr<T> created_ptr = std::shared_ptr<T>(new T(args...));
+	return created_ptr;
+}
+
+// every session knows an instance of IndexSessionHandler
+// IndexSessionHandler contains a list of every session or sub-sessionhandler containing the session
+// when there are no more references to a session, the session is removed from the list
+
+class IndexSessionHandler {
+public:
+	//template <class ... Ts, class U, typename std::enable_if<std::is_base_of<TopIndex, U>::value, IndexSessionPointer<U>>::type = 0>
+	template <class U, class ... Ts>
+	std::shared_ptr<U> openSession(Ts&& ... args) {
+errorf("openSession 1");
+		if constexpr (std::is_base_of<TopIndex, U>::value == true) {
+errorf("openSession 2");
+			auto findIt = openSessions.find(U::indexID);
+errorf("openSession 2.1");
+			if (findIt != openSessions.end()) {
+errorf("openSession 2.2");
+				// downcast guaranteed by indexID of entry
+				return std::static_pointer_cast<U>(findIt->second.lock());
+			} else {
+errorf("openSession 2.3");
+				//! probably could just construct to shared without the assistant function
+				std::shared_ptr<U> session_ptr = g_MakeSharedIndexSession<U>(*this, args...);
+errorf("openSession 2.3.1");
+errorf("openSession 2.3.2");
+				if (session_ptr != nullptr) {
+errorf("openSession 2.3.2.3");
+					auto inputPair = std::pair<IndexID, std::weak_ptr<TopIndex>>(U::indexID, session_ptr);
+g_errorfStream << inputPair.second.lock().get() << std::flush;
+errorf("openSession 2.3.2.5");
+					if (inputPair.second.lock() != nullptr) {
+						auto resPair = openSessions.emplace(inputPair);
+errorf("openSession 2.3.3");
+						if (resPair.first == openSessions.end()) {
+							errorf("failed to emplace handler_session_ptr");
+						} else if (resPair.second == false) {
+							errorf("indexID already registered");
+						} else {
+errorf("openSession 2.3.8");
+							return session_ptr;
+						}
+					} else {
+						errorf("(IndexSessionHandler) failed to create weak_ptr in pair");
+					}
+				} else {
+					errorf("(IndexSessionHandler) failed to create session_ptr");
+				}
+errorf("openSession 2.3.9");
+			}
+errorf("openSession 3");
+		} else if constexpr (std::is_base_of<SubIndex, U>::value == true) {
+errorf("openSession 4");
+			
+		}
+errorf("openSession 5");
+		return std::shared_ptr<U>();
+	}
+	
+	
+	/*
+	*/
+	IndexSessionPointer<MainIndexIndex> openSessionnn();
+	
+	/*
+	template <class ... Ts, class U, typename std::enable_if<std::is_base_of<SubIndex, U>::value, IndexSessionPointer<U>>::type = 0>
+	IndexSessionPointer<U> openSession(Ts&& ... args) {
+		return IndexSessionPointer<U>();
+	}
+	template <class ... Ts, class U>
+	IndexSessionPointer<U> openSession(Ts&& ... args) {
+		return IndexSessionPointer<U>();
+	}
+	*/
+	
+protected:
+	std::map<IndexID, std::weak_ptr<TopIndex>> openSessions{};
+	
+	// get around mutual dependency and privacy
+	friend class HandlerAccessor;
+	
+	bool removeRefs(const IndexID &indexID, const IndexSession *session_ptr) {
+		auto findIt = openSessions.find(indexID);
+		if (findIt == openSessions.end()) {
+			errorf("(removeRefs) couldn't find indexID entry");
+		} else {
+			if ((IndexSession *) findIt->second.lock().get() == session_ptr || (IndexSession *) findIt->second.lock().get() == nullptr) {
+				
+				openSessions.erase(findIt);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+};
+
+HandlerAccessor::removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr) {
+	handler.removeRefs(indexID, session_ptr);
+}
+
+void IndexSession::removeHandlerRefs(void) {
+	HandlerAccessor::removeHandlerRefs(this->handler, this->indexID, this);
+}
+
+	
+//! TODO: =======================
+IndexSessionPointer<MainIndexIndex> IndexSessionHandler::openSessionnn() {
+/*
+	auto findIt = openSessions.find(MainIndexIndex::indexID);
+	if (findIt != openSessions.end()) {
+		return IndexSessionPointer<MainIndexIndex>(findIt->second);
+	} else {
+		IndexSessionPointer<MainIndexIndex> session_ptr = IndexSessionPointer<MainIndexIndex>::make(*this);
+		HandlerIndexSessionPointer<TopIndex> handler_session_ptr(session_ptr);
+		auto resPair = openSessions.emplace(MainIndexIndex::indexID, handler_session_ptr);
+		if (resPair.first == openSessions.end()) {
+			errorf("failed to emplace handler_session_ptr");
+		} else if (resPair.second == false) {
+			errorf("indexID already registered");
+		} else {
+			return session_ptr;
+		}
+	}
+*/
+	return IndexSessionPointer<MainIndexIndex>();
+}
 
 unsigned char raddtolastminum(long long num);
 

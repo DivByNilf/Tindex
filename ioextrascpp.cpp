@@ -1,9 +1,46 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "ioextras.h"
+#include <stdint.h>
 
-#include "bytearithmetic.h"
+#include <fstream>
 
+#include "ioextras.hpp"
+
+void put_u64_stream_pref(std::fstream &fs, uint64_t uint) {
+	unsigned char *str = (unsigned char *) &uint;
+	
+	int i = 0;
+	for (; i < 7; i++) {
+		if (str[i] != 0) {
+			break;
+		}
+	}
+	
+	unsigned char len = 8-1;
+	fs.put(len);
+	
+	fs.write(&str[i], len);
+}
+
+uint64_t get_u64_stream_pref(std::fstream &fs, bool &b_gotNull) {
+	unsigned char uc = 0;
+	fs >> uc;
+	if (uc > 8 || fs.fail()) {
+		fs.setstate(std::ios_base::failbit);
+		return 0;
+	} else if (uc == 0) {
+		b_gotNull = true;
+		return 0;
+	} else {
+		uint64_t uint = 0;
+		unsigned char *str = (unsigned char *) &uint;
+		str += 8 - uc;
+		fs.read(str, uc);
+		return uint;
+	}
+}
+
+/*
 void term_fputs(char *string, FILE *file) {
 	fputs(string, file);
 	fputc('\0', file);
@@ -26,7 +63,7 @@ void putull_pref(uint64_t num, FILE *file) {
 	return;
 }
 
-char null_fgets(char *str, int n, FILE *stream) {
+char null_fgets(char *str, int32_t n, FILE *stream) {
 	int i, c;
 	
 	if (!str) {
@@ -58,8 +95,8 @@ char null_fgets(char *str, int n, FILE *stream) {
 	return 0;
 }
 
-char pref_fgets(char *str, int n, FILE *stream) {
-	int i, c, d;
+char pref_fgets(char *str, int32_t n, FILE *stream) {
+	int32_t i, c, d;
 	c = getc(stream);
 	if (c == EOF) {
 		return 1;
@@ -87,18 +124,18 @@ char pref_fgets(char *str, int n, FILE *stream) {
 	return 0;
 }
 
-uint64_t fgetull_pref(FILE *stream, int *feedback) {
-	int c, i, d;
+uint64_t fgetull_pref(FILE *stream, int32_t *feedback) {
+	int32_t c, i, d;
 	uint64_t result = 0;
 	
 	c = getc(stream);
 	if (c == EOF) {
 		if (feedback)
-			*feedback = 1;
+			*feedback = ULL_READ_EOF;
 		return 0;
 	} if (c >= 9) {
 		if (feedback)
-			*feedback = 3;
+			*feedback = ULL_READ_OVERFLOW;
 		return 0;
 	} if (c == 0) {
 		if (feedback)
@@ -109,7 +146,7 @@ uint64_t fgetull_pref(FILE *stream, int *feedback) {
 		d = getc(stream);
 		if (d == EOF) {
 			if (feedback)
-				*feedback = 2;
+				*feedback = ULL_READ_LATE_EOF;
 			return 0;
 		} result *= 256, result += d;
 	}
@@ -133,3 +170,4 @@ uint64_t fgetull_len(FILE *stream, uint8_t len, int32_t *feedback) {
 	*feedback = 0;
 	return result;
 }
+*/
