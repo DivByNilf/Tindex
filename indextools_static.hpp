@@ -161,15 +161,6 @@ bool executeRenameOpList(const std::list<FileRenameOp> opList) {
 class IndexSession;
 class IndexSessionHandler;
 
-template <class T>
-class IndexSessionPointer;
-
-template <class T>
-class HandlerIndexSessionPointer;
-
-template <class U, class ... Ts>
-IndexSessionPointer<U> openSession(Ts&& ... args);
-
 class TopIndex;
 class SubIndex;
 
@@ -208,10 +199,6 @@ public:
 		return this->handler;
 	}
 	
-	bool hasNoRefs(void) const {
-		return (this->nrefs <= this->nHandlerRefs);
-	}
-	
 	~IndexSession(void) {
 errorf("IndexSession deleter");
 	}
@@ -219,43 +206,6 @@ errorf("IndexSession deleter");
 protected:
 	IndexSessionHandler &handler;
 	
-private:
-	int32_t nrefs;
-	int32_t nHandlerRefs;
-	
-	template<typename T> friend class IndexSessionPointer;
-	template<typename T> friend class HandlerIndexSessionPointer;
-	
-	void addRef(void) {
-		this->nrefs++;
-g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
-	}
-	// forward declared
-	void removeHandlerRefs(void);
-
-	void removeRef(void) {
-errorf("removeRef 1");
-		nrefs--;
-		if (this->nrefs <= this->nHandlerRefs) {
-			if (this->nrefs < this->nHandlerRefs) {
-				errorf("fewer nrefs than nHandlerRefs");
-			}
-errorf("removeRef 4");
-			this->removeHandlerRefs();
-errorf("removeRef 5.1");
-		}
-errorf("removeRef 6");
-g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
-	}
-	
-	void addHandlerRef(void) {
-		this->nHandlerRefs++;
-g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
-	}
-	void removeHandlerRef(void) {
-		this->nHandlerRefs--;
-g_errorfStream << "nrefs: " << nrefs << ", nHandlerRefs: " << nHandlerRefs << std::flush;
-	}
 };
 
 //{ Index Subclasses
@@ -272,15 +222,6 @@ class SubIndex : public IndexSession {
 public:
 	
 };
-
-/*
-template <class T>
-struct std::hash<HandlerIndexSessionPointer<T>> {
-	std::size_t operator()(HandlerIndexSessionPointer<T> const& s) const noexcept {
-		return std::hash<T*>()(s.get());
-    }
-};
-*/
 
 template <class KeyT>
 class AutoKey;
@@ -903,7 +844,6 @@ static std::shared_ptr<T> g_MakeSharedIndexSession(Ts&& ... args) {
 
 class IndexSessionHandler {
 public:
-	//template <class ... Ts, class U, typename std::enable_if<std::is_base_of<TopIndex, U>::value, IndexSessionPointer<U>>::type = 0>
 	template <class U, class ... Ts>
 	std::shared_ptr<U> openSession(Ts&& ... args) {
 		if constexpr (std::is_base_of<TopIndex, U>::value == true) {
