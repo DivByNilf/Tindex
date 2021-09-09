@@ -891,270 +891,6 @@ public:
 
 //}
 
-template <class T>
-class IndexSessionPointer {
-static_assert(std::is_base_of<IndexSession, T>::value == true);
-
-public:
-	IndexSessionPointer() : IndexSessionPointer<T>( (T*) nullptr ) {};
-	
-	IndexSessionPointer(const IndexSessionPointer &other) : IndexSessionPointer<T>( other.get() ) {};
-	
-	// template <class U>
-	// IndexSessionPointer(const HandlerIndexSessionPointer<U> &other) : IndexSessionPointer<T>( other.get() ) {}
-	
-	template <class U>
-	IndexSessionPointer(const IndexSessionPointer<U> &other) : IndexSessionPointer<T>( other.get() ) {}
-	
-	// template <class U>
-	// IndexSessionPointer &operator=(const HandlerIndexSessionPointer<U> &other) {
-		// this->innerDeleter();
-		// this->ptr = other.get();
-		// this->innerConstructor();
-	// }
-	
-	//! TODO: ensure no default is used instead of template or that any arguments are implicitly cast between ISP and HISP
-	
-	template <class U>
-	IndexSessionPointer &operator=(const IndexSessionPointer<U> &other) {
-		this->innerDeleter();
-		this->ptr = other.get();
-		this->innerConstructor();
-	}
-	
-	template <class U> 
-	IndexSessionPointer(volatile HandlerIndexSessionPointer<U> &&other) = delete;
-	//IndexSessionPointer(const volatile HandlerIndexSessionPointer<U> &&other) : ptr{ other.get() } {}
-	
-	template <class U> 
-	IndexSessionPointer(volatile IndexSessionPointer<U> &&other) : ptr{ other.get() } {
-		other.ptr = nullptr;
-	};
-	
-	
-	template <class U> 
-	IndexSessionPointer &operator=(HandlerIndexSessionPointer<U> &&other) = delete;
-	
-	template <class U> 
-	IndexSessionPointer &operator=(IndexSessionPointer<U> &&other) {
-		this->ptr = other.ptr;
-		other.ptr = nullptr;
-	}
-	
-	template <class U>
-	IndexSessionPointer(U *init_ptr) : ptr{init_ptr}  {
-		innerConstructor();
-	}
-	
-	~IndexSessionPointer() {
-		this->innerDeleter();
-	}
-	
-	T *get() {
-errorf("called isp->get()");
-		return this->ptr;
-	}
-	
-	template <class ... Ts>
-	static IndexSessionPointer<T> make(Ts&& ... args) {
-		T *created_ptr = new T(args...);
-		IndexSessionPointer<T> created_isp = IndexSessionPointer<T>(created_ptr);
-		return created_isp;
-	}
-	
-	T& operator*() const  {
-		return *(this->ptr);
-	}
-	
-	T* operator->() const {
-		return this->ptr;
-	}
-	
-	bool isNull() const {
-		return ptr == nullptr;
-	}
-	
-	///
-	
-	template <class U> 
-	bool operator==(const IndexSessionPointer<U>& rhs) const {
-		this->ptr == rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator!=(const IndexSessionPointer<U>& rhs) const {
-		this->ptr != rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator==(const U* rhs) const {
-		this->ptr == rhs;
-	}
-	
-	template <class U> 
-	bool operator!=(const U* rhs) const {
-		this->ptr != rhs;
-	}
-	
-protected:
-	T *ptr;
-	
-	void innerDeleter(void) {
-errorf("isp deleter 1");
-		if (this->ptr != nullptr) {
-			this->ptr->removeRef();
-errorf("isp deleter 3");
-			if (this->ptr->hasNoRefs()) {
-errorf("isp deleter 3.1");
-				delete this->ptr;
-			}
-errorf("isp deleter 4");
-			this->ptr = nullptr;
-		}
-errorf("isp deleter 5");
-	}
-	
-	void innerConstructor(void) {
-errorf("IndexSessionPointer constructor 1");
-		if (this->ptr != nullptr) {
-			this->ptr->addRef();
-		}
-	}
-	
-};
-
-template <class T>
-struct std::hash<IndexSessionPointer<T>> {
-	std::size_t operator()(IndexSessionPointer<T> const& s) const noexcept {
-		return std::hash<T*>()(s.get());
-    }
-};
-
-template <class T>
-class HandlerIndexSessionPointer : public IndexSessionPointer<T> {
-public:
-	HandlerIndexSessionPointer() = delete;
-	
-	HandlerIndexSessionPointer(const HandlerIndexSessionPointer &other) : HandlerIndexSessionPointer<T>( other.get() ) {};
-	
-	//template <class U>
-	//HandlerIndexSessionPointer(const HandlerIndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( other.get() ) {}
-	//HandlerIndexSessionPointer(const HandlerIndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( (errorf("hisp tructor 1"), other.get()) ) {}
-	
-	template <class U>
-	//HandlerIndexSessionPointer(const IndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( other.get() ) {}
-	HandlerIndexSessionPointer(const IndexSessionPointer<U> &other) : HandlerIndexSessionPointer<T>( (errorf("hisp tructor 2"), other.get()) ) {}
-	
-	template <class U>
-	HandlerIndexSessionPointer &operator=(const HandlerIndexSessionPointer<U> &other) {
-errorf("hisp assign 1");
-		this->HandlerIndexSessionPointer<T>::innerDeleter();
-		this->ptr = other.get();
-		this->HandlerIndexSessionPointer<T>::innerConstructor();
-	}
-	
-	template <class U>
-	HandlerIndexSessionPointer &operator=(const IndexSessionPointer<U> &other) {
-errorf("hisp assign 2");
-		this->HandlerIndexSessionPointer<T>::innerDeleter();
-		this->ptr = other.get();
-		this->HandlerIndexSessionPointer<T>::innerConstructor();
-	}
-	
-	template <class U>
-	HandlerIndexSessionPointer(volatile HandlerIndexSessionPointer<U> &&other) {
-errorf("hisp move 1");
-		other.ptr = nullptr;
-	}
-	
-	template <class U>
-	HandlerIndexSessionPointer(volatile IndexSessionPointer<U> &&other) = delete;
-	//HandlerIndexSessionPointer(volatile IndexSessionPointer<U> &&other) : ptr{ other.get() } {
-	//	other.ptr = nullptr;
-	//};
-	
-	template <class U>
-	HandlerIndexSessionPointer &operator=(HandlerIndexSessionPointer<U> &&other) = delete;
-	
-	template <class U>
-	HandlerIndexSessionPointer &operator=(IndexSessionPointer<U> &&other) = delete;
-	
-	template <class U>
-	HandlerIndexSessionPointer(U *init_ptr) : IndexSessionPointer<T>(init_ptr) {
-errorf("hisp ptr constructor");
-		this->HandlerIndexSessionPointer<T>::partialInnerConstructor();
-	};
-	
-	~HandlerIndexSessionPointer() {
-		this->partialInnerDeleter();
-	}
-	
-	//HandlerIndexSessionPointer(IndexSessionPointer<T> isp) : HandlerIndexSessionPointer(isp.get()) {};
-	
-	template <class U> 
-	explicit operator IndexSessionPointer<U>() {
-errorf("isp cast 1");
-		return IndexSessionPointer<U>(this->ptr);
-	}
-	
-	///
-	
-	template <class U> 
-	bool operator==(const HandlerIndexSessionPointer<U>& rhs) const {
-		this->ptr == rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator!=(const HandlerIndexSessionPointer<U>& rhs) const {
-		this->ptr != rhs.ptr;
-	}
-	
-	template <class U> 
-	bool operator==(const U* rhs) const {
-		this->ptr == rhs;
-	}
-	
-	template <class U> 
-	bool operator!=(const U* rhs) const {
-		this->ptr != rhs;
-	}
-	
-protected:
-	void partialInnerDeleter(void) {
-errorf("hisp deleter 1");
-		if (this->ptr != nullptr) {
-			this->ptr->removeHandlerRef();
-		}
-errorf("hisp deleter 5");
-	}
-
-	void innerDeleter(void) {
-		this->partialInnerDeleter();
-		this->IndexSessionPointer<T>::innerDeleter();
-	}
-	
-	void partialInnerConstructor(void) {
-errorf("HandlerIndexSessionPointer constructor 1");
-		if (this->ptr != nullptr) {
-			this->ptr->addHandlerRef();
-		}
-errorf("HandlerIndexSessionPointer constructor 1.9");
-	}
-
-	void innerConstructor(void) {
-		this->IndexSessionPointer<T>::innerConstructor();
-		this->partialInnerConstructor();
-	}
-	
-};
-
-template <class T>
-struct std::hash<HandlerIndexSessionPointer<T>> {
-	std::size_t operator()(HandlerIndexSessionPointer<T> const& s) const noexcept {
-		return std::hash<T*>()(s.get());
-    }
-};
-	
 template <class T, class ... Ts>
 static std::shared_ptr<T> g_MakeSharedIndexSession(Ts&& ... args) {
 	std::shared_ptr<T> created_ptr = std::shared_ptr<T>(new T(args...));
@@ -1170,35 +906,23 @@ public:
 	//template <class ... Ts, class U, typename std::enable_if<std::is_base_of<TopIndex, U>::value, IndexSessionPointer<U>>::type = 0>
 	template <class U, class ... Ts>
 	std::shared_ptr<U> openSession(Ts&& ... args) {
-errorf("openSession 1");
 		if constexpr (std::is_base_of<TopIndex, U>::value == true) {
-errorf("openSession 2");
 			auto findIt = openSessions.find(U::indexID);
-errorf("openSession 2.1");
 			if (findIt != openSessions.end()) {
-errorf("openSession 2.2");
 				// downcast guaranteed by indexID of entry
 				return std::static_pointer_cast<U>(findIt->second.lock());
 			} else {
-errorf("openSession 2.3");
 				//! probably could just construct to shared without the assistant function
 				std::shared_ptr<U> session_ptr = g_MakeSharedIndexSession<U>(*this, args...);
-errorf("openSession 2.3.1");
-errorf("openSession 2.3.2");
 				if (session_ptr != nullptr) {
-errorf("openSession 2.3.2.3");
 					auto inputPair = std::pair<IndexID, std::weak_ptr<TopIndex>>(U::indexID, session_ptr);
-g_errorfStream << inputPair.second.lock().get() << std::flush;
-errorf("openSession 2.3.2.5");
 					if (inputPair.second.lock() != nullptr) {
 						auto resPair = openSessions.emplace(inputPair);
-errorf("openSession 2.3.3");
 						if (resPair.first == openSessions.end()) {
 							errorf("failed to emplace handler_session_ptr");
 						} else if (resPair.second == false) {
 							errorf("indexID already registered");
 						} else {
-errorf("openSession 2.3.8");
 							return session_ptr;
 						}
 					} else {
@@ -1207,32 +931,12 @@ errorf("openSession 2.3.8");
 				} else {
 					errorf("(IndexSessionHandler) failed to create session_ptr");
 				}
-errorf("openSession 2.3.9");
 			}
-errorf("openSession 3");
 		} else if constexpr (std::is_base_of<SubIndex, U>::value == true) {
-errorf("openSession 4");
 			
 		}
-errorf("openSession 5");
 		return std::shared_ptr<U>();
 	}
-	
-	
-	/*
-	*/
-	IndexSessionPointer<MainIndexIndex> openSessionnn();
-	
-	/*
-	template <class ... Ts, class U, typename std::enable_if<std::is_base_of<SubIndex, U>::value, IndexSessionPointer<U>>::type = 0>
-	IndexSessionPointer<U> openSession(Ts&& ... args) {
-		return IndexSessionPointer<U>();
-	}
-	template <class ... Ts, class U>
-	IndexSessionPointer<U> openSession(Ts&& ... args) {
-		return IndexSessionPointer<U>();
-	}
-	*/
 	
 protected:
 	std::map<IndexID, std::weak_ptr<TopIndex>> openSessions{};
@@ -1262,29 +966,6 @@ HandlerAccessor::removeHandlerRefs(IndexSessionHandler &handler, const IndexID &
 
 void IndexSession::removeHandlerRefs(void) {
 	HandlerAccessor::removeHandlerRefs(this->handler, this->indexID, this);
-}
-
-	
-//! TODO: =======================
-IndexSessionPointer<MainIndexIndex> IndexSessionHandler::openSessionnn() {
-/*
-	auto findIt = openSessions.find(MainIndexIndex::indexID);
-	if (findIt != openSessions.end()) {
-		return IndexSessionPointer<MainIndexIndex>(findIt->second);
-	} else {
-		IndexSessionPointer<MainIndexIndex> session_ptr = IndexSessionPointer<MainIndexIndex>::make(*this);
-		HandlerIndexSessionPointer<TopIndex> handler_session_ptr(session_ptr);
-		auto resPair = openSessions.emplace(MainIndexIndex::indexID, handler_session_ptr);
-		if (resPair.first == openSessions.end()) {
-			errorf("failed to emplace handler_session_ptr");
-		} else if (resPair.second == false) {
-			errorf("indexID already registered");
-		} else {
-			return session_ptr;
-		}
-	}
-*/
-	return IndexSessionPointer<MainIndexIndex>();
 }
 
 unsigned char raddtolastminum(long long num);
