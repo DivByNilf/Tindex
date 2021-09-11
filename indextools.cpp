@@ -1247,7 +1247,19 @@ unsigned char addtolastminum(long long num, uint64_t spot) { // 0 as num to just
 	return 0;
 }
 
-uint64_t getlastminum(void) { //! generalize
+uint64_t getlastminum(void) {
+	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
+	
+	if (indexSession == nullptr) {
+		errorf("getlastminum could not open session");
+		return 0;
+	}
+	
+	int32_t error = 0;
+	return indexSession->getNofVirtualEntries(error);
+}
+
+uint64_t getlastminum_old(void) {
 	char buf[MAX_PATH*4];
 	int i, c;
 	uint64_t lastinum = 0;
@@ -1335,7 +1347,6 @@ uint64_t mireg(char *miname) {
 		return 0;
 	}
 errorf("(mireg) spot 1");
-try {
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 	if (indexSession == nullptr) {
 		errorf("(mireg) could not open session");
@@ -1352,11 +1363,7 @@ errorf("(mireg) spot 3");
 		return res;
 	}
 errorf("(mireg) spot 4");
-	
-} catch (std::exception &e) {
-	errorf("threw");
-	g_errorfStream << "Threw: " << e.what() << std::flush;
-}
+
 	return 0;
 }
 

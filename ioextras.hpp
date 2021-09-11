@@ -1,8 +1,8 @@
 
 
-void put_u64_stream_pref(std::fstream &fs, uint64_t uint);
+void put_u64_stream_pref(std::ostream &fs, uint64_t uint);
 
-uint64_t get_u64_stream_pref(std::fstream &fs, bool &b_gotNull);
+uint64_t get_u64_stream_pref(std::istream &fs, bool &b_gotNull);
 
 // #define ULL_READ_EOF 1
 // #define ULL_READ_LATE_EOF 2

@@ -2,40 +2,64 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <fstream>
+#include <iostream>
 
 #include "ioextras.hpp"
 
-void put_u64_stream_pref(std::fstream &fs, uint64_t uint) {
-	unsigned char *str = (unsigned char *) &uint;
+#include "errorf.hpp" //! 
+
+#define errorf(str) g_errorfStdStr(str) //!
+
+void put_u64_stream_pref(std::ostream &fs, uint64_t uint) {
+	unsigned char str[9];
 	
-	int i = 0;
-	for (; i < 7; i++) {
-		if (str[i] != 0) {
+	int i = 8;
+	for (; i > 0; i--) {
+		str[i] = uint % 256;
+		uint /= 256;
+		if (uint == 0) {
 			break;
 		}
 	}
 	
-	unsigned char len = 8-1;
-	fs.put(len);
+	if (i <= 0) {
+		errorf("error: i <= 0");
+		fs.setstate(std::ios_base::badbit);
+	} else {
+		int len = 9-i;
+		i--;
+		str[i] = len;
+g_errorfStream << "writing: " << uint << std::flush;
+g_errorfStream << "i: " << i << ", len: " << len << std::flush;
 	
-	fs.write(&str[i], len);
+		fs.write(&str[i], len+1);
+	}
 }
 
-uint64_t get_u64_stream_pref(std::fstream &fs, bool &b_gotNull) {
-	unsigned char uc = 0;
-	fs >> uc;
+uint64_t get_u64_stream_pref(std::istream &fs, bool &b_gotNull) {
+	int_fast16_t uc = fs.get();
 	if (uc > 8 || fs.fail()) {
-		fs.setstate(std::ios_base::failbit);
+		if (fs.eof()) {
+			fs.clear(std::ios_base::eofbit);
+		} else {
+			fs.setstate(std::ios_base::failbit);
+		}
 		return 0;
-	} else if (uc == 0) {
+	} else if (uc <= 0) {
 		b_gotNull = true;
 		return 0;
 	} else {
 		uint64_t uint = 0;
-		unsigned char *str = (unsigned char *) &uint;
-		str += 8 - uc;
-		fs.read(str, uc);
+		for (int_fast16_t c = 0; uc > 0; uc--) {
+			c = fs.get();
+			if (fs.eof()) {
+				// note: it is set regardless by fs.get()
+				fs.setstate(std::ios_base::failbit);
+				return 0;
+			} else {
+				uint += c;
+			}
+		}
 		return uint;
 	}
 }

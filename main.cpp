@@ -267,7 +267,8 @@ int PrgDirInit(void) {
 	g_stdPrgDir = std::string(g_prgDir);
 	g_fsPrgDirPath = std::filesystem::current_path();
 	
-g_errorfStream << "g_fsPrgDirPath was: " << g_fsPrgDirPath << std::flush;
+//! g_errorfStream << "g_fsPrgDirPath was: " << g_fsPrgDirPath << std::flush;
+//! g_errorfStream << "g_fsPrgDirPath generic: " << g_fsPrgDirPath.generic_string() << std::flush;
 	
 	return 0;
 }
@@ -480,6 +481,7 @@ char *toRelativePath(char *cbuf) { // returns dynamic memory
 #define BIT_VI_FIT_RESIZE_FITS_Y (1ULL << 3)
 
 
+
 //{ WindowClass
 //public:
 	//static
@@ -577,7 +579,9 @@ char *toRelativePath(char *cbuf) { // returns dynamic memory
 	std::map<HWND, std::shared_ptr<WindowClass>> WindowClass::winMemMap;
 	
 //}
-	
+
+//{ Non-WindowClass
+
 // WinCreateArgs
 	WinCreateArgs::WinCreateArgs(WindowClass *(*constructor_)(void)) : constructor{*constructor_}, lpParam{0} {}
 	
@@ -588,7 +592,7 @@ char *toRelativePath(char *cbuf) { // returns dynamic memory
 	*/
 
 
-// WinInstancer
+//{ WinInstancer
 	WinInstancer::WinInstancer(DWORD dwExStyle_, LPCWSTR lpWindowName_, DWORD dwStyle_, int X_, int Y_, int nWidth_, int nHeight_, HWND hWndParent_, HMENU hMenu_, HINSTANCE hInstance_, LPVOID lpParam_) : dwExStyle{dwExStyle_}, lpWindowName{lpWindowName_}, dwStyle{dwStyle_}, X{X_}, Y{Y_}, nWidth{nWidth_}, nHeight{nHeight_}, hWndParent{hWndParent_}, hMenu{hMenu_}, hInstance{hInstance_}, lpParam{lpParam_} {}
 	
 	HWND WinInstancer::create(std::shared_ptr<WinCreateArgs> winArgs, const std::wstring &winClassName) {
@@ -596,6 +600,7 @@ char *toRelativePath(char *cbuf) { // returns dynamic memory
 		
 		return CreateWindowExW(dwExStyle, winClassName.c_str(), lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, winArgs.get());
 	}
+	
 	
 // WindowHelper	
 	WindowHelper::WindowHelper(const std::wstring winClassName_, void (*modifyWinStruct)(WNDCLASSW &wc)) : winClassName{winClassName_} {
@@ -652,6 +657,8 @@ char *toRelativePath(char *cbuf) { // returns dynamic memory
 			}
 		}
 	}
+	
+//}
 
 //{ MsgHandler
 //subclass of WindowClass
@@ -2365,6 +2372,7 @@ errorf("miman 4");
 					
 					this->plv->CurPage = 1;
 					ll = getNumElements();
+g_errorfStream << "getNumElements: " << ll << std::flush;
 					this->plv->LastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
 					if (this->plv->LastPage == 0) {
 						this->plv->LastPage = 1;

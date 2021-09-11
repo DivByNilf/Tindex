@@ -4,7 +4,6 @@ extern "C" {
 #include "stringchains.h"
 }
 
-#include <stdio.h>
 #include <stdint.h>
 
 #include <map>
@@ -13,6 +12,9 @@ extern "C" {
 #include <string>
 #include <memory>
 #include <filesystem>
+namespace std {
+	namespace fs = std::filesystem;
+}
 #include <fstream>
 #include <type_traits> //!
 #include <utility> //!
@@ -92,7 +94,7 @@ public:
 	
 	~FilePathDeleter() {
 		if (!released) {
-			bool success = remove(fpath);
+			bool success = std::fs::remove(fpath);
 			if (!success) {
 				errorf("FilePathDeleter remove failed");
 			}
@@ -113,47 +115,140 @@ public:
 	FileRenameOp() = delete;
 	FileRenameOp(std::filesystem::path from_, std::filesystem::path to_, std::filesystem::path bak_) : from{from_}, to(to_), bak(bak_) {}
 	
+	bool hasFirstExecuted(void) const {
+		return firstExecuted;
+	}
+	
+	bool hasSecondExecuted(void) const {
+		return secondExecuted;
+	}
+	
+	bool hasReversed(void) const {
+		return reversed;
+	}
 	
 	bool firstExecute(void) {
-		if (firstExecuted) {
-			errorf("already firstExecuted");
+g_errorfStream << "first executing: " << to << std::flush;
+		if (this->firstExecuted) {
+			errorf("(FileRenameOp) already firstExecuted");
 			return false;
 		} else {
-			return false;
+			std::error_code ec;
+			std::filesystem::rename(to, bak, ec);
+			if (ec) {
+				g_errorfStream << "rename op failed: " << to << " to " << bak << std::flush;
+				return false;
+			} else {
+errorf("firstExecute success");
+				this->firstExecuted = true;
+				return true;
+			}
 		}
 	}
 	
 	bool secondExecute(void) {
-		if (!firstExecuted) {
-			errorf("haven't firstExecuted");
+g_errorfStream << "second executing: " << to << std::flush;
+		if (!this->firstExecuted) {
+			errorf("(FileRenameOp) haven't firstExecuted");
 			return false;
 		} else {
-			return false;
+			std::error_code ec;
+			std::filesystem::rename(from, to, ec);
+			if (ec) {
+				g_errorfStream << "rename op failed: " << from << " to " << to << std::flush;
+				return false;
+			} else {
+errorf("secondExecute success");
+				this->secondExecuted = true;
+				return true;
+			}
+		}
+	}
+	
+	bool reverse(void) {
+		if (!this->firstExecuted && !this->secondExecuted) {
+			return true;
+		} else if (this->secondExecuted) {
+			std::filesystem::path afterBak(to);
+			afterBak += ".after.bak";
+			
+			std::error_code ec;
+			std::filesystem::rename(to, afterBak, ec);
+			if (ec) {
+				g_errorfStream << "rename op failed: " << to << " to " << afterBak << std::flush;
+				return false;
+			} else {
+				std::error_code ec;
+				std::filesystem::rename(bak, to, ec);
+				if (ec) {
+					g_errorfStream << "rename op failed: " << bak << " to " << to << std::flush;
+					return false;
+				} else {
+					this->reversed = true;
+					return true;
+				}
+			}
+		}
+	}
+	
+	~FileRenameOp(void) {
+		if (this->secondExecuted) {
+			bool success = std::fs::remove(bak);
+			if (!success) {
+				g_errorfStream << "FileRenameOp remove failed for: " << bak << std::flush;
+			}
 		}
 	}
 	
 protected:
 	bool firstExecuted = false;
 	bool secondExecuted = false;
+	bool reversed = false;
 	
 };
 
-bool executeRenameOpList(const std::list<FileRenameOp> opList) {
-	for (auto op : opList) {
+bool reverseRenameOpList(std::list<FileRenameOp> opList);
+
+bool executeRenameOpList(std::list<FileRenameOp> opList) {
+	for (auto &op : opList) {
 		bool success = op.firstExecute();
 		if (!success) {
 			errorf("firstExecute failed in list");
+			
+			bool reverseRes = reverseRenameOpList(opList);
+			if (!reverseRes) {
+				errorf("reverseRenameOpList failed");
+			}
+			
 			return false;
 		}
 	}
-	for (auto op : opList) {
+	for (auto &op : opList) {
 		bool success = op.secondExecute();
 		if (!success) {
 			errorf("secondExecute failed in list");
+			
+			bool reverseRes = reverseRenameOpList(opList);
+			if (!reverseRes) {
+				errorf("reverseRenameOpList failed");
+			}
+			
 			return false;
 		}
 	}
+errorf("executeRenameOpList success");
 	return true;
+}
+
+bool reverseRenameOpList(std::list<FileRenameOp> opList) {
+	bool notFailed = true;
+	for (auto &op : opList) {
+		bool success = op.reverse();
+		if (!success) {
+			notFailed = false;
+		}
+	}
+	return notFailed;
 }
 
 ///////////////////////
@@ -163,8 +258,6 @@ class IndexSessionHandler;
 
 class TopIndex;
 class SubIndex;
-
-class MainIndexIndex; //!
 
 class IndexID {
 public:
@@ -192,7 +285,7 @@ public:
 	const IndexID &indexID;
 
 	IndexSession() = delete;
-	IndexSession(IndexSessionHandler &handler_, const IndexID &indexID_) : handler{handler_}, indexID{indexID_}, nrefs{0}, nHandlerRefs{0} {
+	IndexSession(IndexSessionHandler &handler_, const IndexID &indexID_) : handler{handler_}, indexID{indexID_} {
 		
 	}
 	IndexSessionHandler &getHandler(void) {
@@ -200,8 +293,11 @@ public:
 	}
 	
 	~IndexSession(void) {
-errorf("IndexSession deleter");
+		this->removeHandlerRefs();
 	}
+	
+	// forward declared
+	void removeHandlerRefs(void);
 	
 protected:
 	IndexSessionHandler &handler;
@@ -223,66 +319,118 @@ public:
 	
 };
 
-template <class KeyT>
-class AutoKey;
-
-/*
-template <class KeyT>
-class AutoKey<uint64_t> {
-	
-}
-*/
-
 template <class T>
 struct IOSpec;
 
+// give no failbit if only read EOF -- give failbit if read characters and then EOF
 template<>
 struct IOSpec<uint64_t> {
-	static void write(std::fstream &fs, uint64_t &entry) {
-		put_u64_stream_pref(fs, entry);
+	static void write(std::ostream &ios, const uint64_t &entry) {
+		put_u64_stream_pref(ios, entry);
 	}
 	
-	static uint64_t read(std::fstream &fs) {
+	static uint64_t read(std::istream &ios) {
 		bool b_gotNull = false;
-		uint64_t uint = get_u64_stream_pref(fs, b_gotNull);
+		uint64_t uint = get_u64_stream_pref(ios, b_gotNull);
 		if (b_gotNull) {
 			errorf("IOSpec<uint64_t>::get -- b_gotNull");
-			fs.setstate(std::ios_base::failbit);
+			ios.setstate(std::ios_base::failbit);
 			return 0;
 		} else {
 			return uint;
 		}
 	}
 	
-	static void skip(std::fstream &fs) {
+	static void skip(std::istream &ios) {
 		bool b_gotNull = false;
-		uint64_t uint = get_u64_stream_pref(fs, b_gotNull);
+		uint64_t uint = get_u64_stream_pref(ios, b_gotNull);
 		if (b_gotNull) {
 			errorf("IOSpec<uint64_t>::skip -- b_gotNull");
-			fs.setstate(std::ios_base::failbit);
+			ios.setstate(std::ios_base::failbit);
 		}
 	}
 };
 
 template<>
 struct IOSpec<std::string> {
-	static void write(std::fstream &fs, const std::string &entry) {
-		fs << entry;
+	static void write(std::ostream &ios, const std::string &entry) {
+		ios << entry << '\0';
 	}
 	
-	static std::string read(std::fstream &fs) {
+	static std::string read(std::istream &ios) {
 		std::string str;
 		
 		//! TODO: limit reading to MAX_PATH or something
-		std::getline(fs, str, '\0');
+		std::getline(ios, str, '\0');
+		
+		if (ios.eof()) {
+			if (str != "") {
+errorf("string set failbit");
+				ios.setstate(std::ios_base::failbit);
+			} else  {
+errorf("string cleared failbit");
+			// don't set failbit at EOF and read no characters
+			ios.clear(std::ios_base::eofbit);
+			}
+		}
+errorf("read string: " + str);
 		return str;
 	}
 	
-	static void skip(std::fstream &fs) {
+	static void skip(std::istream &ios) {
 		std::string str;
 		
 		//! TODO: limit reading to MAX_PATH or something
-		std::getline(fs, str, '\0');
+		std::getline(ios, str, '\0');
+		
+		if (ios.eof()) {
+			if (str != "") {
+errorf("string set failbit");
+				ios.setstate(std::ios_base::failbit);
+			} else  {
+errorf("string cleared failbit");
+			// don't set failbit at EOF and read no characters
+			ios.clear(std::ios_base::eofbit);
+			}
+		}
+errorf("skipped string: " + str);
+	}
+};
+
+template <class T>
+struct FixedIOSpec;
+
+// give no failbit if only read EOF -- give failbit if read characters and then EOF
+template<>
+struct FixedIOSpec<uint64_t> {
+	static void write(std::ostream &ios, const uint64_t &entry) {
+if (ios.fail()) {
+	errorf("already failed");
+	return;
+} else {
+	errorf("not failed");
+}
+		ios << entry;
+if (ios.fail()) {
+	errorf("failed after");
+}
+	}
+	
+	static uint64_t read(std::istream &ios) {
+		if (ios.peek() == EOF) {
+			ios.setstate(std::ios_base::eofbit);
+		}
+		uint64_t entry;
+		ios >> entry;
+		return entry;
+	}
+	
+	static void skip(std::istream &ios) {
+		if (ios.peek() == EOF) {
+			ios.setstate(std::ios_base::eofbit);
+		}
+		uint64_t entry;
+		ios >> entry;
 	}
 };
 
@@ -308,6 +456,7 @@ public:
 	}
 };
 
+// not actually specialized for key types other than scalar types
 template <class KeyT, class InnerKeyT, class EntryT, class InnerEntryT>
 class StandardAutoKeyIndex : public StandardIndex<KeyT, InnerKeyT, EntryT, InnerEntryT> {
 public:
@@ -321,42 +470,51 @@ public:
 	
 	virtual bool isValidInputEntry(EntryT) = 0;
 	
-	virtual std::list<FileRenameOp> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList, bool &argFail) = 0;
+	virtual std::pair<bool, std::list<FileRenameOp>> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList) = 0;
 	
 	virtual ~StandardAutoKeyIndex(void) {
 
 	}
 	
-	KeyT skipEntryGetKey(std::fstream &fs) {
-		KeyT key = IOSpec<KeyT>::read(fs);
+	KeyT skipEntryGetKey(std::istream &ios) {
+		KeyT key = IOSpec<KeyT>::read(ios);
+
+		if (ios.fail() || ios.eof()) {
+			return key;
+		}
 		
-		IOSpec<EntryT>::skip(fs);
+		IOSpec<EntryT>::skip(ios);
 		
 		//! TODO: maybe verify content
 		
 		return key;
 	}
 	
-	std::shared_ptr<EntryPair> writeEntryGetPair(std::fstream &fs, KeyT entryKey, EntryT &inputEntry) {
-		IOSpec<KeyT>::write(fs, entryKey);
+	std::shared_ptr<EntryPair> writeEntryGetPair(std::ostream &ios, const KeyT entryKey, const EntryT &inputEntry) {
+errorf("writeEntryGetPair start");
+		IOSpec<KeyT>::write(ios, entryKey);
 		
-		if (fs.fail() || fs.bad()) {
-			fs.setstate(std::ios_base::badbit);
+		if (ios.fail() || ios.bad()) {
+errorf("write failed at key");
+			ios.setstate(std::ios_base::badbit);
 			return {};
 		}
+errorf("writeEntryGetPair writing entry");
 		
-		IOSpec<EntryT>::write(fs, inputEntry);
+		IOSpec<EntryT>::write(ios, inputEntry);
 		
-		if (fs.fail() || fs.bad()) {
-			fs.setstate(std::ios_base::badbit);
+		if (ios.fail() || ios.bad()) {
+errorf("write failed at EntryT");
+			ios.setstate(std::ios_base::badbit);
 			return {};
 		}
+errorf("writeEntryGetPair after writing entry");
 		
 		return std::make_shared<EntryPair>(entryKey, inputEntry);
 	}
 	
 	/*
-	void skipEntry(std::fstream &fs) {
+	void skipEntry(std::istream &ios) {
 		
 		//! TODO: maybe verify content
 		KeyT key = 
@@ -370,12 +528,182 @@ public:
 	
 	KeyT getLastKey(void) {
 		//! TODO:
+		
+		
 		return 0;
 	}
 	
-	std::list<FileRenameOp> addToLastEntryNum(long long num, uint64_t spot, bool &b_argFail) {
+	uint64_t createRec(int32_t &error) {
+		error = 0;
+		
+		std::filesystem::path indexRecPath = this->getDirPath() / (this->getFileStrBase() + ".rec.bin");
+		
+		std::filesystem::path tempIndexRecPath = this->getDirPath() / (this->getFileStrBase() + ".rec.tmp");
+		
+		if (tempIndexRecPath.extension() != ".tmp") {
+			errorf("failed to create tempIndexRecPath");
+			error = 1;
+			return 0;
+		}
+		
+		// remove indexRec
+		{	
+			std::error_code ec;
+			std::filesystem::remove(indexRecPath, ec); // returns (bool) false if path didn't exist or if there's an error
+			if (ec) {
+				errorf("failed to remove indexRecPath");
+				g_errorfStream << "tried to remove: " << indexRecPath << std::flush;
+				error = 1;
+				return 0;
+			}
+		}
+		
+		// remove tempIndexRec
+		{	
+			std::error_code ec;
+			std::filesystem::remove(tempIndexRecPath, ec); // returns (bool) false if path didn't exist or if there's an error
+			if (ec) {
+				errorf("failed to remove tempIndexRecPath");
+				g_errorfStream << "tried to remove: " << tempIndexRecPath << std::flush;
+				error = 1;
+				return 0;
+			}
+		}
+		
+		std::filesystem::path indexFilePath = this->getDirPath() / (this->getFileStrBase() + ".bin");
+			
+		std::ifstream indexStream = std::ifstream(indexFilePath, std::ios::binary | std::ios::in);
+		
+		//! TODO: should not be error if indexFile doesn't exist
+		if (!indexStream.is_open()) {
+			errorf("failed to open indexStream for read");
+			error = 1;
+			return 0;
+		}
+		
+		std::shared_ptr<FilePathDeleter> tempRecDeleterPtr; // assuming class deleters are called in reverse order of appearance
+			
+		std::ofstream tempRecStream = std::ofstream(tempIndexRecPath, std::ios::binary | std::ios::out | std::ios::trunc | std::ios::in);
+		
+		if (!tempRecStream.is_open()) {
+			errorf("failed to open tempRecStream for write");
+			error = 1;
+			return 0;
+		}
+		
+		tempRecDeleterPtr = std::make_shared<FilePathDeleter>(tempIndexRecPath);
+		
+		// get the last entry key
+		//! TODO: 
+		KeyT lastEntryKey = 0;
+		{
+			KeyT tempEntryKey = this->skipEntryGetKey(indexStream);
+			while (!indexStream.eof()) {
+				if (tempEntryKey <= lastEntryKey) {
+					errorf("tempEntryKey <= lastEntryKey");
+					error = 1;
+					return 0;
+				} else {
+					lastEntryKey = tempEntryKey;
+				}
+				tempEntryKey = this->skipEntryGetKey(indexStream);
+			}
+			if (indexStream.fail()) {
+				errorf("indexStream entry read fail (1)");
+				error = 1;
+				return 0;
+			}
+			indexStream.clear();
+		}
+		
+		indexStream.close();
+		
+		FixedIOSpec<uint64_t>::write(tempRecStream, lastEntryKey);
+		
+		if (tempRecStream.fail()) {
+			errorf("failed to write to tempRecStream");
+			error = 1;
+			return 0;
+		}
+		
+		tempRecStream.close();
+		tempRecDeleterPtr->release();
+		
+		/*
+		std::list<FileRenameOp> renameOpList;
+		std::filesystem::path bakIndexRecPath = this->getDirPath() / (this->getFileStrBase() + ".rec.bin.bak");
+		renameOpList.emplace_back(tempIndexRecPath, indexRecPath, bakIndexRecPath);
+		
+		bool success = executeRenameOpList(renameOpList);
+		if (!success) {
+			errorf("executeRenameOpList failed");
+			//! TODO: remove tmp files
+			error = 1;
+			return 0;
+		}
+		*/
+		
+		std::error_code ec;
+		std::fs::rename(tempIndexRecPath, indexRecPath, ec);
+		if (ec) {
+			g_errorfStream << "createRec rename failed: " << tempIndexRecPath << " to " << indexRecPath << std::flush;
+			error = 1;
+			return 0;
+		}
+		
+		error = 0;
+		return lastEntryKey;
+	}
+	
+	// 'virtual' meaning some entries may actually be deleted
+	uint64_t getNofVirtualEntries(int32_t &error) {
 		//! TODO:
-		b_argFail = true;
+		error = 0;
+		
+		std::filesystem::path indexRecPath = this->getDirPath() / (this->getFileStrBase() + ".rec.bin");
+		
+		if (!std::filesystem::exists(indexRecPath)) {
+			int32_t retError = 0;
+			uint64_t uint = this->createRec(retError);
+			
+			if (retError) {
+				errorf("createRec failed");
+				return 0;
+			} else {
+				return uint;
+			}
+		} else {
+			std::ifstream inputRecStream(indexRecPath, std::ios::binary | std::ios::in);
+		
+			if (!inputRecStream.is_open()) {
+				
+				errorf("(getNumEntries) failed to open inputRecStream for read");
+				error = 1;
+				return 0;
+			}
+			
+			uint64_t uint = FixedIOSpec<uint64_t>::read(inputRecStream);
+			if (inputRecStream.fail()) {
+				errorf("inputRecStream fixed uint64_t read fail");
+				error = 3;
+				
+				return 0;
+			} else if (inputRecStream.eof()) {
+errorf("inputRecStream empty");
+				// could set this to -1
+				error = 0;
+				
+				return 0;
+			} else {
+				return uint;
+			}
+		}
+	}
+	
+	std::pair<bool, std::list<FileRenameOp>> addToLastEntryNum(long long num, uint64_t spot) {
+		//! TODO:
+		return std::pair(true, std::list<FileRenameOp>());
+		
 		return {};
 	}
 
@@ -404,76 +732,28 @@ public:
 		std::forward_list<KeyT> retList = this->addEntries(inputList);
 		
 		if (retList.empty()) {
-			errorf("addEntry received empty list");
+			errorf("addEntry(raw) received empty list");
 		} else if (std::next(retList.begin()) != retList.end()) {
-			errorf("addEntry received multiple keys");
+			errorf("addEntry(raw) received multiple keys");
 		} else {
 			return (KeyT) (*retList.begin());
 		}
 		
 		return 0;
 	}
-	
-	/*
-	std::shared_ptr<KeyT> addEntry(std::shared_ptr<const EntryT> argPtr) {
-		const auto inputList = std::forward_list<std::shared_ptr<const EntryT>>(argPtr);
-		std::forward_list<KeyT> retList = this->addEntries(inputList);
-		if (retList.empty()) {
-			errorf("addEntry received empty list");
-		} else if (retList.end() - retList.begin() > 1) {
-			errorf("addEntry received multiple keys");
-		} else {
-			return std::shared_ptr<KeyT>(retList.begin());
-		}
-	}
-	*/
 
 	std::forward_list<KeyT> addEntries(const std::forward_list<EntryT> inputList) {
 		if (inputList.empty()) {
 			errorf("(StandardAutoKeyIndex.addEntries) inputList was empty");
 			return {};
 		}
-		/*
-		if (inputchn == 0) {
-			errorf("inputchn is null");
-			return 1;
-		}
-		*/
 		
-		/*
-		long int maxentrylen = MAX_PATH*4;
-		
-		oneslnk *inputchn = minamechn;
-		char *fileStrBase = "miIndex";
-		#define getlastentrynum() getlastminum()
-		#define addtolastinum(num1, num2) addtolastminum(num1, num2)
-		#define crentryreg(numentrychn) crmireg(numentrychn)
-		
-		unsigned char buf[MAX_PATH*4];
-		*/
-		
-		for (auto inputEntry : inputList) {
+		for (auto &inputEntry : inputList) {
 			if (!this->isValidInputEntry(inputEntry)) {
 				errorf("(StandardAutoKeyIndex.addEntries) inputList contained invalid entry");
 				return {}; 
 			}
 		}
-		
-		/*
-		for (oneslnk *link = inputchn; link != 0; link = link->next) {
-			int i = 0;
-			if (link->str) {
-				for (i = 0; link->str[i] != '\0' && i != maxentrylen; i++);
-				if (i >= maxentrylen) {
-					errorf("input string too long");
-					return 1;
-				}
-			} if (i == 0 || link->str == 0) {
-				errorf("empty string");
-				return 1;
-			}
-		}
-		*/
 		
 		std::filesystem::path indexFilePath = this->getDirPath() / (this->getFileStrBase() + ".bin");
 		
@@ -488,11 +768,11 @@ public:
 		
 		std::fstream tempIndexStream;
 		
-		FILE *indexF;
-		char created = 0;
-		
 		uint64_t lastEntryKey = 0;
+		
 		//! TODO: replace by something that checks existence otherwise (e.g. if renamed to .bak)
+		
+		// open file for writing and skip to end
 		if (std::filesystem::exists(indexFilePath)) {
 			lastEntryKey = this->getLastKey();
 			
@@ -506,7 +786,6 @@ public:
 				return {};
 			}
 			
-			//! TODO: make a deleter for the copy
 			fpathDeleterPtr = std::make_shared<FilePathDeleter>(tempIndexPath);
 			
 			tempIndexStream = std::fstream(tempIndexPath, std::ios::binary | std::ios::out | std::ios::in);
@@ -516,17 +795,16 @@ public:
 				return {};
 			}
 			
-			//! skip to end
-			
+			// skip to end
 			if (lastEntryKey > 0) {
-				//sets the output position
+				//sets the output position to the end
 				tempIndexStream.seekp(0, std::ios::end);
 				if (tempIndexStream.fail()) {
 					errorf("seekp failed");
 					return {};
 				}
+			// skip to end manually
 			} else {
-				//! skip to end manually
 				KeyT tempEntryKey = lastEntryKey;
 				tempEntryKey = this->skipEntryGetKey(tempIndexStream);
 				while (!tempIndexStream.eof()) {
@@ -542,6 +820,14 @@ public:
 					errorf("tempIndexStream entry read fail (1)");
 					return {};
 				}
+				tempIndexStream.clear();
+				
+				//sets the output position
+				tempIndexStream.seekp(0, std::ios::end);
+				if (tempIndexStream.fail()) {
+					errorf("seekp failed (2)");
+					return {};
+				}
 			}
 		} else {
 			bool clearRes = this->clearRec();
@@ -555,64 +841,28 @@ public:
 			fpathDeleterPtr = std::make_shared<FilePathDeleter>(tempIndexPath);
 			
 			if (!tempIndexStream.is_open()) {
-				errorf("failed to open tempIndexStream for read and write");
+				errorf("failed to create tempIndexStream for read and write");
 				return {};
 			}
 		}
-		
-		/*
-		
-		sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
-		if ((indexF = MBfopen(buf, "rb+")) == NULL) {
-			if ((indexF = MBfopen(buf, "wb+")) == NULL) {
-				errorf("couldn't create indexF");
-				errorf_old("tried to create: \"%s\"", buf);
-				return {};
-			}
-			created = 1;
-		}
-		
-		uint64_t lastentrynum = 0;
-		
-		//if (lastdnum = getlastdnum()) {
-		if ( (!created) && ((lastentrynum = getlastentrynum()) > 0) ) {
-			fseek(indexF, 0, SEEK_END);
-		} else {
-			int c;
-			while ((c = getc(indexF)) != EOF) {
-				if (fseek(indexF, c, SEEK_CUR)) {
-					errorf("fseek failed");
-					fclose(indexF);
-					return {};
-				}
-				
-				if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
-					errorf_old("indexF read error: %d", c);
-					fclose(indexF);
-					return {};
-				}
-				lastentrynum++;		// assuming there are no entry number gaps
-			}
-		}
-		
-		*/
 		
 		std::forward_list<EntryPair> regEntryPairList;
 		
+		// write the entríes and save entry pairs
 		{
-			auto insertPos = regEntryPairList.begin();
+			auto insertPos = regEntryPairList.before_begin();
 			
-			for (auto inputEntry : inputList) {
+			for (auto &inputEntry : inputList) {
 				lastEntryKey++;
 				std::shared_ptr<EntryPair> entryPairPtr = this->writeEntryGetPair(tempIndexStream, lastEntryKey, inputEntry);
 				if (tempIndexStream.bad()) {
 					errorf("tempIndexStream write failed");
 					return {};
-				} else if (!entryPairPtr) {
+				} else if (entryPairPtr == nullptr) {
 					errorf("entryPairPtr is null");
 					return {};
 				} else {
-					insertPos = regEntryPairList.insert_after(insertPos, *entryPairPtr);
+					insertPos = regEntryPairList.emplace_after(insertPos, *entryPairPtr);
 				}
 			}
 		}
@@ -624,34 +874,11 @@ public:
 			return {};
 		}
 		
-		/*
-		
-		twoslnk *numentrychn, *fnumentry;
-		
-		fnumentry = numentrychn = malloc(sizeof(twoslnk));
-		numentrychn->u[0].str = 0;
-		
-		int i = 0;
-		{
-			oneslnk *link = inputchn;
-			for (; link != 0; link = link->next, i++) {
-				putull_pref(++lastentrynum, indexF);
-				term_fputs(link->str, indexF);
-				numentrychn = numentrychn->next = malloc(sizeof(twoslnk));
-				numentrychn->u[0].str = link->str, numentrychn->u[1].ull = lastentrynum;
-			}
-		}
-		fclose(indexF);
-		
-		numentrychn->next = 0;
-		numentrychn = fnumentry->next, free(fnumentry);
-		*/
-		
 		//! TODO: return an object for atomic multi-file operation
-		bool reverseAddSuccess = false;
-		std::list<FileRenameOp> reverseOpList = this->reverseAddEntries(regEntryPairList, reverseAddSuccess);
+		std::pair<bool, std::list<FileRenameOp>> reverseOpList = this->reverseAddEntries(regEntryPairList);
 		
-		if (!reverseAddSuccess) {
+		if (!reverseOpList.first) {
+			errorf("(addEntries) reverseAddEntries failed");
 			return {};
 		}
 		
@@ -659,21 +886,16 @@ public:
 		
 		//! TODO: add start and entry range as file positions
 		bool addToLastFail = false;
-		std::list<FileRenameOp> addToLastOpList = this->addToLastEntryNum(nRegEntries, 0, addToLastFail);
+		std::pair<bool, std::list<FileRenameOp>> addToLastOpList = this->addToLastEntryNum(nRegEntries, 0);
 		
 		//! TODO: automatically remove the .tmp files of opList on return
 		
-		if (addToLastFail) {
+		if (!addToLastOpList.first) {
+			errorf("(addEntries) addToLastEntryNum failed");
 			//! TODO: cancel each in reverseOpList 
 			
 			return {};
 		}
-		
-		/*
-		crentryreg(numentrychn);
-		killtwoschn(numentrychn, 3);
-		addtolastinum(i, 0);
-		*/
 		
 		if (fpathDeleterPtr) {
 			fpathDeleterPtr->release();
@@ -690,12 +912,10 @@ public:
 			return {};
 		}
 		
-		
-		//! TODO: do rename from temp
 		std::list<FileRenameOp> renameOpList;
 		renameOpList.emplace_back(tempIndexPath, indexFilePath, bakIndexPath);
-		renameOpList.insert(renameOpList.end(), reverseOpList.begin(), reverseOpList.end());
-		renameOpList.insert(renameOpList.end(), addToLastOpList.begin(), addToLastOpList.end());
+		renameOpList.insert(renameOpList.end(), reverseOpList.second.begin(), reverseOpList.second.end());
+		renameOpList.insert(renameOpList.end(), addToLastOpList.second.begin(), addToLastOpList.second.end());
 		
 		bool success = executeRenameOpList(renameOpList);
 		if (!success) {
@@ -706,9 +926,15 @@ public:
 		
 		std::forward_list<KeyT> retList;
 		
-		for (auto entryPair : regEntryPairList) {
-			retList.insert_after(retList.end(), entryPair.first);
+		{
+			auto insertPos = retList.before_begin();
+			
+			for (auto &entryPair : regEntryPairList) {
+				insertPos = retList.emplace_after(insertPos, entryPair.first);
+			}
 		}
+		
+errorf("returning retList");
 		
 		return retList;
 	}
@@ -756,24 +982,32 @@ class MainIndexIndex : public TopIndex, public StandardAutoKeyIndexI<uint64_t, s
 public:
 	static const IndexID indexID;
 	
+	static constexpr uint64_t MaxEntryLen = 500*4;
+	
 	MainIndexIndex(IndexSessionHandler &handler_) : TopIndex(handler_, this->indexID) {}
 	
-	const std::string getFileStrBase(void) {
+	virtual const std::string getFileStrBase(void) override {
 		return "miIndex";
 	}
 	
-	const std::filesystem::path getDirPath(void) {
+	virtual const std::filesystem::path getDirPath(void) override {
 		return g_fsPrgDirPath;
 	}
 	
-	bool isValidInputEntry(std::string) {
-		//! TODO:
-		return false;
+	virtual bool isValidInputEntry(std::string entryString) override {
+		if (entryString == "") {
+			return false;
+		} else if (entryString.size() >= this->MaxEntryLen) {
+			return false;
+		}
+		
+		return true;
 	}
 	
-	std::list<FileRenameOp> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList, bool &argFail) {
+	virtual std::pair<bool, std::list<FileRenameOp>> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList) override {
 		//! TODO:
-		argFail = true;
+		return std::pair<bool, std::list<FileRenameOp>>(true, std::list<FileRenameOp>());
+		
 		return {};
 	}
 	
