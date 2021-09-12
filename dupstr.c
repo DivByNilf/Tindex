@@ -26,3 +26,5 @@ char *dupstr(char *str, unsigned long long maxlen, int option) {	// option to tr
 	}
 	return buf;
 }
+
+#undef errorf()

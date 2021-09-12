@@ -10,7 +10,7 @@
 
 #define errorf(str) g_errorfStdStr(str) //!
 
-void put_u64_stream_pref(std::ostream &fs, uint64_t uint) {
+void put_u64_stream_pref(std::ostream &ios, uint64_t uint) {
 	unsigned char str[9];
 	
 	int i = 8;
@@ -24,7 +24,7 @@ void put_u64_stream_pref(std::ostream &fs, uint64_t uint) {
 	
 	if (i <= 0) {
 		errorf("error: i <= 0");
-		fs.setstate(std::ios_base::badbit);
+		ios.setstate(std::ios_base::badbit);
 	} else {
 		int len = 9-i;
 		i--;
@@ -32,17 +32,17 @@ void put_u64_stream_pref(std::ostream &fs, uint64_t uint) {
 g_errorfStream << "writing: " << uint << std::flush;
 g_errorfStream << "i: " << i << ", len: " << len << std::flush;
 	
-		fs.write(&str[i], len+1);
+		ios.write(&str[i], len+1);
 	}
 }
 
-uint64_t get_u64_stream_pref(std::istream &fs, bool &b_gotNull) {
-	int_fast16_t uc = fs.get();
-	if (uc > 8 || fs.fail()) {
-		if (fs.eof()) {
-			fs.clear(std::ios_base::eofbit);
+uint64_t get_u64_stream_pref(std::istream &ios, bool &b_gotNull) {
+	int_fast16_t uc = ios.get();
+	if (uc > 8 || ios.fail()) {
+		if (ios.eof()) {
+			ios.clear(std::ios_base::eofbit);
 		} else {
-			fs.setstate(std::ios_base::failbit);
+			ios.setstate(std::ios_base::failbit);
 		}
 		return 0;
 	} else if (uc <= 0) {
@@ -51,10 +51,51 @@ uint64_t get_u64_stream_pref(std::istream &fs, bool &b_gotNull) {
 	} else {
 		uint64_t uint = 0;
 		for (int_fast16_t c = 0; uc > 0; uc--) {
-			c = fs.get();
-			if (fs.eof()) {
-				// note: it is set regardless by fs.get()
-				fs.setstate(std::ios_base::failbit);
+			c = ios.get();
+			if (ios.eof()) {
+				// note: it is set regardless by ios.get()
+				ios.setstate(std::ios_base::failbit);
+				return 0;
+			} else {
+				uint += c;
+			}
+		}
+		return uint;
+	}
+}
+
+void put_u64_stream_fixed(std::ostream &ios, uint64_t uint) {
+	unsigned char str[9];
+	
+	int i = 8;
+	for (; i > 0; i--) {
+		str[i] = uint % 256;
+		uint /= 256;
+	}
+	
+	if (i < 0) {
+		errorf("error: i < 0");
+		ios.setstate(std::ios_base::badbit);
+	} else {
+		int len = 8;
+		i = 1;
+	
+		ios.write(&str[i], len);
+	}
+}
+
+uint64_t get_u64_stream_fixed(std::istream &ios) {
+	int_fast16_t uc = 8;
+	
+	if (ios.peek() == EOF) {
+		ios.setstate(std::ios_base::eofbit);
+	} else {
+		uint64_t uint = 0;
+		for (int_fast16_t c = 0; uc > 0; uc--) {
+			c = ios.get();
+			if (ios.eof()) {
+				// note: it is set regardless by ios.get()
+				ios.setstate(std::ios_base::failbit);
 				return 0;
 			} else {
 				uint += c;

@@ -75,123 +75,7 @@ struct arg_struct1 {
 };
 
 //! TODO: make references to sessionhandler atomic and thread safe
-IndexSessionHandler g_indexSessionHandler = IndexSessionHandler();
-
-//{ general
-int cregformat1(oneslnk *inputchn, struct arg_struct1 *args) {
-	FILE *indexF;
-	//dIndex
-	unsigned char buf[MAX_PATH*4]; //!
-	int c, i, j;
-	uint64_t lastentrynum = 0;
-	//lastdnum = 0;
-	oneslnk *link;
-	long int maxentrylen = MAX_PATH*4;
-	
-	char *fileStrBase = args->fileStrBase;
-	uint64_t (*getlastentrynum)(void *args) = args->getlastentrynum;
-	void *getlastnum_args = args->getlastnum_args;
-	char (*crentryreg)(void *args, twoslnk *regchn) = args->crentryreg; // reverse entry reg
-	void *crentryreg_args = args->crentryreg_args;
-	unsigned char (*addtolastentrynum)(void *args, long long num, uint64_t spot) = args->addtolastentrynum;
-	void *addtolastentrynum_args = args->addtolastentrynum_args;
-	
-	//! checks
-	
-	
-	if (inputchn == 0) {
-		errorf("inputchn is null");
-		return 1;
-	}
-	
-	for (link = inputchn; link != 0; link = link->next) {
-		if (link->str) {
-			for (i = 0; link->str[i] != '\0' && i != maxentrylen; i++);
-			if (i >= maxentrylen) {
-				errorf("input string too long");
-				return 1;
-			}
-		} if (i == 0 || link->str == 0) {
-			errorf("empty string");
-			return 1;
-		}
-	}
-	
-	char created = 0;
-	
-	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
-	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
-		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
-			errorf("couldn't create indexF");
-			errorf_old("tried to create: \"%s\"", buf);
-			return 1;
-		}
-		created = 1;
-	}
-	
-	//if (lastdnum = getlastdnum()) {
-	if ( (!created) && (getlastentrynum != NULL) && ((lastentrynum = getlastentrynum(getlastnum_args)) > 0) ) {
-		fseek(indexF, 0, SEEK_END);
-	} else {
-		while ((c = getc(indexF)) != EOF) {
-			if (fseek(indexF, c, SEEK_CUR)) {
-				errorf("fseek failed");
-				fclose(indexF);
-				return 0;
-			}
-			
-			if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
-				errorf_old("indexF read error: %d", c);
-				fclose(indexF);
-				return 0;
-			}
-			lastentrynum++;		// assuming there are no entry number gaps
-		}
-	}
-	
-	twoslnk *numentrychn, *fnumentry;
-	
-	fnumentry = numentrychn = malloc(sizeof(twoslnk));
-	numentrychn->u[0].str = 0;
-	
-	for (i = 0, link = inputchn; link != 0; link = link->next, i++) {
-		putull_pref(++lastentrynum, indexF);
-		term_fputs(link->str, indexF);
-		numentrychn = numentrychn->next = malloc(sizeof(twoslnk));
-		numentrychn->u[0].str = link->str, numentrychn->u[1].ull = lastentrynum;
-	}
-	fclose(indexF);
-	numentrychn->next = 0;
-	numentrychn = fnumentry->next, free(fnumentry);
-	if (crentryreg != NULL) {
-		crentryreg(crentryreg_args, numentrychn);
-	}
-	killtwoschn(numentrychn, 3);
-	//addtolastdnum(i, 0);
-	if (addtolastentrynum != NULL) {
-		addtolastentrynum(addtolastentrynum_args, i, 0);
-	}
-	
-	return 0;
-}
-
-uint64_t funcarg_entryinitpos(uint64_t (*entryinitpos)(uint64_t), uint64_t ientrynum) {
-	return entryinitpos(ientrynum);
-}
-
-uint64_t funcarg_getlastentrynum(uint64_t (*getlastentrynum)(void)) {
-	return getlastentrynum();
-}
-
-char funcarg_crentryreg(char (*crentryreg)(twoslnk *), twoslnk *regchn) {
-	return crentryreg(regchn);
-}
-
-unsigned char funcarg_addtolastentrynum(unsigned char (*addtolastentrynum)(long long num, uint64_t spot), long long num, uint64_t spot) {
-	return addtolastentrynum(num, spot);
-}
-	
-//}
+TopIndexSessionHandler g_indexSessionHandler = TopIndexSessionHandler();
 
 //{ main index 2nd layer
 
@@ -1346,23 +1230,19 @@ uint64_t mireg(char *miname) {
 		errorf("miname was NULL");
 		return 0;
 	}
-errorf("(mireg) spot 1");
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 	if (indexSession == nullptr) {
 		errorf("(mireg) could not open session");
 		return 0;
 	}
-errorf("(mireg) spot 2");
 	std::string str = std::string(miname);
 	uint64_t res = indexSession->addEntry(str);
-errorf("(mireg) spot 3");
 	if (!res) {
 		errorf("failed to register miname");
 		return 0;
 	} else {
 		return res;
 	}
-errorf("(mireg) spot 4");
 
 	return 0;
 }
@@ -1378,7 +1258,7 @@ uint64_t mireg_old(char *miname) {
 	return c;
 }
 
-char *miread(uint64_t minum) {	// returns malloc memory
+char *miread_old(uint64_t minum) {	// returns malloc memory
 	unsigned char buf[MAX_PATH*4], *p;
 	int c, i;
 	uint64_t tnum;
@@ -1552,121 +1432,11 @@ char *miread(uint64_t minum) {	// returns malloc memory
 	// return 1;		// entry number doesn't have entry
 // }
 
-int cmireg_(oneslnk *minamechn) {
-	struct arg_struct1 format_args = {};
-	
-	format_args.fileStrBase = "miIndex";
-	format_args.getlastentrynum = (uint64_t (*)(void *)) funcarg_getlastentrynum;
-	format_args.getlastnum_args = getlastminum;
-	format_args.crentryreg = NULL;
-	format_args.crentryreg_args = NULL;
-	//!
-	//format_args.crentryreg = (char (*)(void *args, twoslnk *regchn)) funcarg_crentryreg;
-	//format_args.crentryreg_args = crmireg;
-	format_args.addtolastentrynum = (unsigned char (*)(void *args, long long num, uint64_t spot)) funcarg_addtolastentrynum;
-	format_args.addtolastentrynum_args = addtolastminum;
-	
-	int c = cregformat1(minamechn, &format_args);
-	
-	return c;
-}
-
 int cmireg(oneslnk *minamechn) {
 	
-	
-	/*
-	long int maxentrylen = MAX_PATH*4;
-	
-	oneslnk *inputchn = minamechn;
-	char *fileStrBase = "miIndex";
-	#define getlastentrynum() getlastminum()
-	#define addtolastinum(num1, num2) addtolastminum(num1, num2)
-	#define crentryreg(numentrychn) crmireg(numentrychn)
-	
-	unsigned char buf[MAX_PATH*4];
-	
-	if (inputchn == 0) {
-		errorf("inputchn is null");
-		return 1;
-	}
-	
-	for (oneslnk *link = inputchn; link != 0; link = link->next) {
-		int i = 0;
-		if (link->str) {
-			for (i = 0; link->str[i] != '\0' && i != maxentrylen; i++);
-			if (i >= maxentrylen) {
-				errorf("input string too long");
-				return 1;
-			}
-		} if (i == 0 || link->str == 0) {
-			errorf("empty string");
-			return 1;
-		}
-	}
-	
-	FILE *indexF;
-	char created = 0;
-	
-	sprintf(buf, "%s\\%s.bin", g_prgDir, fileStrBase);
-	if ((indexF = MBfopen(buf, "rb+")) == NULL) {
-		if ((indexF = MBfopen(buf, "wb+")) == NULL) {
-			errorf("couldn't create indexF");
-			errorf_old("tried to create: \"%s\"", buf);
-			return 1;
-		}
-		created = 1;
-	}
-	
-	uint64_t lastentrynum = 0;
-	
-	//if (lastdnum = getlastdnum()) {
-	if ( (!created) && ((lastentrynum = getlastentrynum()) > 0) ) {
-		#undef getlastentrynum
-		fseek(indexF, 0, SEEK_END);
-	} else {
-		int c;
-		while ((c = getc(indexF)) != EOF) {
-			if (fseek(indexF, c, SEEK_CUR)) {
-				errorf("fseek failed");
-				fclose(indexF);
-				return 0;
-			}
-			
-			if ((c = null_fgets(0, maxentrylen, indexF)) != 0) {
-				errorf_old("indexF read error: %d", c);
-				fclose(indexF);
-				return 0;
-			}
-			lastentrynum++;		// assuming there are no entry number gaps
-		}
-	}
-	
-	twoslnk *numentrychn, *fnumentry;
-	
-	fnumentry = numentrychn = malloc(sizeof(twoslnk));
-	numentrychn->u[0].str = 0;
-	
-	int i = 0;
-	{
-		oneslnk *link = inputchn;
-		for (; link != 0; link = link->next, i++) {
-			putull_pref(++lastentrynum, indexF);
-			term_fputs(link->str, indexF);
-			numentrychn = numentrychn->next = malloc(sizeof(twoslnk));
-			numentrychn->u[0].str = link->str, numentrychn->u[1].ull = lastentrynum;
-		}
-	}
-	fclose(indexF);
-	numentrychn->next = 0;
-	numentrychn = fnumentry->next, free(fnumentry);
-	crentryreg(numentrychn);
-	#undef crentryreg
-	killtwoschn(numentrychn, 3);
-	addtolastinum(i, 0);
-	#undef addtolastinum
+	errorf("cmireg unimplemented");
 	
 	return 0;
-	*/
 }
 
 int cmireg_old(oneslnk *minamechn) {
@@ -2020,6 +1790,59 @@ int cmirer___(twoslnk *rerchn) {		//! untested
 */
 
 oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
+
+	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
+	
+	if (indexSession == nullptr) {
+		errorf("imiread could not open session");
+		return 0;
+	}
+	
+	std::forward_list<std::string> retList = indexSession->readIntervalEntries(start, intrvl);
+	
+	oneslnk *flnk, *lastlnk;
+	if ((flnk = malloc(sizeof(oneslnk))) == 0) {
+		errorf("malloc failed");
+		return 0;
+	} lastlnk = flnk;
+	flnk->str = 0;
+	flnk->next = nullptr;
+	
+	int32_t i = 0;
+	for (auto &entry : retList) {
+		lastlnk = lastlnk->next = malloc(sizeof(oneslnk));
+		if (lastlnk == nullptr) {
+			errorf("malloc failed");
+			killoneschn(flnk, 0);
+			return 0;
+		} else {
+			lastlnk->next = nullptr;
+			lastlnk->str = nullptr;
+			
+			lastlnk->str = dupstr(entry.c_str(), 10000, 0);
+			
+			if (lastlnk->str == nullptr) {
+				errorf("dupstr fail");
+				killoneschn(flnk, 0);
+				return 0;
+			}
+		}
+		
+		i++;
+	}
+	
+	if (i > intrvl) {
+		errorf("imiread got more than intrvl entries");
+		killoneschn(flnk, 0);
+		return 0;
+	}
+	
+	lastlnk = flnk->next;
+	free(flnk);
+	return lastlnk;
+}
+
+oneslnk *imiread_old(uint64_t start, uint64_t intrvl) { // returns malloc memory
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
 	uint64_t tnum;
@@ -2150,7 +1973,11 @@ void verDI___(VOID) { // check for order, duplicates, gaps, 0 character strings
 }
  */
  
-int existsmi(uint64_t minum) {
+int32_t existsmi(uint64_t minum) {
+	return 0;
+}
+/*
+int32_t existsmi_old(uint64_t minum) {
 	 char *p = 0;
 	 
 	 if ( (p = miread(minum)) != NULL ) {
@@ -2160,12 +1987,17 @@ int existsmi(uint64_t minum) {
 		 return 0;
 	 }
 }
+*/
  
 //}
 
 //{ dir 2nd layer
 
 unsigned char raddtolastdnum(uint64_t minum, long long num) { // 0 to just refresh
+	return 0;
+}
+
+unsigned char raddtolastdnum_old(uint64_t minum, long long num) { // 0 to just refresh
 	return 0;
 	
 	//! TODO: implement
@@ -2375,6 +2207,10 @@ uint64_t rdinitpos(uint64_t minum, char *idir) {
 */
 
 char rdinit(uint64_t minum) {
+	return 1;
+}
+
+char rdinit_old(uint64_t minum) {
 	if (!existsmi(minum)) {
 		errorf_old("existsmi(%llu) returned false (rdinit)", minum);
 		return 1;
@@ -2504,7 +2340,13 @@ char rdinit(uint64_t minum) {
 	#undef raddtolastinum
 	
 	return 0;
+
+
 }
+
+/*
+
+*/
 
 /*
 
@@ -2728,6 +2570,10 @@ char rdrmvnum(uint64_t minum, uint64_t dnum) {		//! not done
 */
 
 char crdreg(uint64_t minum, twoslnk *regchn) {		//! not done
+	return 1;
+}
+
+char crdreg_old(uint64_t minum, twoslnk *regchn) {		//! not done
 	if (!existsmi(minum)) {
 		errorf_old("existsmi(%llu) returned false (crdreg)", minum);
 		return 1;
@@ -2739,7 +2585,7 @@ char crdreg(uint64_t minum, twoslnk *regchn) {		//! not done
 
 /*
 
-char crdrer(uint64_t minum, oneslnk *rmchn, twoslnk *addchn) {		//! not done // assuming only one entry per dname, easily fixed by making rmchn twoslnk with dnum as well
+char crdrer(uint64_t minum, oneslnk *rmchn, twoslnk *addchn) {miinitpos		//! not done // assuming only one entry per dname, easily fixed by making rmchn twoslnk with dnum as well
 	if (!existsmi(minum)) {
 		errorf_old("existsmi(%llu) returned false", minum);
 		return 1;
@@ -3226,6 +3072,18 @@ errorf_old("counted inum: %llu", inum);
 }
 
 uint64_t getlastdnum(uint64_t minum) {
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+	
+	if (indexSession == nullptr) {
+		errorf("getlastminum could not open session");
+		return 0;
+	}
+	
+	int32_t error = 0;
+	return indexSession->getNofVirtualEntries(error);
+}
+
+uint64_t getlastdnum_old(uint64_t minum) {
 	if (!existsmi(minum)) {
 		errorf_old("existsmi(%llu) returned false (getlastdnum)", minum);
 		return 0;
@@ -3318,11 +3176,29 @@ uint64_t dinitpos(uint64_t minum, uint64_t idnum) {
 	return pos;
 }
 
-/*
-
-*/
-
 uint64_t dreg(uint64_t minum, char *dpath) {
+	if (dpath == NULL) {
+		errorf("miname was NULL");
+		return 0;
+	}
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+	if (indexSession == nullptr) {
+		errorf("(mireg) could not open session");
+		return 0;
+	}
+	std::string str = std::string(dpath);
+	uint64_t res = indexSession->addEntry(str);
+	if (!res) {
+		errorf("failed to register dpath");
+		return 0;
+	} else {
+		return res;
+	}
+
+	return 0;
+}
+
+uint64_t dreg_old(uint64_t minum, char *dpath) {
 	int c;
 	oneslnk *link = malloc(sizeof(oneslnk));
 	link->next = NULL;
@@ -3334,6 +3210,12 @@ uint64_t dreg(uint64_t minum, char *dpath) {
 }
 
 char *dread(uint64_t minum, uint64_t dnum) {	// returns malloc memory
+	
+	
+	return 0;
+}
+
+char *dread_old(uint64_t minum, uint64_t dnum) {	// returns malloc memory
 	if (!existsmi(minum)) {
 		errorf_old("existsmi(%llu) returned false (dread)", minum);
 		return 0;
@@ -3526,6 +3408,11 @@ char drer(uint64_t minum, uint64_t dnum, char *dpath) {		// reroute
 */
 
 int cdreg(uint64_t minum, oneslnk *dpathchn) {
+	errorf("cdreg unimplemented");
+	return 0;
+}
+
+int cdreg_old(uint64_t minum, oneslnk *dpathchn) {
 errorf("callign existsmi");
 	if (!existsmi(minum)) {
 		errorf_old("existsmi(%llu) returned false (cdreg)", minum);
@@ -3903,6 +3790,60 @@ int cdrer(uint64_t minum, twoslnk *rerchn) {		//! untested
 */
 
 oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
+
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+	
+	if (indexSession == nullptr) {
+		errorf("imiread could not open session");
+		return 0;
+	}
+	
+	std::forward_list<std::string> retList = indexSession->readIntervalEntries(start, intrvl);
+	
+	oneslnk *flnk, *lastlnk;
+	if ((flnk = malloc(sizeof(oneslnk))) == 0) {
+		errorf("malloc failed");
+		return 0;
+	} lastlnk = flnk;
+	flnk->str = 0;
+	flnk->next = nullptr;
+	
+	int32_t i = 0;
+	for (auto &entry : retList) {
+		lastlnk = lastlnk->next = malloc(sizeof(oneslnk));
+		if (lastlnk == nullptr) {
+			errorf("malloc failed");
+			killoneschn(flnk, 0);
+			return 0;
+		} else {
+			lastlnk->next = nullptr;
+			lastlnk->str = nullptr;
+			
+			lastlnk->str = dupstr(entry.c_str(), 10000, 0);
+			
+			if (lastlnk->str == nullptr) {
+				errorf("dupstr fail");
+				killoneschn(flnk, 0);
+				return 0;
+			}
+		}
+		
+		i++;
+	}
+	
+	if (i > intrvl) {
+		errorf("imiread got more than intrvl entries");
+		killoneschn(flnk, 0);
+		return 0;
+	}
+	
+	lastlnk = flnk->next;
+	free(flnk);
+	return lastlnk;
+	
+}
+
+oneslnk *idread_old(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
 	if (!existsmi(minum)) {
 		errorf_old("existsmi(%llu) returned false (idread)", minum);
 		return 0;

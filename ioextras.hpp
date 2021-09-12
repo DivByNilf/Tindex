@@ -4,6 +4,10 @@ void put_u64_stream_pref(std::ostream &fs, uint64_t uint);
 
 uint64_t get_u64_stream_pref(std::istream &fs, bool &b_gotNull);
 
+void put_u64_stream_fixed(std::ostream &fs, uint64_t uint);
+
+uint64_t get_u64_stream_fixed(std::istream &fs);
+
 // #define ULL_READ_EOF 1
 // #define ULL_READ_LATE_EOF 2
 // #define ULL_READ_OVERFLOW 3

@@ -101,7 +101,6 @@ char *g_prgDir;
 std::string g_stdPrgDir;
 std::filesystem::path g_fsPrgDirPath;
 
-
 HINSTANCE ghInstance;
 
 DWORD color;
@@ -2716,16 +2715,16 @@ errorf("miman 7");
 				
 				break;
 			//}
-			case WM_ERASEBKGND: //{
+			case WM_ERASEBKGND: {
 				return 1;
-			//}
-			case WM_CLOSE: //{
+			}
+			case WM_CLOSE: {
 				
 				if (this->parent) {
 					EnableWindow(this->parent, 1);
 				}
 				break;
-			//}
+			}
 			case WM_DESTROY: {
 					
 				//! TODO: move to class destructor
@@ -2756,12 +2755,9 @@ errorf("miman 7");
 				
 				break;
 			}
-			case WM_NCDESTROY: //{
-				
-errorf("MainIndex NCDESTROY 1");
+			case WM_NCDESTROY: {
 				
 				thwnd = this->parent;
-				//FreeWindowMem(hwnd);
 				
 				if (thwnd) {
 					EnableWindow(thwnd, 1);
@@ -2769,7 +2765,7 @@ errorf("MainIndex NCDESTROY 1");
 				}
 				
 				return 0;
-			//}
+			}
 		}
 
 		return DefWindowProcW(hwnd, msg, wParam, lParam);
