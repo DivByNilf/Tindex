@@ -7,6 +7,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdint.h>
 
+#include <filesystem>
+
 uint64_t rmiread(char *entrystr);
 
 char rmirmv(char *entrystr);
@@ -47,7 +49,7 @@ int cmirmv(oneslnk *inumchn);
 
 int cmirer(twoslnk *rerchn);
 
-oneslnk *imiread(uint64_t start, uint64_t intrvl);
+std::shared_ptr<std::forward_list<std::string>> imiread(uint64_t start, uint64_t intrvl);
 
 void verMII(void);
 
@@ -76,7 +78,9 @@ char cdfrmv(uint64_t minum, oneslnk *dnumchm);
 
 uint64_t getlastdnum(uint64_t minum);
 
-uint64_t dreg(uint64_t minum, char *dpath);
+//uint64_t dreg(uint64_t minum, char *dpath);
+
+uint64_t dreg(const uint64_t &minum, const std::filesystem::path &dpath);
 
 char *dread(uint64_t minum, uint64_t dnum);
 
@@ -92,7 +96,7 @@ int cdrmv(uint64_t minum, oneslnk *dnumchn);
 
 int cdrer(uint64_t minum, twoslnk *rerchn);
 
-oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl);
+std::shared_ptr<std::forward_list<std::fs::path>> idread(uint64_t minum, uint64_t start, uint64_t intrvl);
 
 void verDI(uint64_t minum);
 

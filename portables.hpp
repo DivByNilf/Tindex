@@ -1,3 +1,5 @@
-std::string utf16_to_utf8(const std::wstring &wstr);
+std::string u16_to_u8(const std::wstring &wstr);
 
-std::wstring utf8_to_utf16(const std::string &str);
+std::string u16_cstr_to_u8(const wchar_t *wbuf);
+
+std::wstring u8_to_u16(const std::string &str);

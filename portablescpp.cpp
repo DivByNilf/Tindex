@@ -2,7 +2,7 @@
 
 #include <windows.h>
 
-std::string utf16_to_utf8(const std::wstring &wstr) {
+std::string u16_to_u8(const std::wstring &wstr) {
 	if( wstr.empty() ) return std::string();
 	int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
 	std::string strTo( size_needed, 0 );
@@ -10,7 +10,15 @@ std::string utf16_to_utf8(const std::wstring &wstr) {
 	return strTo;
 }
 
-std::wstring utf8_to_utf16(const std::string &str) {
+std::string u16_cstr_to_u8(const wchar_t *wbuf) {
+	if (wbuf == nullptr) {
+		return std::string();
+	} else {
+		return u16_to_u8(std::wstring(wbuf));
+	}
+}
+
+std::wstring u8_to_u16(const std::string &str) {
 	if( str.empty() ) return std::wstring();
 	int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
 	std::wstring wstrTo( size_needed, 0 );

@@ -25,7 +25,7 @@ namespace std {
 
 #include "ioextras.hpp"
 
-extern std::filesystem::path g_fsPrgDirPath;
+#include "prgdir.hpp"
 
 typedef struct searchexpr {
 	unsigned short exprtype;
@@ -327,7 +327,7 @@ public:
 	TopIndex(IndexSessionHandler &handler_, const IndexID &indexID_) : IndexSession(handler_, indexID_) {}
 	
 	virtual const std::filesystem::path getDirPath(void) const {
-		return g_fsPrgDirPath;
+		return g_fsPrgDir;
 	}
 	
 	virtual ~TopIndex(void) {
@@ -343,7 +343,7 @@ public:
 	SubIndex(std::shared_ptr<SubIndexSessionHandler> &handler_, const IndexID &indexID_);
 	
 	static const std::filesystem::path getDirPathFor(uint64_t minum) {
-		return g_fsPrgDirPath / "i" / ( std::to_string(minum) );
+		return g_fsPrgDir / "i" / ( std::to_string(minum) );
 	}
 	
 	virtual const std::filesystem::path getDirPath(void) const {
@@ -439,6 +439,53 @@ errorf("skipped string: " + str);
 	}
 };
 
+template<>
+struct IOSpec<std::fs::path> {
+	static void write(std::ostream &ios, const std::fs::path &entry) {
+		std::string pathString = entry.generic_string();
+		ios << pathString << '\0';
+	}
+	
+	static std::fs::path read(std::istream &ios) {
+		std::string str;
+		
+		//! TODO: limit reading to MAX_PATH or something
+		std::getline(ios, str, '\0');
+		
+		if (ios.eof()) {
+			if (str != "") {
+errorf("string set failbit");
+				ios.setstate(std::ios_base::failbit);
+			} else  {
+errorf("string cleared failbit");
+			// don't set failbit at EOF and read no characters
+			ios.clear(std::ios_base::eofbit);
+			}
+		}
+errorf("read string: " + str);
+		return std::fs::path(str);
+	}
+	
+	static void skip(std::istream &ios) {
+		std::string str;
+		
+		//! TODO: limit reading to MAX_PATH or something
+		std::getline(ios, str, '\0');
+		
+		if (ios.eof()) {
+			if (str != "") {
+errorf("string set failbit");
+				ios.setstate(std::ios_base::failbit);
+			} else  {
+errorf("string cleared failbit");
+			// don't set failbit at EOF and read no characters
+			ios.clear(std::ios_base::eofbit);
+			}
+		}
+errorf("skipped string: " + str);
+	}
+};
+
 template <class T>
 struct FixedIOSpec;
 
@@ -473,36 +520,11 @@ public:
 	
 	virtual std::pair<bool, std::list<FileRenameOp>> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList) = 0;
 	
-	bool removeEntry(KeyT);
-	KeyT replaceEntry(KeyT, EntryT);
-	
 	virtual ~StandardIndex(void) {
 
 	}
 	
-};
-
-template <class KeyT, class EntryT>
-class StandardManualKeyIndex : public StandardIndex<KeyT, EntryT> {
-public:
-	typedef std::pair<KeyT, EntryT> EntryPair;
 	
-	KeyT addEntry(KeyT, EntryT);
-	
-	virtual ~StandardManualKeyIndex(void) {
-
-	}
-};
-
-// not actually specialized for key types other than scalar types
-template <class KeyT, class EntryT>
-class StandardAutoKeyIndex : public StandardIndex<KeyT, EntryT> {
-public:
-	typedef std::pair<KeyT, EntryT> EntryPair;
-	
-	virtual ~StandardAutoKeyIndex(void) {
-
-	}
 	
 	EntryT makeNullEntry(void) {
 		return EntryT();
@@ -511,6 +533,149 @@ public:
 	EntryT makeNullKey(void) {
 		return KeyT();
 	}
+	
+	std::shared_ptr<std::forward_list<EntryT>> readIntervalEntries(const KeyT &start, const uint64_t intrvl) {
+		if (!intrvl) {
+			errorf("readIntervalEntries without intrvl");
+			return {};
+		}
+		
+		if (start == 0) {
+			errorf("readInterval start was 0");
+			return {};
+		}
+		
+		std::filesystem::path indexFilePath = this->getDirPath() / (this->getFileStrBase() + ".bin");
+		
+		if (!std::filesystem::exists(indexFilePath)) {
+			return {};
+		}
+		
+		std::ifstream indexStream = std::ifstream(indexFilePath, std::ios::binary | std::ios::in);
+	
+		if (!indexStream.is_open()) {
+			errorf("(readIntervalEntries) failed to open indexStream for read");
+			return {};
+		}
+		
+		int32_t seekPosError = 0;
+		
+		uint64_t filePos = getKeySeekPos(start, seekPosError);
+		
+		if (seekPosError) {
+			errorf("getKeySeekPos failed");
+			return {};
+		}
+		
+		indexStream.seekg(filePos, std::ios_base::beg);
+		
+		if (indexStream.fail()) {
+			g_errorfStream << "indexStream seek failed -- seekpos: " << filePos << std::flush;
+			return {};
+		}
+		
+		std::shared_ptr<std::forward_list<EntryT>> retListPtr(new std::forward_list<EntryT>());
+		
+		if (retListPtr == nullptr) {
+			errorf("shared_ptr construct fail");
+			return {};
+		}
+		
+		std::forward_list<EntryT> &retList = *retList;
+		
+		{
+			auto insertPos = retList.before_begin();
+			
+			KeyT nextGetKey = start;
+			KeyT stopGetKey = start + intrvl;
+			
+			KeyT lastEntryKey = 0;
+			KeyT tempEntryKey = this->streamGetKey(indexStream);
+			
+			while (!indexStream.eof()) {
+				if (tempEntryKey <= lastEntryKey) {
+					errorf("tempEntryKey <= lastEntryKey");
+					return {};
+				} else {
+					lastEntryKey = tempEntryKey;
+				}
+					
+				while (nextGetKey < tempEntryKey && nextGetKey < stopGetKey) {
+					insertPos = retList.insert_after(insertPos, std::move(this->makeNullEntry()));
+					nextGetKey++;
+				}
+				
+				if (nextGetKey == stopGetKey) {
+					break;
+				}
+				
+				if (tempEntryKey == nextGetKey) {
+					EntryT tempEntry = this->streamGetEntry(indexStream);
+					if (indexStream.fail()) {
+						errorf("indexStream getEntry fail");
+						return {};
+					} else {
+						insertPos = retList.insert_after(insertPos, std::move(tempEntry));
+						nextGetKey++;
+					}
+				} else {
+					this->streamSkipEntry(indexStream);
+					if (indexStream.fail()) {
+						errorf("indexStream skipEntry fail");
+						return {};
+					}
+				}
+				tempEntryKey = this->streamGetKey(indexStream);
+			}
+			
+			if (indexStream.fail()) {
+				errorf("indexStream getKey fail (1)");
+				return {};
+			}
+			
+		}
+	
+		int64_t retListLen = std::distance(retList.begin(), retList.end());
+		
+		if (retListLen < 0) {
+			errorf("retList negative length");
+			return {};
+		}
+		
+		return retListPtr;
+		
+	}
+	
+	EntryT readEntry(const KeyT &entrykey) {
+		auto retListPtr = readIntervalEntries(entrykey, 1);
+		if (retListPtr == nullptr) {
+			return makeNullEntry();
+		}
+		auto &retList = *retListPtr;
+		
+		if (retList.begin() != retList.end()) {
+			return *retList.begin();
+		} else {
+			return makeNullEntry();
+		}
+	}
+	
+	bool hasUndeletedEntry(const KeyT &entrykey) {
+		if (this->readEntry(entrykey) != this->makeNullEntry()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	
+	
+	bool removeEntry(KeyT);
+	KeyT replaceEntry(KeyT, EntryT);
+	
+	
+	
+protected:
 	
 	KeyT streamGetKey(std::istream &ios) {
 		KeyT key = IOSpec<KeyT>::read(ios);
@@ -588,25 +753,6 @@ errorf("writeEntryGetPair after writing entry");
 		}
 		
 		return true;
-	}
-	
-	KeyT getLastKey(void) {
-		//! TODO:
-		
-		
-		return 0;
-	}
-	
-	uint64_t getKeySeekPos(const KeyT &key, int32_t &error) {
-		error = 0;
-		
-		if (key == 0) {
-			
-		}
-		
-		
-		error = 0;
-		return 0;
 	}
 	
 	uint64_t createRec(int32_t &error) {
@@ -752,6 +898,49 @@ errorf("writeEntryGetPair after writing entry");
 		//return std::pair(true, std::list<FileRenameOp>());
 		
 		//return {};
+	}
+	
+	uint64_t getKeySeekPos(const KeyT &key, int32_t &error) {
+		error = 0;
+		
+		if (key == 0) {
+			
+		}
+		
+		
+		error = 0;
+		return 0;
+	}
+	
+};
+
+template <class KeyT, class EntryT>
+class StandardManualKeyIndex : public StandardIndex<KeyT, EntryT> {
+public:
+	typedef std::pair<KeyT, EntryT> EntryPair;
+	
+	KeyT addEntry(KeyT, EntryT);
+	
+	virtual ~StandardManualKeyIndex(void) {
+
+	}
+};
+
+// not actually specialized for key types other than scalar types
+template <class KeyT, class EntryT>
+class StandardAutoKeyIndex : public StandardIndex<KeyT, EntryT> {
+public:
+	typedef std::pair<KeyT, EntryT> EntryPair;
+	
+	virtual ~StandardAutoKeyIndex(void) {
+
+	}
+	
+	KeyT getLastKey(void) {
+		//! TODO:
+		
+		
+		return 0;
 	}
 	
 	// 'virtual' meaning some entries may actually be deleted
@@ -1054,128 +1243,6 @@ errorf("returning retList");
 	}
 	
 	
-	
-	std::forward_list<EntryT> readIntervalEntries(const KeyT &start, const uint64_t intrvl) {
-		if (!intrvl) {
-			errorf("readIntervalEntries without intrvl");
-			return {};
-		}
-		
-		if (start == 0) {
-			errorf("readInterval start was 0");
-			return {};
-		}
-		
-		std::filesystem::path indexFilePath = this->getDirPath() / (this->getFileStrBase() + ".bin");
-		
-		if (!std::filesystem::exists(indexFilePath)) {
-			return {};
-		}
-		
-		std::ifstream indexStream = std::ifstream(indexFilePath, std::ios::binary | std::ios::in);
-	
-		if (!indexStream.is_open()) {
-			errorf("(readIntervalEntries) failed to open indexStream for read");
-			return {};
-		}
-		
-		int32_t seekPosError = 0;
-		
-		uint64_t filePos = getKeySeekPos(start, seekPosError);
-		
-		if (seekPosError) {
-			errorf("getKeySeekPos failed");
-			return {};
-		}
-		
-		indexStream.seekg(filePos, std::ios_base::beg);
-		
-		if (indexStream.fail()) {
-			g_errorfStream << "indexStream seek failed -- seekpos: " << filePos << std::flush;
-			return {};
-		}
-		
-		std::forward_list<EntryT> retList;
-		
-		{
-			auto insertPos = retList.before_begin();
-			
-			KeyT nextGetKey = start;
-			KeyT stopGetKey = start + intrvl;
-			
-			KeyT lastEntryKey = 0;
-			KeyT tempEntryKey = this->streamGetKey(indexStream);
-			
-			while (!indexStream.eof()) {
-				if (tempEntryKey <= lastEntryKey) {
-					errorf("tempEntryKey <= lastEntryKey");
-					return {};
-				} else {
-					lastEntryKey = tempEntryKey;
-				}
-					
-				while (nextGetKey < tempEntryKey && nextGetKey < stopGetKey) {
-					insertPos = retList.insert_after(insertPos, std::move(this->makeNullEntry()));
-					nextGetKey++;
-				}
-				
-				if (nextGetKey == stopGetKey) {
-					break;
-				}
-				
-				if (tempEntryKey == nextGetKey) {
-					EntryT tempEntry = this->streamGetEntry(indexStream);
-					if (indexStream.fail()) {
-						errorf("indexStream getEntry fail");
-						return {};
-					} else {
-						insertPos = retList.insert_after(insertPos, std::move(tempEntry));
-						nextGetKey++;
-					}
-				} else {
-					this->streamSkipEntry(indexStream);
-					if (indexStream.fail()) {
-						errorf("indexStream skipEntry fail");
-						return {};
-					}
-				}
-				tempEntryKey = this->streamGetKey(indexStream);
-			}
-			
-			if (indexStream.fail()) {
-				errorf("indexStream getKey fail (1)");
-				return {};
-			}
-			
-		}
-	
-		int64_t retListLen = std::distance(retList.begin(), retList.end());
-		
-		if (retListLen < 0) {
-			errorf("retList negative length");
-			return {};
-		}
-		
-		return retList;
-		
-	}
-	
-	EntryT readEntry(const KeyT &entrykey) {
-		auto retList = readIntervalEntries(entrykey, 1);
-		if (retList.begin() != retList.end()) {
-			return *retList.begin();
-		} else {
-			return makeNullEntry();
-		}
-	}
-	
-	bool hasUndeletedEntry(const KeyT &entrykey) {
-		if (this->readEntry(entrykey) != this->makeNullEntry()) {
-			return true;
-		} else {
-			return false;
-		}
-	}
 
 };
 
@@ -1520,7 +1587,7 @@ public:
 	
 };
 
-const IndexID MainIndexReverse::indexID = IndexID("2");
+const IndexID MainIndexReverse::indexID = IndexID("MainIndexReverse");
 
 class MainIndexExtras {
 public:
@@ -1528,9 +1595,9 @@ public:
 	
 };
 
-const IndexID MainIndexExtras::indexID = IndexID("3");
+const IndexID MainIndexExtras::indexID = IndexID("MainIndexExtras");
 
-class DirIndex : public SubIndex, public StandardAutoKeyIndex<uint64_t, std::string> {
+class DirIndex : public SubIndex, public StandardAutoKeyIndex<uint64_t, std::fs::path> {
 public:
 	static const IndexID indexID;
 	
@@ -1546,10 +1613,12 @@ public:
 		return this->SubIndex::getDirPath();
 	}
 	
-	virtual bool isValidInputEntry(const std::string &entryString) const override {
-		if (entryString == "") {
+	virtual bool isValidInputEntry(const std::fs::path &entryPath) const override {
+		if (entryPath.empty()) {
 			return false;
-		} else if (entryString.size() >= this->maxEntryLen) {
+		} else if (entryPath.generic_u8string().size() >= this->maxEntryLen) {
+			return false;
+		} else if (entryPath.is_relative() && (entryPath.begin() == entryPath.end() || *entryPath.begin() != "." )) {
 			return false;
 		}
 		
@@ -1567,7 +1636,7 @@ public:
 	
 	
 };
-const IndexID DirIndex::indexID = IndexID("4");
+const IndexID DirIndex::indexID = IndexID("DirIndex");
 
 
 
@@ -1576,7 +1645,11 @@ public:
 	SubDirEntry() = delete;
 	
 	SubDirEntry(uint64_t &parentInum_, std::fs::path &subPath_) : parentInum{parentInum_}, subPath{subPath_} {}
-
+	
+	bool isValid(void) {
+		return false;
+	}
+	
 	uint64_t parentInum;
 	std::fs::path subPath;
 	
@@ -1588,23 +1661,74 @@ public:
 	
 };
 
+template <>
+struct IOSpec<SubDirEntry> {
+public:
+	static void write(std::ostream &ios, const SubDirEntry &entry) {
+		ios.setstate(std::ios_base::badbit | std::ios_base::failbit);
+		
+		
+	}
+	
+	static SubDirEntry read(std::istream &ios) {
+		ios.setstate(std::ios_base::failbit);
+		
+		
+	}
+	
+	static void skip(std::istream &ios) {
+		ios.setstate(std::ios_base::failbit);
+		
+		
+	}
+};
 
 class SubDirIndex : public SubIndex, public StandardAutoKeyIndex<uint64_t, SubDirEntry> {
 public:
+	static const IndexID indexID;
 	
+	SubDirIndex(std::shared_ptr<SubIndexSessionHandler> &handler_) : SubIndex(handler_, this->indexID) {}
 	
+	virtual const std::string getFileStrBase(void) const override {
+		return "sdIndex";
+	}
+	
+	virtual const std::filesystem::path getDirPath(void) const override {
+		return this->SubIndex::getDirPath();
+	}
+	
+	virtual bool isValidInputEntry(const SubDirEntry &entry) const override {
+		return entry.isValid();
+	}
+	
+	virtual std::pair<bool, std::list<FileRenameOp>> reverseAddEntries(std::forward_list<EntryPair> regEntryPairList) override {
+		//! TODO:
+		return std::pair<bool, std::list<FileRenameOp>>(true, std::list<FileRenameOp>());
+		
+		return {};
+	}
+		
 };
+const IndexID SubDirIndex::indexID = IndexID("SubDirIndex");
 
 class FileIndexEntry {
+	FileIndexEntry() = delete;
+	
+	FileIndexEntry(std::fs::path &filePath_, std::list<uint64_t> tagList_) : filePath{filePath_}, tagList{tagList_} {}
+	
+	std::fs::path filePath;
+	std::list<uint64_t> tagList;
 	
 };
 
 class FileIndex : public SubIndex, public StandardAutoKeyIndex<uint64_t, FileIndexEntry> {
 public:
+	static const IndexID indexID;
 
 
 
 };
+const IndexID FileIndex::indexID = IndexID("FileIndex");
 
 class TagIndexEntry {
 	
@@ -1612,9 +1736,11 @@ class TagIndexEntry {
 
 class TagIndex : public SubIndex, public StandardAutoKeyIndex<uint64_t, TagIndexEntry> {
 public:
+	static const IndexID indexID;
 
 
 };
+const IndexID TagIndex::indexID = IndexID("TagIndex");
 
 class TagAliasEntry {
 	
@@ -1622,10 +1748,12 @@ class TagAliasEntry {
 
 class TagAliasIndex : public SubIndex, public StandardAutoKeyIndex<uint64_t, FileIndexEntry> {
 public:
+	static const IndexID indexID;
 
 
 
 };
+const IndexID TagAliasIndex::indexID = IndexID("TagAliasIndex");
 
 unsigned char raddtolastminum(long long num);
 

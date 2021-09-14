@@ -1,5 +1,14 @@
 - TO DO
 
+Little things (front):
+	remove "wide_from_mb" and "mb_from_wide" function calls and replace with multibyte std::string
+	
+	remove errorf_old
+	
+allow alternative paths for registered dirs (if the first one doesn't exist at that moment)
+
+registered dirs should be unique
+
 remove every .tmp file when starting
 
 replace malloc and calloc

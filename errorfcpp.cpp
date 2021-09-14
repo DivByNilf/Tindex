@@ -86,7 +86,7 @@ std::basic_ostream<char> g_errorfStream(&outerBuf);
 static StringBufFlusher<char> FlushToFileHelper(outerBuf);
 
 void g_errorfDialogStdStr(std::string str) {
-	std::wstring wstr = utf8_to_utf16(str);
+	std::wstring wstr = u8_to_u16(str);
 	MessageBoxW(0, wstr.c_str(), 0, 0);
 }
 

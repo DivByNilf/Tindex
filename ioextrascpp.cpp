@@ -24,7 +24,7 @@ void put_u64_stream_pref(std::ostream &ios, uint64_t uint) {
 	
 	if (i <= 0) {
 		errorf("error: i <= 0");
-		ios.setstate(std::ios_base::badbit);
+		ios.setstate(std::ios_base::badbit | std::ios_base::failbit);
 	} else {
 		int len = 9-i;
 		i--;
@@ -75,7 +75,7 @@ void put_u64_stream_fixed(std::ostream &ios, uint64_t uint) {
 	
 	if (i < 0) {
 		errorf("error: i < 0");
-		ios.setstate(std::ios_base::badbit);
+		ios.setstate(std::ios_base::badbit | std::ios_base::failbit);
 	} else {
 		int len = 8;
 		i = 1;

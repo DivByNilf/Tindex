@@ -9,6 +9,8 @@
 
 struct MainInitStruct {
 	HANDLE hMutex;
+	
+	bool operator==(const MainInitStruct&) const = default;
 };
 
 struct ListPage {
@@ -16,6 +18,12 @@ struct ListPage {
 	char *str;
 	int32_t left;
 	int32_t right;
+	
+	~ListPage(void) {
+		if (str != nullptr) {
+			free(str);
+		}
+	}
 };
 
 typedef struct StrListVariables {
@@ -45,7 +53,7 @@ typedef struct ThumbListVariables {
 } THMBLISTV;
 
 typedef struct PageListVariables {
-	uint64_t CurPage, LastPage;
+	uint64_t curPage, lastPage;
 	struct ListPage *PageList;
 	int32_t hovered;
 } PAGELISTV;
@@ -111,6 +119,8 @@ class StrListClass;
 
 class WindowClass {
 public:
+	virtual ~WindowClass(void) = default;
+	
 	static std::shared_ptr<WindowClass> getWindowPtr(HWND hwnd);
 	
 	static std::shared_ptr<WindowClass> createWindowMemory(HWND hwnd, WinCreateArgs &winArgs);
@@ -220,62 +230,71 @@ public:
 	HWND dispWindow;
 };
 
-class DmanClass : public WindowClass {
+class ListManClass : public WindowClass {
+public:
+	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	
+	virtual uint64_t getNumElems() = 0;
+	
+	//int32_t menuCreate(HWND hwnd);
+	//int32_t menuUse(HWND hwnd, int32_t menu_id);
+	
+	HWND parent;
+	
+protected:
+	std::shared_ptr<PageListClass> plv;
+	std::shared_ptr<StrListClass> slv;
+	uint8_t option;
+};
+
+class DmanClass : public ListManClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual uint64_t getNumElems() override;
+	
 	int32_t menuCreate(HWND hwnd);
 	int32_t menuUse(HWND hwnd, int32_t menu_id);
 	
+protected:
 	
-	
-	std::shared_ptr<PageListClass> plv;
-	std::shared_ptr<StrListClass> slv;
-	uint8_t option;
-	HWND parent;
 	uint64_t inum;
 };
 
-class SDmanClass : public WindowClass {
+class SDmanClass : public ListManClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual uint64_t getNumElems() override;
+	
 	int32_t menuCreate(HWND hwnd);
 	int32_t menuUse(HWND hwnd, int32_t menu_id);
 	
+protected:
 	
 	
-	std::shared_ptr<PageListClass> plv;
-	std::shared_ptr<StrListClass> slv;
-	
-	uint8_t option;
-	HWND parent;
 	uint64_t inum;
 };
 
-class MainIndexManClass : public WindowClass {
+class MainIndexManClass : public ListManClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual uint64_t getNumElems() override;
+	
 	int32_t menuCreate(HWND hwnd);
 	int32_t menuUse(HWND hwnd, int32_t menu_id);
 	
 	
-	
-	std::shared_ptr<PageListClass> plv;
-	std::shared_ptr<StrListClass> slv;
-	
-	uint8_t option;
-	HWND parent;
 };
 
 class ThumbManClass : public WindowClass {
@@ -284,6 +303,8 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	
+	//virtual uint64_t getNumElems() override;
 	
 	
 	
@@ -304,11 +325,20 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	bool isPainting();
 	
+	void startPaint();
 	
-	uint64_t CurPage, LastPage;
-	struct ListPage *PageList;
+	void pausePaint();
+	
+	uint64_t curPage, lastPage;
 	int32_t hovered;
+	
+protected:
+	std::shared_ptr<std::vector<struct ListPage>> pageListPtr;
+	bool doPaint = false;
+	
+	void getPages(int32_t edge);
 };
 
 class StrListClass : public WindowClass {
@@ -320,17 +350,37 @@ public:
 	
 	uint64_t getSingleSelPos(void);
 	
-	char ***strs;
-//	oneslnk **strchn;
-	char **header;
-	int64_t nRows;
-	uint32_t lastsel;
+	uint32_t lastSel;
 	int32_t xspos, yspos;
-	uint8_t *StrListSel, option;
-	int16_t *bpos, LastKey, drgpos;
-	char hvrd, drag, nChns, timed;
+	uint8_t option;
+	int16_t LastKey, drgpos;
+	char hvrd, drag, timed;
 	POINT point;
 	
+	bool setHeaders(std::shared_ptr<std::vector<std::string>> argHeaderPtr);
+	
+	bool setNColumns(int32_t);
+	
+	int32_t getNColumns(void);
+	
+	bool setColumnWidth(int32_t columnN, int32_t width);
+	
+	bool clearRows(void);
+	
+	bool assignRows(std::shared_ptr<std::vector<std::vector<std::string>>> inputVectorPtr);
+	
+	std::shared_ptr<std::vector<uint64_t>> getSelectedPositions(void) const;
+	
+	int64_t getNRows(void) const;
+	
+protected:
+	std::shared_ptr<std::vector<std::string>> sectionHeadersPtr;
+	std::shared_ptr<std::vector<std::vector<std::string>>> rowsPtr;
+	std::shared_ptr<std::vector<uint8_t>> rowSelsPtr;
+	std::shared_ptr<std::vector<int16_t>> columnWidthsPtr;
+	
+	int32_t nColumns;
+	int64_t nRows;
 	
 };
 
@@ -346,12 +396,12 @@ public:
 	ImgF **thumb;
 	oneslnk **strchn;
 	uint8_t *ThumbSel;
-	int32_t nThumbs;
+	int32_t nThumbs, nColumns;
 	uint32_t width, height;
 	int32_t yspos;
-	unsigned lastsel;
+	unsigned lastSel;
 	int16_t LastKey;
-	char hvrd, timed, nChns;
+	char hvrd, timed;
 	POINT point;
 };
 
