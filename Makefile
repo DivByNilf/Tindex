@@ -1,4 +1,16 @@
-objects = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o indextools.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o ioextrascpp.o prgdir.o errorobj.o
+OBJDIR = obj
+SRCDIR = src
+BUILDDIR = build
+DATADIR = data
+BINDIR = bin
+
+OPENCLPATH = C:\Windows\System32\OpenCL.dll
+
+CC = g++
+
+objects0 = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o indextools.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o ioextrascpp.o prgdir.o errorobj.o
+
+objects = $(addprefix $(OBJDIR)/, $(objects0) )
 
 #listdirobj = dupstr.c stringchains.c portables.c breakpath.c
 listdirobj = arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o fentries.o images.o ioextras.o stringchains.o tfiles.o dupstr.o
@@ -17,22 +29,33 @@ CPPFLAGS += -fpermissive
 
 #ICUARG = $(shell pkg-config --cflags --libs icu-uc)
 
-fti: prog/fti.exe
+fti: $(BINDIR)/fti.exe $(BINDIR)/openclkernels.cl
 
-prog/fti.exe: $(objects) Makefile
-	g++ $(objects) -o prog/fti $(ICUARG) C:\Windows\System32\OpenCL.dll -municode -mwindows -ljpeg -lpng -lgif -licuuc -lcomctl32 -lole32 -luuid
-	cp "openclkernels.cl" "./prog/openclkernels.cl"
+$(BINDIR)/fti.exe: $(objects) Makefile
+	$(CC) $(objects) -o $(BINDIR)/fti $(ICUARG) $(OPENCLPATH) -municode -mwindows -ljpeg -lpng -lgif -licuuc -lcomctl32 -lole32 -luuid
+	
+$(BINDIR)/openclkernels.cl:
+	cp "./$(DATADIR)/openclkernels.cl" "./$(BINDIR)/openclkernels.cl"
 	
 #listdir: listdirtofile.c $(listdirobj) Makefile
-#	g++ listdirtofile.c -o listdir $(objects) $(ICUARG) -municode -mwindows -ljpeg -lpng -lgif -licuuc -lcomctl32 -lole32 -luuid
-#	g++ listdirtofile.c -o listdir $(listdirobj) $(ICUARG) -ljpeg -lpng -lgif -licuuc -lcomctl32 -lole32 -luuid
+#	$(CC) listdirtofile.c -o listdir $(objects) $(ICUARG) -municode -mwindows -ljpeg -lpng -lgif -licuuc -lcomctl32 -lole32 -luuid
+#	$(CC) listdirtofile.c -o listdir $(listdirobj) $(ICUARG) -ljpeg -lpng -lgif -licuuc -lcomctl32 -lole32 -luuid
 	
 clean:
-	rm *.o
+	rm $(OBJDIR)/*.o
+	
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-resources.o: resources.rc Application.manifest
-	windres resources.rc -o resources.o --use-temp-file
+obj/%.o: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-main.o : userinterface.hpp breakpath.h indextools.hpp stringchains.h images.h dupstr.h arrayarithmetic.h bytearithmetic.h portables.h tfiles.h errorf.hpp userinterface.hpp uiutils.hpp portables.hpp
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+$(OBJDIR)/resources.o: $(BUILDDIR)/resources.rc $(BUILDDIR)/Application.manifest
+	windres $(BUILDDIR)/resources.rc -o $(OBJDIR)/resources.o --use-temp-file
+
+main.o : $(objects)
 
 indextools.o : indextools.hpp indextools_static.hpp ioextras.hpp

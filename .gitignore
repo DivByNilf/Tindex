@@ -1,8 +1,10 @@
 # compiled program and data
 # may include private information
-prog
+prog/
+bin/
+obj/
 *.bin
-.exe
+*.exe
 
 # compiled .o files
 *.o
