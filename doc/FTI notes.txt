@@ -5,6 +5,10 @@ Little things (front):
 	
 	remove errorf_old
 	
+	try to reduce use of a global prgdir and for example have it stored as a copy in the indextools indexhandler
+	
+	maybe call 'main index' a 'tracker'
+	
 allow alternative paths for registered dirs (if the first one doesn't exist at that moment)
 
 registered dirs should be unique
@@ -14,6 +18,8 @@ remove every .tmp file when starting
 replace malloc and calloc
 
 //safe casting of windowclasses
+
+separate the inner list object from the window class
 
 check if fstream actually supports multibyte directories
 
@@ -229,9 +235,9 @@ associate the page numbers with the location ranges and sort them
 draw them
 register hovering over them
 
-------
+=== planning
 
-- Read Time
+--- Read Time
 
 sections * length
 s*l = n, s = n/l -- where n is total number of entries
@@ -275,7 +281,7 @@ downscaling -- halve until less than double for bilinear or less than quadruple 
 
 
 
----
+--- Search expressions
 
 for & max is the smaller max and min is 0
 for | max is sum of their max and min is the larger min
@@ -313,26 +319,100 @@ If first encountered alias make it the selected expression
 	if first negation make it the selected expression and await next expression
 	if first left brace
 	
----
+--- Balancing an 'and' expression
 
-l, r, ll, rl, lr, rr, lll, rll, lrl, rrl, llr, rlr, lrr, rrr
-l, r, ll, lr, rl, rr, lll, llr, lrl, lrr, rll, rlr, rrl, rrr
+	The 'and' expression is essentially a binary-tree node to two subexpressions
+	
+	When we receive additional expressions separated by 'and' should we expand left or right child subexpression
+		Should A & B & C & D become:
+			A & ( B & ( C & D ) )
+		or
+			( A & B) & ( C & D )
+			
+		Either way the number of nodes should be the same ( each additional expression requires a prior expression to be split )
 
-0, 1 | 10, 11, 100, 101 | 110, 111, 1000, 1001, 1010 , 1011, 1100, 1101 |
-1110, 1111, 10000, 10001, 10010, 10011, 10100, 10101, 10110, 10111, 11000, 11001, 11010, 11011, 11100, 11101
+		Balancing may be counter-productive since tail calls can be done faster if asymmetric
+		
+	Keeping track
+		
+		Necessary order:
+			l, r, ll, rl, lr, rr, lll, rll, lrl, rrl, llr, rlr, lrr, rrr
+		or:
+			l, r, ll, lr, rl, rr, lll, llr, lrl, lrr, rll, rlr, rrl, rrr
+			
+		Trying to translate to bits:
+			0, 1 | 10, 11, 100, 101 | 110, 111, 1000, 1001, 1010 , 1011, 1100, 1101 |
+			1110, 1111, 10000, 10001, 10010, 10011, 10100, 10101, 10110, 10111, 11000, 11001, 11010, 11011, 11100, 11101
 
-0, 1 | 2, 3, 4, 5 | 6, 7, 8, 9, 10, 11, 12, 13|
+			0, 1 | 2, 3, 4, 5 | 6, 7, 8, 9, 10, 11, 12, 13|
+			
+			get rightmost bit; divide by 2; if number is not 0, subtract 1 (to shave off the beginning-most level); repeat
+				(read last bit to get the beginning-most direction)
+				
+				0 -> l
+				1 -> r
+				10 -> l + 0 -> ll
+				11 -> r + 0 -> rl
+				100 -> l + 1 -> lr
+				101 -> r + 1 -> rr
+				110 -> l + 10 -> ll + 0 -> lll
+				111 -> r + 10 -> rll
+				1000 -> l + 11 -> lrl
+				1001 -> rrl
+				1010 -> l + 100 -> llr
+				1011 -> rlr
+				1100 -> l + 101 -> lrr
+				1101 -> rrr
+				1110 -> l + 110 -> llll
+				1111 -> rlll
+				
+				the next after one starting left is the same starting right
+				
+				cut off the rightmost bit and leftmost position
+					null (0 and 1) -> null
+					1 (10 and 11) -> l
+					10 (100 and 101) -> r
+					11 -> ll
+					100 -> rl
+					101 -> lr
+					110 -> rr
+					
+				Every subnode changes follows the same pattern: they are filled in a balanced manner; if both have equal insertions, left is chosen, and if left has one more insertion, right is chosen
 
-divide by 2, subtract 1 to shave off the beginning-most level -- read last bit to get the beginning-most direction
+		~ If subtracting 2^n until 2^n is larger than the number itself, the bits can be read directly and determined whether left or right
 
-Jos vähennetään 2^n kunnes 2^n on suurempi kuin itse luku, bitit voidaan lukea suoraan ja päätellä vasen tai oikea
+		~ Because the rightmost bits affect the final sign, the sign can't be determined directly by looking at the left end
 
-Koska oikeanpuoliset bitit vaikuttavat lopulliseen merkkiin, merkkiä ei voida suoraan päätellä katsomalla vasemmasta päästä.
+		~ to shave off the end-most level: when two levels, subtract the left most bit
 
-to shave off the end-most level: when two levels, subtract the left most bit
+		~ If starting from the end (right), it goes back-and-forth to the left, letting both roots remain fairly balanced
 
-Jos aloitetaan loppupäästä (oikealta) mennään edestakaisin vasemmalle, jolloin molemmat juuret säilyy suht tasaisena
+		~ If starting from the beginning, the leftmost leaf is always filled, having the smallest depth
+		
+--- Object fill expression
 
-Jos aloitetaan alkupäästä täytetään aina seuraava vasemmaisin lehti, jolla on pienin syvyys
+An object has subobject A that meets criteria_A, B that meets criteria_B, C that meets criteria_C, and one subobject may not fill multiple
 
-Balancing is pointless since the amount of nodes is the same (amount of parent nodes + 1) and tail calls can be done faster if asymmetric
+List of subobjects mapped to criteria that match them -- criteria have candidate subobjects
+	subobj with one criterion or criteria with one subobject can be paired
+	
+	if any criterion with zero candidates, the expression evaluates to false
+	
+	if fewer candidates than criteria, the expression evaluates to false
+	
+	if every criterion has as many candidates as there are remaining criteria, the expression evalautes to true
+		then every criterion can only introduce (n_criteria-1) or fewer subobjects so the max subobjects is (n_criteria-1)^2 or fewer
+		
+		there are also n_criteria * (n_criteria-1) or fewer edges
+	
+	if a criterion has as many candidates as there are remaining criteria, the criterion evaluates to true, and the criterion can be stricken off the number of remaining criteria
+	
+can be considered a bipartite graph between subobjects and criteria and a problem of maximal matching
+
+Hall's marriage theorem ...
+	´´A fundamental question in the study of SDR is whether or not an SDR exists. Hall's marriage theorem gives necessary and sufficient conditions for a finite collection sets, some possibly overlapping, to have a transversal'' [https://en.wikipedia.org/wiki/Transversal_(combinatorics). 2021-11-26]
+	
+	marriage condition 
+	
+A transversal (combinatorics)?
+	system of distinct representatives (SDR)

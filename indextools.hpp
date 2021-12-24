@@ -8,6 +8,7 @@ extern "C" {
 #include <stdint.h>
 
 #include <filesystem>
+#include <forward_list>
 
 uint64_t rmiread(char *entrystr);
 
@@ -96,7 +97,7 @@ int cdrmv(uint64_t minum, oneslnk *dnumchn);
 
 int cdrer(uint64_t minum, twoslnk *rerchn);
 
-std::shared_ptr<std::forward_list<std::fs::path>> idread(uint64_t minum, uint64_t start, uint64_t intrvl);
+std::shared_ptr<std::forward_list<std::filesystem::path>> idread(uint64_t minum, uint64_t start, uint64_t intrvl);
 
 void verDI(uint64_t minum);
 

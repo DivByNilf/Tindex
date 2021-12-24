@@ -13,6 +13,7 @@ namespace std {
 #include "uiutils.hpp"
 #include "portables.hpp"
 #include "prgdir.hpp"
+#include "errorobj.hpp"
 
 //! TODO: clean away old function
 /*
@@ -76,9 +77,9 @@ HRESULT SeekDir(HWND hwnd, char *retstr) {
 }
 */
 
-std::fs::path SeekDir(const HWND &hwnd, HRESULT *result_ptr = nullptr) {
-	if (result_ptr != nullptr) {
-		result_ptr = 0;
+std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr = nullptr) {
+	if (resultPtr != nullptr) {
+		resultPtr = 0;
 	}
 	// CoCreate the File Open Dialog object.
 	//IFileDialog comes from <shobjidl.h>
@@ -139,24 +140,26 @@ std::fs::path SeekDir(const HWND &hwnd, HRESULT *result_ptr = nullptr) {
 		g_errorfStream << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
 		errorf("Can't initialize COM"); 
 	}
-	if (result_ptr != nullptr) {
-		result_ptr = hr;
+	if (resultPtr != nullptr) {
+		resultPtr = hr;
 	}
 	return retPath;
 }
 
-std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, std::string *retError = nullptr) {
+std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, ErrorObject *retError = nullptr) {
 	//int pdpdc, cpdc;		// pdpdc -- prog dir parent directory count, common pdc
 	//char *rbuf;
 	//int i, j;
 	
 	if (argPath.is_relative()) {
 		errorf("makePathRelativeToProgDir received relative path");
+		setErrorPtr(retError, 1);
 		return {};
 	}
 	
 	if (g_fsPrgDir.empty()) {
 		errorf("g_fsPrgDir was empty");
+		setErrorPtr(retError, 1);
 		return {};
 	}
 	
@@ -167,15 +170,12 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 	
 	if (usePathIt == usePath.end() || prgDirIt == g_fsPrgDir.end()) {
 		errorf("first element of non-empty path was end()");
+		setErrorPtr(retError, 1);
 		return {};
 	}
 	
 	if (*usePathIt != *prgDirIt) {
-		if (retError != nullptr) {
-			*retError = "Entered path has different root from program path";
-		} else {
-			errorf("(relToProgDir) argPath and g_fsPrgDir have different roots");
-		}
+		setErrorPtrOrPrint(retError, g_errorfStream, ErrorObject(1, "Entered path has different root from program path"));
 		return {};
 	} else {
 		usePathIt++;
@@ -204,4 +204,20 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 	}
 	
 	return retPath;
+}
+
+static constexpr uint64_t maxUint = UINT64_MAX;
+
+uint64_t stringToUint(std::string str, ErrorObject *retError = nullptr) {
+	uint64_t ret_uint = 0;
+	try {
+		ret_uint = std::stoull(str);
+	} catch(...) {
+		if (!setErrorPtr(retError, 1)) {
+			errorf("stringToUint received exception");
+		}
+		return 0;
+	}
+	
+	return ret_uint;	
 }

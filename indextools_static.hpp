@@ -581,7 +581,7 @@ public:
 			return {};
 		}
 		
-		std::forward_list<EntryT> &retList = *retList;
+		std::forward_list<EntryT> &retList = *retListPtr;
 		
 		{
 			auto insertPos = retList.before_begin();

@@ -1,4 +1,4 @@
-objects = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o indextools.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o ioextrascpp.o prgdir.o
+objects = main.o arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o indextools.o images.o ioextras.o stringchains.o tfiles.o dupstr.o openclfunc.o errorfcpp.o uiutils.o portablescpp.o ioextrascpp.o prgdir.o errorobj.o
 
 #listdirobj = dupstr.c stringchains.c portables.c breakpath.c
 listdirobj = arrayarithmetic.o bytearithmetic.o resources.o portables.o breakpath.o dirfiles.o fentries.o images.o ioextras.o stringchains.o tfiles.o dupstr.o

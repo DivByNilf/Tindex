@@ -10,3 +10,7 @@ prog
 # other
 
 /*.txt
+
+# files starting with dot except .gitignore
+.*
+!.gitignore

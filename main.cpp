@@ -68,6 +68,8 @@ enum { LISTMAN_REFRESH = 0, LISTMAN_CH_PAGE_REF, LISTMAN_CH_PAGE_NOREF, LISTMAN_
 
 enum { PL_REFRESH };
 
+enum { SL_CHANGE_PAGE };
+
 /*
 #define WM_U_SL WM_APP-1
 #define WM_U_TL WM_APP-3
@@ -140,7 +142,7 @@ int MainDeInit(struct MainInitStruct &ms);
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow) {
 	ghInstance = hInstance;
-	
+
 	int i = 0;
 	struct MainInitStruct ms = {};
 	if ((i = MainInit(ms)) != 0) {
@@ -151,27 +153,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 			return 1;
 		}
 	}
-	
+
 	HWND hMsgHandler = MsgHandler::createWindowInstance(WinInstancer(0, L"FileTagIndex", WS_OVERLAPPEDWINDOW, 100, 100, 100, 100, HWND_MESSAGE, NULL, hInstance, NULL));
-	
+
 	// try to prevent program opening and taking mutex with no real window
 	if (!hMsgHandler || !WindowClass::getWindowPtr(hMsgHandler)) {
 		errorf("Failed to create MsgHandler (main)");
 		return 1;
 	}
-	
+
 	MSG msg;
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
-	
+
 	if ((i = MainDeInit(ms)) != 0) {
 		errorf_old("MainDeInit failed: %d", i);
 		return 1;
 	}
-	
+
 	return (int) msg.wParam;
 }
 
@@ -180,7 +182,7 @@ int MainInit(struct MainInitStruct &ms) {
 		errorf("Preinit: MainInitStruct was not empty");
 		return 1;
 	}
-	
+
 	if (PrgDirInit() != true) {
 		errorf("Preinit: PrgDirInit failed");
 		return 1;
@@ -191,23 +193,23 @@ int MainInit(struct MainInitStruct &ms) {
 		errorf("Preinit: g_PrgDir init failed");
 		return 1;
 	}
-	
+
 	if (CheckInitMutex(ms.hMutex) != 0) { // requires PrgDir to be inited
 		errorf("Preinit: CheckInitMutex failed");
 	}
-	
+
 	if (ms.hMutex == NULL) {
 		return 2;
 	}
-	
+
 	LoadLibrary(TEXT("Msftedit.dll"));
-	
+
 	EditSuperClass::helper.registerWindowClass();
 
 	hDefCrs = LoadCursorA(NULL, IDC_ARROW);
 	hCrsSideWE = LoadCursorA(NULL, IDC_SIZEWE);
 	hCrsHand = LoadCursorA(NULL, IDC_HAND);
-	
+
 	hFont = CreateFontW(14, 0, 0, 0, FW_MEDIUM, 0, 0, 0, 0, 0, 0, 0, 0, L"Consolas");
 	hFontUnderlined = CreateFontW(14, 0, 0, 0, FW_MEDIUM, 0, 1, 0, 0, 0, 0, 0, 0, L"Consolas");
 	hFont2 = CreateFontW(16, 0, 0, 0, FW_MEDIUM, 0, 0, 0, 0, 0, 0, 0, 0, L"Helvetica");
@@ -254,15 +256,15 @@ int MainInit(struct MainInitStruct &ms) {
 	if (!(selBrush = CreateSolidBrush(DL_SA_COL))) {
 		errorf("Preinit: CreateSolidBrush failed");
 	}
-	
+
 	return 0;
-	
+
 }
 
 int CheckInitMutex(HANDLE &hMutex) {
 	wchar_t *mutex_name = 0;
 	{
-		char buf[MAX_PATH*4];
+		char buf1[MAX_PATH*4];
 		char buf2[MAX_PATH*4];
 		sprintf(buf2, "%s", g_prgDir);
 		int i = 0;
@@ -270,31 +272,31 @@ int CheckInitMutex(HANDLE &hMutex) {
 			if (buf2[i] == '\\') buf2[i] = '/';
 			i++;
 		}
-		sprintf(buf, "Global\\%s", buf2);
+		sprintf(buf1, "Global\\%s", buf2);
 		mutex_name = wide_from_mb(buf2);
 	}
 	hMutex = CreateMutexW(NULL, TRUE, mutex_name);
-	
+
 	if (mutex_name)  {
 		free(mutex_name);
 	}
-	
+
 	if (hMutex == NULL) {
 		errorf_old("Preinit: CreateMutex error: %d\n", GetLastError());
 		return 1;
 	}
-	
+
 	DWORD dwWaitResult = WaitForSingleObject(hMutex, 0);
-	
+
 	char disableMutexCheck = 0;
-	
+
 	if (!disableMutexCheck && dwWaitResult != WAIT_OBJECT_0 && dwWaitResult != WAIT_ABANDONED) { // if mutex is already taken
 		CloseHandle(hMutex);
 		hMutex = NULL;
-		
+
 		//! TODO:
 		wchar_t *file_map_name = 0;
-		
+
 		char buf[MAX_PATH*4];
 		char buf2[MAX_PATH*4];
 		sprintf(buf2, "%s", g_prgDir);
@@ -305,14 +307,14 @@ int CheckInitMutex(HANDLE &hMutex) {
 		}
 		sprintf(buf, "%s/HWND", buf2);
 		file_map_name = wide_from_mb(buf);
-		
+
 		HANDLE hMapFile = OpenFileMappingW(
 			 FILE_MAP_ALL_ACCESS, // read/write access
 			 FALSE, // do not inherit the name
 			 file_map_name);
-		
+
 		free(file_map_name);
-		
+
 		if (hMapFile == NULL) {
 			errorf_old("Preinit: Could not open file mapping object (%d).\n", GetLastError());
 			return 1;
@@ -326,18 +328,18 @@ int CheckInitMutex(HANDLE &hMutex) {
 
 			return 1;
 		}
-		
+
 		HWND thwnd;
-		
+
 		CopyMemory((PVOID) &thwnd, (VOID*) pBuf, sizeof(HWND));
 
 		UnmapViewOfFile(pBuf);
 
 		CloseHandle(hMapFile);
-		
+
 		SendMessage(thwnd, WM_U_TOP, (WPARAM) 0, (LPARAM) 0);
 	}
-	
+
 	return 0;
 }
 
@@ -345,7 +347,7 @@ int MainDeInit(struct MainInitStruct &ms) {
 	if (ms.hMutex != NULL) {
 		CloseHandle(ms.hMutex);
 	}
-	
+
 	SetCursor(hDefCrs);
 	if (!(DestroyCursor(hCrsSideWE))) {
 		errorf("DestroyCursor failed");
@@ -405,15 +407,15 @@ int MainDeInit(struct MainInitStruct &ms) {
 	if (!(DeleteObject(selBrush))) {
 		errorf("DeleteObject failed");
 	}
-	
-	
+
+
 	// NOTE: this means g_PrgDir can't be used in deconstructors of static objects
 	//! TODO: remove g_prgDir from all files
 	if (g_prgDir == NULL) {
 		free(g_prgDir);
 		g_prgDir = NULL;
 	}
-	
+
 	return 0;
 }
 
@@ -453,11 +455,11 @@ std::shared_ptr<WindowClass> WindowClass::createWindowMemory(HWND hwnd, WinCreat
 			errorf("windowMemory already registered");
 		} else {
 			auto elemPair = *resPair.first;
-			
+
 			if (!elemPair.second) {
 				errorf("registered nullptr to windowMemory");
 			}
-			
+
 			return elemPair.second;
 		}
 	}
@@ -470,7 +472,7 @@ boolean WindowClass::releaseWindowMemory(HWND hwnd) {
 		errorf("tried to release hwnd: 0");
 	} else {
 		int c = winMemMap.erase(hwnd);
-		
+
 		if (!c) {
 			errorf("failed to release hwnd");
 		} else {
@@ -491,7 +493,7 @@ LRESULT CALLBACK WindowClass::generalWinProc(HWND hwnd, UINT msg, WPARAM wParam,
 				errorf("creating window class without lpParam");
 				return 0;
 			}
-			
+
 			winPtr = WindowClass::createWindowMemory(hwnd, *winArgs);
 			// modifying (*lParam) here doesn't seem to carry over to WM_CREATE
 			*((void **)lParam) = 0;
@@ -502,17 +504,17 @@ LRESULT CALLBACK WindowClass::generalWinProc(HWND hwnd, UINT msg, WPARAM wParam,
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		}
 	}
-	
+
 	if (msg == WM_CREATE) {
 		WinCreateArgs *winArgs = *(WinCreateArgs **) lParam;
 		if (winArgs == NULL) {
 			errorf("creating window class without lpParam");
 			return -1;
 		}
-		
+
 		*((void **)lParam) = winArgs->lpParam;
 	}
-	
+
 	LRESULT res = winPtr->winProc(hwnd, msg, wParam, lParam);
 	if (msg == WM_NCDESTROY) {
 		WindowClass::releaseWindowMemory(hwnd);
@@ -521,8 +523,8 @@ LRESULT CALLBACK WindowClass::generalWinProc(HWND hwnd, UINT msg, WPARAM wParam,
 }
 
 std::map<HWND, std::shared_ptr<WindowClass>> WindowClass::winMemMap;
-	
-//}
+
+//} WindowClass
 
 //{ Non-WindowClass
 
@@ -536,30 +538,30 @@ WindowClass *WinCreateArgs::create(HWND hwnd) {
 */
 
 
-//{ WinInstancer
+// WinInstancer
 WinInstancer::WinInstancer(DWORD dwExStyle_, LPCWSTR lpWindowName_, DWORD dwStyle_, int X_, int Y_, int nWidth_, int nHeight_, HWND hWndParent_, HMENU hMenu_, HINSTANCE hInstance_, LPVOID lpParam_) : dwExStyle{dwExStyle_}, lpWindowName{lpWindowName_}, dwStyle{dwStyle_}, X{X_}, Y{Y_}, nWidth{nWidth_}, nHeight{nHeight_}, hWndParent{hWndParent_}, hMenu{hMenu_}, hInstance{hInstance_}, lpParam{lpParam_} {}
 
 HWND WinInstancer::create(std::shared_ptr<WinCreateArgs> winArgs, const std::wstring &winClassName) {
 	winArgs->lpParam = lpParam;
-	
+
 	return CreateWindowExW(dwExStyle, winClassName.c_str(), lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, winArgs.get());
 }
 
-	
-// WindowHelper	
+
+// WindowHelper
 WindowHelper::WindowHelper(const std::wstring winClassName_, void (*modifyWinStruct)(WNDCLASSW &wc)) : winClassName{winClassName_} {
 	WNDCLASSW wc = {0};
-	
+
 	wc.style = 0;
 	wc.hbrBackground = 0;
 	wc.hCursor = NULL;
-	
+
 	modifyWinStruct(wc);
-	
+
 	wc.lpszClassName = this->winClassName.c_str();
 	wc.lpfnWndProc = WindowClass::generalWinProc;
 	wc.hInstance = ghInstance;
-	
+
 	int c = RegisterClassW(&wc);
 	if (!c) {
 //! TODO: add collision detection and crash on collision
@@ -576,15 +578,15 @@ DeferredRegWindowHelper::DeferredRegWindowHelper(const std::wstring winClassName
 
 bool DeferredRegWindowHelper::registerWindowClass() {
 	if (!this->isRegistered) {
-		
+
 		WNDCLASSW wc = {0};
-		
+
 		wc.style = 0;
 		wc.hbrBackground = 0;
 		wc.hCursor = NULL;
-		
+
 		modifyWinStruct(wc);
-		
+
 		wc.lpfnWndProc = WindowClass::generalWinProc;
 		wc.lpszClassName = this->winClassName.c_str();
 		wc.hInstance = ghInstance;
@@ -598,7 +600,7 @@ bool DeferredRegWindowHelper::registerWindowClass() {
 	}
 }
 
-//}
+//} Non-WindowClass
 
 //{ MsgHandler
 //subclass of WindowClass
@@ -626,24 +628,24 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
 		case WM_CREATE: {
 			thwnd = TabWindow::createWindowInstance(WinInstancer(0, L"FileTagIndex", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, NULL, NULL, ghInstance, NULL));
-			
+
 			if (!thwnd)	{
 				errorf("failed to create TabWindow");
 				return -1;
 			}
 			ShowWindow(thwnd, SW_MAXIMIZE);
-			
+
 			{
 				//wchar_t *file_map_name = 0;
-				
+
 				std::string s = std::string(g_prgDir);
-				
+
 				std::replace(s.begin(), s.end(), '\\', '/');
-				
+
 				s += "/HWND";
-				
+
 				errorf("file_map_name is:" + s);
-				
+
 				/*
 				char buf[MAX_PATH*4];
 				char buf2[MAX_PATH*4];
@@ -653,13 +655,13 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 					if (buf2[i] == '\\') buf2[i] = '/';
 					i++;
 				}
-				
+
 				sprintf(buf, "%s/HWND", buf2);
 				file_map_name = wide_from_mb(buf);
 				*/
-				//! TODO: 
+				//! TODO:
 				wchar_t *file_map_name = u8_to_u16(s).c_str();
-				
+
 				hMapFile = std::shared_ptr<void>(
 					CreateFileMappingW(
 						INVALID_HANDLE_VALUE, // use paging file
@@ -670,9 +672,9 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 						file_map_name  // name of mapping object
 					), CloseHandle
 				);
-					
+
 				//free(file_map_name);
-				
+
 				if (hMapFile == NULL) {
 					errorf_old("Could not create file mapping object (%d).\n", GetLastError());
 					return -1;
@@ -685,12 +687,12 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 					//CloseHandle(hMapFile);
 					return -1;
 				}
-				
+
 				CopyMemory((PVOID)(pBuf.get()), (VOID*) &hwnd, sizeof(HWND));
 
 				//UnmapViewOfFile(pBuf);
 			}
-			
+
 			break;
 		}
 		case WM_U_TOP: {
@@ -699,13 +701,13 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 		}
 		case WM_DESTROY: {
 			PostQuitMessage(0);
-			
+
 			return 0;
 		}
 	}
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
-//}
+//} MsgHandler
 
 //{ TabWindow
 //public:
@@ -736,7 +738,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 	int i;
 	RECT rect;
 	char *buf;
-	
+
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
 	HDC hdc;
@@ -745,7 +747,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 	switch(msg) {
 
 		case WM_CREATE: {
-			
+
 			hMenubar = CreateMenu();
 			hMenu = CreateMenu();
 
@@ -754,20 +756,20 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
 
 			SetMenu(hwnd, hMenubar);
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			HWND thwnd = 0;
 errorf("TabWindow creating Tab");
 			dispWindow = thwnd = TabClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, rect.bottom, hwnd, (HMENU) 3, NULL, NULL));
-			
+
 			if (!thwnd) {
 				errorf("failed to create TabClass");
 				return -1;
 			}
-			
+
 			break;
 		}
 		case WM_PAINT: //{
@@ -787,16 +789,16 @@ errorf("TabWindow creating Tab");
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			MoveWindow(dispWindow, 0, 0, rect.right, rect.bottom, 0);
 		//}
 		case WM_SETFOCUS: //{
 			SetFocus(dispWindow);
-			
+
 			break;
 		//}
 		case WM_COMMAND: //{
-		
+
 			if ((wParam & (256U*256-1)*256*256) == 0 && lParam == 0) {
 				switch(LOWORD(wParam)) {
 				case IDM_FILE_MIMAN:
@@ -813,16 +815,16 @@ errorf("TabWindow creating Tab");
 				}
 				break;
 			}
-			
+
 			break;
 		//}
 		case WM_ERASEBKGND: //{
 			return 1;
 		//}
 		case WM_DESTROY: //{
-		
+
 			PostQuitMessage(0);
-			
+
 			return 0;
 		//}
 	}
@@ -830,7 +832,7 @@ errorf("TabWindow creating Tab");
 }
 
 
-//}
+//} TabWindow
 
 //{ TabClass
 //public:
@@ -861,7 +863,7 @@ LRESULT CALLBACK TabClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 	RECT rect;
 	char *buf;
 	HWND thwnd;
-	
+
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
 	HDC hdc;
@@ -874,10 +876,10 @@ LRESULT CALLBACK TabClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 			thwnd = CreateWindowW(L"Button", L"Open Dir", WS_VISIBLE | WS_CHILD , 5, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
 			SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
 			if (!thwnd) return -1;
-			
+
 			{
 				int y1 = 20;
-				
+
 				//thwnd = CreateWindowExW(0, MSFTEDIT_CLASS, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 35, 380, y1, hwnd, (HMENU) 2, NULL, NULL);
 errorf("creating editsuperclass outer");
 				thwnd = EditSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 35, 380, y1, hwnd, (HMENU) 2, NULL, NULL));
@@ -889,7 +891,7 @@ errorf("creating editsuperclass outer");
 					errorf("couldn't create editwindow 2");
 				}
 			}
-			
+
 			break;
 		}
 		case WM_PAINT: //{
@@ -909,42 +911,42 @@ errorf("creating editsuperclass outer");
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			MoveWindow(this->dispWindow, 0, 0, rect.right, rect.bottom, 0);
 		//}
 		case WM_SETFOCUS: //{
 			if (this->dispWindow) {
 				SetFocus(this->dispWindow);
 			}
-			
+
 			break;
 		//}
 		case WM_COMMAND: //{
-			
+
 			if (HIWORD(wParam) == BN_CLICKED) {
 				if (LOWORD(wParam) == 1) {
-					
+
 					//! TODO: set to MIMANARGS
 					DIRMANARGS args = {};
 					args.option = 2;
 					args.parent = hwnd;
-					
+
 					thwnd = MainIndexManClass::createWindowInstance(WinInstancer(0, L"Select Index", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, NULL, ghInstance, (LPVOID) &args));
 				}
 			}
-			
+
 			break;
 		//}
 		case WM_KEYDOWN: //{
 			switch(wParam) {
 			case VK_BACK:
 				DestroyWindow(this->dispWindow);
-				
+
 				ShowWindow(GetDlgItem(hwnd, 1), 1);
 				ShowWindow(GetDlgItem(hwnd, 2), 1);
 				ShowWindow(GetDlgItem(hwnd, 3), 1);
 				this->dispWindow = 0;
-				
+
 				break;
 			}
 			break;
@@ -976,9 +978,9 @@ errorf("creating editsuperclass outer");
 					args.parent = hwnd;
 					args.option = 0;
 					args.dnum = lastdnum;
-					
+
 //					thwnd = ThumbManClass::createWindowInstance(WinInstancer(0, L"Thumbnail View", WS_VISIBLE | WS_SYSMENU | WS_CAPTION | WS_SIZEBOX | WS_POPUP, 200, 200, 300, 300, hwnd, 0, ghInstance, &args));
-					
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
@@ -995,15 +997,15 @@ errorf("creating editsuperclass outer");
 						dialogf(hwnd, "Directory is null.");
 					}
 				}
-				
+
 				break;
 			}
-			
+
 			break;
 		*/
 		//}
 		case WM_U_RET_TMAN: //{
-			
+
 			switch(wParam) {
 			case 0:
 				for (i = 0; i < nthmbman; i++) {
@@ -1014,7 +1016,7 @@ errorf("creating editsuperclass outer");
 				} if (i == nthmbman) {
 					errorf("didn't close wHandle2");
 				}
-				break;				
+				break;
 			}
 			break;
 		//}
@@ -1023,9 +1025,9 @@ errorf("creating editsuperclass outer");
 		//}
 		case WM_NCDESTROY: //{
 			//FreeWindowMem(hwnd);
-		
+
 			PostQuitMessage(0);
-			
+
 			return 0;
 		//}
 	}
@@ -1034,44 +1036,69 @@ errorf("creating editsuperclass outer");
 
 
 
-//}
+//} TabClass
 
 
 //{ ListManClass
+
+
+uint64_t ListManClass::getSingleSelID(void) const {
+	ErrorObject retError;
+	auto retStr = this->slv->getSingleSelRowCol(0, &retError);
+
+	if (retError) {
+g_errorfStream << "has nothing = " << retError.hasNothing() << std::flush;
+		errorf("getSingleSelRowCol failed");
+		g_errorfStream << retError << std::flush;
+		return 0;
+	}
+
+	uint64_t retUint = stringToUint(retStr, &retError);
+
+	if (retError) {
+		errorf("stringToUint failed");
+		return 0;
+	}
+
+	return retUint;
+}
 
 
 LRESULT CALLBACK ListManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 	switch(msg) {
 		case WM_CREATE: {
-			
+
 			break;
 		}
 		case WM_U_LISTMAN: {
-			
+
 			switch(wParam) {
-				
+
 				case LISTMAN_REFRESH:	{	// refresh rows
 					//this->slv->nRows = MAX_NROWS;
 					PostMessage(hwnd, WM_USER+1, 0, 0);
-					
+
 					InvalidateRect(hwnd, NULL, 1);
-					
+
 					break;
 				}
 				case LISTMAN_CH_PAGE_REF:	{	// change page and refresh
-					SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_NOREF, lParam);
+					if (lParam != 0) {
+						SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_NOREF, lParam);
+					}
 					PostMessage(hwnd, WM_USER+1, 0, 0);
 					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_SET_DEF_WIDTHS, 0);
-					
+					SendDlgItemMessageW(hwnd, 3, WM_U_SL, SL_CHANGE_PAGE, 0);
+
 					break;
 				}
 				case LISTMAN_CH_PAGE_NOREF:	{ // change page without refreshing (when the window will be refreshed soon anyway)
-				
+
 					this->plv->curPage = lParam;
-					
+
 					SendDlgItemMessageW(hwnd, 4, WM_U_PL, PL_REFRESH, 0);
-					
+
 					break;
 				}
 				case LISTMAN_SET_DEF_WIDTHS: {
@@ -1085,57 +1112,58 @@ LRESULT CALLBACK ListManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 						errorf("setColumnWidth failed (1)");
 						return -1;
 					}
-					
+
 					InvalidateRect(hwnd, NULL, 1);
-					
+
 					break;
-					
+
 				}
-				
+
 				case LISTMAN_LEN_REF: { 	// redetermine last page and refresh pages
-			
+
 					uint64_t lastlastpage = this->plv->lastPage;
 					int32_t j = 0, x = 0;
-					
+
 					uint64_t ll = this->getNumElems();
 g_errorfStream << "got getNumElems: " << ll << std::flush;
 					this->plv->lastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
 					if (this->plv->lastPage == 0) {
 						this->plv->lastPage = 1;
 					}
-					
+
 					if (this->plv->curPage > this->plv->lastPage) {
 						this->plv->curPage = this->plv->lastPage;
 						j = 1;
 					}
-					
+
 					if (this->plv->lastPage != lastlastpage) {
-g_errorfStream << "set lastpage to " << this->plv->lastPage << std::flush; 
+g_errorfStream << "set lastpage to " << this->plv->lastPage << std::flush;
 						if (j == 1) {
 							SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_NOREF, this->plv->curPage);
 						}
 						this->plv->hovered = 0;
 						SetCursor(hDefCrs);
 						SendDlgItemMessageW(hwnd, 4, WM_USER, 0, 0);
-						
+
 						SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
 
 					} else {
 						SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
 					}
-					
+
 					break;
 				}
+				//! TODO: move to protected function
 				case LISTMAN_RET_SEL_POS: { 	// return selected row num
 					// error if more than one selected
 					if (this->option == 2) {
-						uint64_t ull = this->slv->getSingleSelPos();
-						
+						uint64_t ull = this->getSingleSelID();
+
 						EnableWindow(this->parent, 1);
 						PostMessage(this->parent, WM_U_RET_DMAN, 3, (LPARAM) ull);
 						DestroyWindow(hwnd);
 					}
-					
+
 					break;
 				}
 			}
@@ -1144,915 +1172,10 @@ g_errorfStream << "set lastpage to " << this->plv->lastPage << std::flush;
 	}
 
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
-	
+
 }
 
-//}
-
-//{ DmanClass
-//public:
-// static
-const WindowHelper DmanClass::helper = WindowHelper(std::wstring(L"DmanClass"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
-		wc.hbrBackground = 0;
-		wc.hCursor = NULL;
-	}
-);
-
-// static
-HWND DmanClass::createWindowInstance(WinInstancer wInstancer) {
-	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new DmanClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
-}
-
-int DmanClass::menuCreate(HWND hwnd) {
-	HMENU hMenu;
-	
-	if (this->option != 2) {
-		hMenu = CreatePopupMenu();
-		AppendMenuW(hMenu, MF_STRING, 1, L"&Remove");	// if menu handles are changed, the message from WM_COMMAND needs to be changed to correspond to the right case
-		AppendMenuW(hMenu, MF_STRING, 2, L"&Reroute");
-		AppendMenuW(hMenu, MF_STRING, 3, L"&Reroute (RP)");
-		
-		TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, this->slv->point.x, this->slv->point.y, 0, hwnd, 0);
-		DestroyMenu(hMenu);
-	}
-	
-	return 0;
-};
-
-int DmanClass::menuUse(HWND hwnd, int32_t menu_id) {
-	errorf_old("menu_id is: %d", menu_id);
-	
-	uint64_t fNum;
-	
-	switch (menu_id) {
-	case 1:
-	case 2:
-	case 3:
-		if (this->option != 2) {
-			fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-			//DelRer(hwnd, menu_id, &this->slv);
-			SendMessage(hwnd, WM_USER, 0, 0);
-			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
-		}
-		break;
-	}
-	
-	return 0;
-};
-
-uint64_t DmanClass::getNumElems() {
-	return getlastdnum(this->inum);
-}
-
-LRESULT CALLBACK DmanClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	
-	/*
-	char *p;
-	wchar_t *wp;
-	int32_t i, j, x;
-	uint64_t ll, lastlastpage, fNum;
-	RECT rect;
-	HWND thwnd;
-	oneslnk *link, *link2;
-	*/
-
-	switch(msg) {
-		case WM_CREATE: {
-			
-			this->plv = NULL;
-			this->slv = NULL;
-			
-			DIRMANARGS *args = *(DIRMANARGS **) lParam;
-			
-			if (args) {
-				if (args->inum == 0) {
-					errorf("args->inum is 0");
-					return -1;
-				} else {
-					this->inum = args->inum;
-				}
-				
-				this->option = args->option;
-				this->parent = args->parent;
-			} else {
-				errorf("args is NULL");
-				return -1;
-			}
-		
-			RECT rect = {0};
-			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf("GetClientRect failed");
-			}
-			HWND thwnd = NULL;
-			uint64_t ll = 0;
-			int32_t i = 0;
-			
-			if (this->option != 2) {
-				int32_t x = rect.right / 2 - 100;
-				if (x < 5)
-					x = 5;
-				CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-				CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
-				SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
-				CheckDlgButton(hwnd, 2, BST_UNCHECKED);
-			} else {
-				int32_t x = (rect.right-80) / 2;
-				if (x < 5)
-					x = 5;
-				EnableWindow(this->parent, 0);
-				CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-			}
-			
-			thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
-			if (!thwnd) {
-				errorf("failed to create PageListClass");
-				return -1;
-			}
-			
-			this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
-			if (!this->plv) {
-				errorf("failed to receive PageListClass pointer");
-				return -1;
-			}
-			
-			thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
-			if (!thwnd) {
-				errorf("failed to create StrListClass");
-				return -1;
-			}
-			
-			this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
-			if (!this->slv) {
-				errorf("failed to receive StrListClass pointer");
-				return -1;
-			}
-			
-			//! TODO: move this to the createWindowInstance arguments
-			if (this->option == 2) {
-				this->slv->option = 1;
-			}
-			
-			this->plv->curPage = 1;
-			ll = this->getNumElems();
-			this->plv->lastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
-			if (this->plv->lastPage == 0) {
-				this->plv->lastPage = 1;
-			}
-			
-			this->plv->startPaint();
-			
-			i = MAX_NROWS/8 + !!(MAX_NROWS%8);
-			if (!i) {
-				errorf("no space row selections");
-			}
-			
-			this->slv->setNColumns(2);
-			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-			i = log10(fNum+MAX_NROWS-1)+1;
-			if ( !this->slv->setColumnWidth(0, CHAR_WIDTH*(i)+6) ) {
-				errorf("setColumnWidth failed (0)");
-				return -1;
-			}
-			if ( !this->slv->setColumnWidth(1, 0) ) {
-				errorf("setColumnWidth failed (1)");
-				return -1;
-			}
-			
-			if ( !this->slv->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( "#", "Path" ))) ) {
-				errorf("failed to set slv headers");
-				return -1;
-			}
-			//this->slv->header = malloc(sizeof(char *)*this->slv->nColumns);
-			//this->slv->header[0] = dupstr("#", 5, 0);
-			//this->slv->header[1] = dupstr("Path", 5, 0);
-			
-			SetFocus(GetDlgItem(hwnd, 3));
-			
-			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
-				
-			break;
-		}
-		case WM_COMMAND: {
-			
-			if (this->option != 2) {
-				bool checkedRelative = !!(IsDlgButtonChecked(hwnd, 2));
-				
-				if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
-					this->menuUse(hwnd, LOWORD(wParam));
-					break;
-				} else if (HIWORD(wParam) == BN_CLICKED) {
-					if (LOWORD(wParam) == 1) {	// add listing
-						std::fs::path retPath = SeekDir(hwnd);
-
-						if (!retPath.empty()) {
-							
-							if (checkedRelative) {
-								//! TODO: add error return argument and print in window
-								retPath = makePathRelativeToProgDir(retPath);
-								
-								if (!retPath.empty()) {
-									if (!std::fs::is_directory(g_fsPrgDir / retPath)) {
-										errorf("retPath was not directory (1)");
-										g_errorfStream << "retPath was: " << retPath << std::flush;
-										
-										retPath.clear();
-									}
-								}
-							} else {
-								if (!std::fs::is_directory(retPath)) {
-									errorf("retPath was not directory (2)");
-									g_errorfStream << "retPath was: " << retPath << std::flush;
-									
-									retPath.clear();
-								}
-							}
-							
-							if (!retPath.empty()) {
-errorf("calling dreg");
-								dreg(this->inum, retPath);
-								
-								SendMessage(hwnd, WM_USER, 0, 0);
-							}
-						}
-					} else if (LOWORD(wParam) == 2) {	// relative-dir button
-						if (checkedRelative) {
-							CheckDlgButton(hwnd, 2, BST_UNCHECKED);
-						} else {
-							CheckDlgButton(hwnd, 2, BST_CHECKED);
-						}
-					}
-				}
-			} else {
-				if (HIWORD(wParam) == BN_CLICKED) {
-					
-					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
-					
-				}
-			}
-			
-			break;
-		}
-		case WM_SIZE: {
-			RECT rect = {0};
-			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf("GetClientRect failed");
-			}
-			if (this->option != 2) {
-				int32_t x = rect.right / 2 - 100;
-				if (x < 5)
-					x = 5;
-				
-				{
-					HWND thwnd = GetDlgItem(hwnd, 1);
-					MoveWindow(thwnd, x, 5, 80, 25, 0);
-				} {
-					HWND thwnd = GetDlgItem(hwnd, 2);
-					MoveWindow(thwnd, x+90, 2, 110, 35, 0);
-				}
-			} else {
-				int32_t x = (rect.right-80) / 2;
-				if (x < 5)
-					x = 5;
-				HWND thwnd = GetDlgItem(hwnd, 1);
-				MoveWindow(thwnd, x, 5, 80, 25, 0);
-			}
-			
-			{
-				HWND thwnd = GetDlgItem(hwnd, 3);
-				MoveWindow(thwnd, 0, DMAN_TOP_MRG, rect.right, rect.bottom-DMAN_TOP_MRG-(!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
-			} {
-				HWND thwnd = GetDlgItem(hwnd, 4);
-				MoveWindow(thwnd, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
-			}
-			
-			break;
-		}
-		case WM_PAINT: {
-			
-			RECT rect = {0};
-			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf("GetClientRect failed");
-			}
-
-			HPEN hOldPen;
-			HBRUSH hOldBrush;
-			HDC hdc;
-			PAINTSTRUCT ps;
-
-			hdc = BeginPaint(hwnd, &ps);
-			
-			hOldPen = (HPEN) SelectObject(hdc, bgPen1);
-			hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
-			
-			Rectangle(hdc, 0, 0, rect.right, DMAN_TOP_MRG);
-			SelectObject(hdc, hPen1);
-			MoveToEx(hdc, 0, 0, NULL);
-			LineTo(hdc, rect.right, 0);
-			MoveToEx(hdc, 0, DMAN_TOP_MRG-1, NULL);
-			LineTo(hdc, rect.right, DMAN_TOP_MRG-1);
-				
-			if (this->plv->lastPage > 1) {
-				MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
-				LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
-			}
-			SelectObject(hdc, hOldPen);
-			SelectObject(hdc, hOldBrush);
-			EndPaint(hwnd, &ps);
-			
-			break;
-		}
-		case WM_MOUSEMOVE: {
-			
-			this->plv->hovered = 0;
-			SetCursor(hDefCrs);
-		
-			break;
-		}
-		case WM_SETFOCUS: {
-			SetFocus(GetDlgItem(hwnd, 3));
-			
-			break;
-		}
-		case WM_USER+1: {	// refresh num and dir strings
-			
-			this->slv->clearRows();
-			
-			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-			
-			std::shared_ptr<std::forward_list<std::fs::path>> list_ptr = idread(this->inum, (uint64_t) fNum, MAX_NROWS);
-			
-			if (list_ptr != nullptr && !list_ptr->empty()) {
-				auto workPtr = std::shared_ptr<std::vector<std::vector<std::string>>>();
-				if (workPtr == nullptr) {
-					errorf("failed to allocate shared_ptr");
-					return 1;
-				}
-				auto &workVector = *workPtr;
-				
-				uint64_t uint = fNum;
-				
-				for (auto &entry : *list_ptr) {
-					workVector.emplace_back( std::vector<std::string>( { std::to_string(uint), entry.generic_string() } ) );
-					
-					uint++;
-				}
-				
-				int64_t gotRows = uint - fNum;
-				
-				if (gotRows <= 0) {
-					errorf("list_ptr was somehow empty");
-					return 1;
-				} else if (gotRows > MAX_NROWS) {
-					errorf("returned too many entries");
-					return 1;
-				} else {
-					this->slv->assignRows(workPtr);
-				
-					//! TODO: figure this out
-					// columnWidth probably shouldn't be when refreshing and instead only when changing page
-					//this->slv->setColumnWidth();
-					
-					//this->slv->bpos[1] = x*CHAR_WIDTH+5;
-				}
-			} else {
-				if (this->plv->curPage > 1) {
-					this->plv->curPage--;
-					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
-					PostMessage(hwnd, WM_USER+0, 0, 0);
-					return 0;
-				}
-			}
-			
-			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
-			
-			if (!(InvalidateRect(hwnd, 0, 1))) {
-				errorf("InvalidateRect failed");
-			}
-			
-			break;
-		}
-		case WM_U_LISTMAN: {
-			break;
-		}
-		case WM_U_RET_SL: {
-			
-			switch (lParam) {
-			case 0:
-				return (LRESULT) &this->slv;
-			case 1:
-			case 2:
-			case 3:
-				if (this->option != 2) {
-					uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-					//DelRer(hwnd, lParam, &this->slv);
-					SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_LEN_REF, 0);
-				}
-				break;
-			case 4:
-				this->menuCreate(hwnd);
-				break;
-			case 5:	// make selection
-				
-				if (this->option == 2) {
-					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
-				}
-				break;
-			}
-			break;
-		}
-		case WM_U_RET_PL: {
-			
-			switch (lParam) {
-			case 0:
-				//return (LRESULT) &this->plv;
-				errorf("deprecated: 3452089hre");
-			case 1:
-				//! TODO: 
-				SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_REF, 0);
-				break;
-			}
-			break;
-		}
-		case WM_U_RET_TED: {
-			
-			break;
-		}
-		case WM_ERASEBKGND: {
-			return 1;
-		}
-		case WM_CLOSE: {
-			
-			if (this->parent) {
-				EnableWindow(this->parent, 1);
-			}
-			break;
-		}
-		case WM_DESTROY: {
-			
-			break;
-		}
-		case WM_NCDESTROY: {
-			
-			HWND thwnd = this->parent;
-			
-			if (thwnd) {
-				EnableWindow(thwnd, 1);
-				SendMessage(thwnd, WM_U_RET_DMAN, 0, (LPARAM) hwnd);
-			}
-		}
-	}
-	
-	return this->ListManClass::winProc(hwnd, msg, wParam, lParam);
-
-	//return DefWindowProcW(hwnd, msg, wParam, lParam);
-}
-
-
-//}
-
-//{ SDmanClass
-//public:
-// static
-const WindowHelper SDmanClass::helper = WindowHelper(std::wstring(L"SDmanClass"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
-		wc.hbrBackground = 0;
-		wc.hCursor = NULL;
-	}
-);
-
-// static
-HWND SDmanClass::createWindowInstance(WinInstancer wInstancer) {
-	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new SDmanClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
-}
-
-int SDmanClass::menuCreate(HWND hwnd) {
-	HMENU hMenu;
-	
-	if (this->option != 2) {
-		hMenu = CreatePopupMenu();
-		AppendMenuW(hMenu, MF_STRING, 1, L"&Remove");	// if menu handles are changed, the message from WM_COMMAND needs to be changed to correspond to the right case
-		AppendMenuW(hMenu, MF_STRING, 2, L"&Reroute");
-		AppendMenuW(hMenu, MF_STRING, 3, L"&Reroute (RP)");
-		
-		TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, this->slv->point.x, this->slv->point.y, 0, hwnd, 0);
-		DestroyMenu(hMenu);
-	}
-	
-	return 0;
-};
-
-int SDmanClass::menuUse(HWND hwnd, int32_t menu_id) {
-	errorf_old("menu_id is: %d", menu_id);
-	
-	uint64_t fNum;
-	
-	switch (menu_id) {
-	case 1:
-	case 2:
-	case 3:
-		if (this->option != 2) {
-			fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-			//DelRer(hwnd, menu_id, &this->slv);
-			SendMessage(hwnd, WM_USER, 0, 0);
-			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
-		}
-		break;
-	}
-	
-	return 0;
-};
-
-uint64_t SDmanClass::getNumElems() {
-	return getlastsdnum(this->inum);
-}
-
-LRESULT CALLBACK SDmanClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	
-	/*
-	char *p;
-	wchar_t *wp;
-	int i, j, x;
-	uint64_t ll, lastlastpage, fNum;
-	HWND thwnd;
-	oneslnk *link, *link2;
-	*/
-
-	switch(msg) {
-		case WM_CREATE: {
-			
-			this->plv = NULL;
-			this->slv = NULL;
-			
-			SDIRMANARGS *args = *(SDIRMANARGS **) lParam;
-			
-			if (args->inum == 0) {
-				errorf("inum is 0");
-				DestroyWindow(hwnd);
-				return 0;
-			}
-			
-			if (args) {
-				this->option = args->option;
-				this->parent = args->parent;
-				this->inum = args->inum;
-			} else {
-				errorf("args is NULL");
-				//DestroyWindow(hwnd);
-				//FreeWindowMem(hwnd);
-				return -1;
-				
-				// this->option = 0;
-				// this->parent = 0;
-			}
-		
-			RECT rect;
-			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf("GetClientRect failed");
-			}
-			HWND thwnd = NULL;
-			uint64_t ll = 0;
-			int32_t i = 0;
-			
-			if (this->option != 2) {
-				int32_t x = rect.right / 2 - 100;
-				if (x < 5)
-					x = 5;
-				CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-				//CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
-				//SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
-				//CheckDlgButton(hwnd, 2, BST_UNCHECKED);
-			} else {
-				int32_t x = (rect.right-80) / 2;
-				if (x < 5)
-					x = 5;
-				EnableWindow(this->parent, 0);
-				CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
-				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
-			}
-			
-			thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
-			if (!thwnd) {
-				errorf("failed to create PageListClass");
-				return -1;
-			}
-			
-			this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
-			if (!this->plv) {
-				errorf("failed to receive PageListClass pointer");
-				return -1;
-			}
-			
-			thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
-			if (!thwnd) {
-				errorf("failed to create StrListClass");
-				return -1;
-			}
-			
-			this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
-			if (!this->slv) {
-				errorf("failed to receive StrListClass pointer");
-				return -1;
-			}
-			
-			//! TODO: move this to the createWindowInstance arguments
-			if (this->option == 2) {
-				this->slv->option = 1;
-			}
-			
-			this->plv->curPage = 1;
-			ll = this->getNumElems();
-			this->plv->lastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
-			if (this->plv->lastPage == 0) {
-				this->plv->lastPage = 1;
-			}
-			
-			this->plv->startPaint();
-			
-			i = MAX_NROWS/8 + !!(MAX_NROWS%8);
-			if (!i) {
-				errorf("no space row selections");
-			}
-			
-			//! TODO:
-			this->slv->setNColumns(2);
-			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-			i = log10(fNum+MAX_NROWS-1)+1;
-			if ( !this->slv->setColumnWidth(0, CHAR_WIDTH*(i)+6) ) {
-				errorf("setColumnWidth failed (0)");
-				return -1;
-			}
-			if ( !this->slv->setColumnWidth(1, 0) ) {
-				errorf("setColumnWidth failed (1)");
-				return -1;
-			}
-			
-			if ( !this->slv->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( "#", "Path" ))) ) {
-				errorf("failed to set slv headers");
-				return -1;
-			}
-			
-			SetFocus(GetDlgItem(hwnd, 3));
-			
-			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
-			
-			break;
-		}
-		case WM_COMMAND: {
-			
-			if (this->option != 2) {
-				
-				if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
-					//SendMessage(hwnd, WM_U_RET_SL, 3, LOWORD(wParam);
-					this->menuUse(hwnd, LOWORD(wParam));
-					break;
-				//! TODO: move next to button creation
-				} else if (HIWORD(wParam) == BN_CLICKED) {
-					if (LOWORD(wParam) == 1) {	// add listing
-						
-						DIRMANARGS args = {};
-						args.option = 2;
-						args.inum = this->inum;
-						args.parent = hwnd;
-						
-						HWND thwnd = DmanClass::createWindowInstance(WinInstancer(0, L"Select Superdirectory", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, NULL, ghInstance, (LPVOID) &args));
-					}
-				}
-			} else {
-				if (HIWORD(wParam) == BN_CLICKED) {
-					
-					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
-					
-				}
-			}
-			
-			break;
-		}
-		case WM_SIZE: {
-			RECT rect = {0};
-			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf("GetClientRect failed");
-			}
-			if (this->option != 2) {
-				int32_t x = rect.right / 2 - 100;
-				if (x < 5)
-					x = 5;
-				
-				{
-					HWND thwnd = GetDlgItem(hwnd, 1);
-					MoveWindow(thwnd, x, 5, 80, 25, 0);
-				} {
-					// HWND thwnd = GetDlgItem(hwnd, 2);
-					// MoveWindow(thwnd, x+90, 2, 110, 35, 0);
-				}
-			} else {
-				int32_t x = (rect.right-80) / 2;
-				if (x < 5)
-					x = 5;
-				HWND thwnd = GetDlgItem(hwnd, 1);
-				MoveWindow(thwnd, x, 5, 80, 25, 0);
-			}
-			
-			{
-				HWND thwnd = GetDlgItem(hwnd, 3);
-				MoveWindow(thwnd, 0, DMAN_TOP_MRG, rect.right, rect.bottom-DMAN_TOP_MRG-(!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
-			} {
-				HWND thwnd = GetDlgItem(hwnd, 4);
-				MoveWindow(thwnd, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
-			}
-			
-			
-			break;
-		}
-		case WM_PAINT: {
-			
-			RECT rect = {0};
-			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf("GetClientRect failed");
-			}
-
-			HPEN hOldPen;
-			HBRUSH hOldBrush;
-			HDC hdc;
-			PAINTSTRUCT ps;
-
-			hdc = BeginPaint(hwnd, &ps);
-			
-			hOldPen = (HPEN) SelectObject(hdc, bgPen1);
-			hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
-			
-			Rectangle(hdc, 0, 0, rect.right, DMAN_TOP_MRG);
-			SelectObject(hdc, hPen1);
-			MoveToEx(hdc, 0, 0, NULL);
-			LineTo(hdc, rect.right, 0);
-			MoveToEx(hdc, 0, DMAN_TOP_MRG-1, NULL);
-			LineTo(hdc, rect.right, DMAN_TOP_MRG-1);
-				
-			if (this->plv->lastPage > 1) {
-				MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
-				LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
-			}
-			SelectObject(hdc, hOldPen);
-			SelectObject(hdc, hOldBrush);
-			EndPaint(hwnd, &ps);
-			
-			break;
-		}
-		case WM_MOUSEMOVE: {
-			
-			this->plv->hovered = 0;
-			SetCursor(hDefCrs);
-		
-			break;
-		}
-		case WM_SETFOCUS: {
-			SetFocus(GetDlgItem(hwnd, 3));
-			
-			break;
-		}
-		case WM_USER+1: {		// refresh num and dir strings
-			
-			this->slv->clearRows();
-			
-			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-			
-			std::shared_ptr<std::forward_list<std::fs::path>> list_ptr = idread(this->inum, (uint64_t) fNum, MAX_NROWS);
-			
-			if (list_ptr != nullptr && !list_ptr->empty()) {
-				auto workPtr = std::shared_ptr<std::vector<std::vector<std::string>>>();
-				if (workPtr == nullptr) {
-					errorf("failed to allocate shared_ptr");
-					return 1;
-				}
-				auto &workVector = *workPtr;
-				
-				uint64_t uint = fNum;
-				
-				for (auto &entry : *list_ptr) {
-					workVector.emplace_back( std::vector<std::string>( { std::to_string(uint), entry.generic_string() } ) );
-					
-					uint++;
-				}
-				
-				int64_t gotRows = uint - fNum;
-				
-				if (gotRows <= 0) {
-					errorf("list_ptr was somehow empty");
-					return 1;
-				} else if (gotRows > MAX_NROWS) {
-					errorf("returned too many entries");
-					return 1;
-				} else {
-					this->slv->assignRows(workPtr);
-				
-					//! TODO: figure this out
-					// columnWidth probably shouldn't be when refreshing and instead only when changing page
-					//this->slv->setColumnWidth();
-					
-					//this->slv->bpos[1] = x*CHAR_WIDTH+5;
-				}
-			} else {
-				if (this->plv->curPage > 1) {
-					this->plv->curPage--;
-					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
-					PostMessage(hwnd, WM_USER+0, 0, 0);
-					return 0;
-				}
-			}
-			
-			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
-			
-			if (!(InvalidateRect(hwnd, 0, 1))) {
-				errorf("InvalidateRect failed");
-			}
-			
-			break;
-		}
-		case WM_U_LISTMAN: {
-			break;
-		}
-		case WM_U_RET_SL: //{
-			
-			switch (lParam) {
-			case 0:
-				return (LRESULT) &this->slv;
-			case 1:
-			case 2:
-			case 3:
-				if (this->option != 2) {
-					uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-					//DelRer(hwnd, lParam, &this->slv);
-					SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_LEN_REF, 0);
-				}
-				break;
-			case 4:
-				this->menuCreate(hwnd);
-				break;
-			case 5:	// make selection
-				
-				if (this->option == 2) {
-					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
-				}
-				break;
-			}
-			break;
-		//}
-		case WM_U_RET_PL: {
-			
-			switch (lParam) {
-			case 0:
-				//return (LRESULT) &this->plv;
-				errorf("deprecated: 3452089hre (2)");
-			case 1:
-				//! TODO: 
-				SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_REF, 0);
-				break;
-			}
-			break;
-		}
-		case WM_U_RET_TED: {
-			
-			break;
-		}
-		case WM_ERASEBKGND: {
-			return 1;
-		}
-		case WM_CLOSE: {
-			
-			if (this->parent) {
-				EnableWindow(this->parent, 1);
-			}
-			break;
-		}
-		case WM_DESTROY: {
-			
-			break;
-		}
-		case WM_NCDESTROY: {
-			
-			HWND thwnd = this->parent;
-			
-			if (thwnd) {
-				EnableWindow(thwnd, 1);
-				SendMessage(thwnd, WM_U_RET_DMAN, 0, (LPARAM) hwnd);
-			}
-		}
-	}
-
-	return this->ListManClass::winProc(hwnd, msg, wParam, lParam);
-
-	//return DefWindowProcW(hwnd, msg, wParam, lParam);
-}
-
-
-//}
+//} ListManClass
 
 //{ MainIndexManClass
 //public:
@@ -2073,7 +1196,7 @@ HWND MainIndexManClass::createWindowInstance(WinInstancer wInstancer) {
 
 int MainIndexManClass::menuCreate(HWND hwnd) {
 	HMENU hMenu;
-	
+
 	if (this->option != 2) {
 		hMenu = CreatePopupMenu();
 		AppendMenuW(hMenu, MF_STRING, 1, L"&Remove");	// if menu handles are changed, the message from WM_COMMAND needs to be changed to correspond to the right case
@@ -2082,19 +1205,19 @@ int MainIndexManClass::menuCreate(HWND hwnd) {
 		AppendMenuW(hMenu, MF_STRING, 4, L"&Manage Subdirectories");
 		AppendMenuW(hMenu, MF_STRING, 5, L"&Manage Files");
 		AppendMenuW(hMenu, MF_STRING, 6, L"&Manage Tags");
-		
+
 		TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, this->slv->point.x, this->slv->point.y, 0, hwnd, 0);
 		DestroyMenu(hMenu);
 	}
-	
+
 	return 0;
 };
 
 int MainIndexManClass::menuUse(HWND hwnd, int32_t menu_id) {
 	errorf_old("menu_id is: %d", menu_id);
-	
+
 	uint64_t fNum;
-	
+
 	if (this->option != 2) {
 		switch (menu_id) {
 		case 1:
@@ -2108,11 +1231,11 @@ int MainIndexManClass::menuUse(HWND hwnd, int32_t menu_id) {
 			break;
 		case 3:
 			{
-				
+
 				DIRMANARGS args = {0};
 				args.option = 0;
 				args.parent = hwnd;
-				args.inum = this->slv->getSingleSelPos();
+				args.inum = this->getSingleSelID();
 				HWND thwnd = 0;
 				// errorf_old("inum: %llu", args->inum);
 				if (args.inum != 0) {
@@ -2125,11 +1248,11 @@ int MainIndexManClass::menuUse(HWND hwnd, int32_t menu_id) {
 			break;
 		case 4:
 			{
-				
+
 				SDIRMANARGS *args = calloc(1, sizeof(SDIRMANARGS));
 				args->option = 0;
 				args->parent = hwnd;
-				args->inum = this->slv->getSingleSelPos();
+				args->inum = this->getSingleSelID();
 				HWND thwnd = 0;
 				// errorf_old("inum: %llu", args->inum);
 				if (args->inum != 0) {
@@ -2141,7 +1264,7 @@ int MainIndexManClass::menuUse(HWND hwnd, int32_t menu_id) {
 		}
 	} else {
 
-	}		
+	}
 	return 0;
 };
 
@@ -2150,7 +1273,7 @@ uint64_t MainIndexManClass::getNumElems() {
 }
 
 LRESULT CALLBACK MainIndexManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	
+
 	/*
 	char *p;
 	wchar_t *wp;
@@ -2163,12 +1286,12 @@ LRESULT CALLBACK MainIndexManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 
 	switch(msg) {
 		case WM_CREATE: {
-			
+
 			this->plv = NULL;
 			this->slv = NULL;
-		
+
 			MIMANARGS *args = *((void **)lParam);
-			
+
 			if (args) {
 				this->option = args->option;
 				this->parent = args->parent;
@@ -2176,7 +1299,7 @@ LRESULT CALLBACK MainIndexManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 				this->option = 0;
 				this->parent = 0;
 			}
-		
+
 			RECT rect = {0};
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
@@ -2184,7 +1307,7 @@ LRESULT CALLBACK MainIndexManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 			HWND thwnd = NULL;
 			uint64_t ll = 0;
 			int32_t i = 0;
-			
+
 			if (this->option != 2) {
 				int32_t x = rect.right / 2 - 100;
 				if (x < 5)
@@ -2202,36 +1325,36 @@ LRESULT CALLBACK MainIndexManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 				CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
 				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
 			}
-			
+
 			thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
 			if (!thwnd) {
 				errorf("failed to create PageListClass");
 				return -1;
 			}
-			
+
 			this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
 			if (!this->plv) {
 				errorf("failed to receive PageListClass pointer");
 				return -1;
 			}
-			
+
 			thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
 			if (!thwnd) {
 				errorf("failed to create StrListClass");
 				return -1;
 			}
-			
+
 			this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
 			if (!this->slv) {
 				errorf("failed to receive StrListClass pointer");
 				return -1;
 			}
-			
+
 			//! TODO: move this to the createWindowInstance arguments
 			if (this->option == 2) {
 				this->slv->option = 1;
 			}
-			
+
 			this->plv->curPage = 1;
 			ll = this->getNumElems();
 g_errorfStream << "getNumElems: " << ll << std::flush;
@@ -2239,14 +1362,14 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			if (this->plv->lastPage == 0) {
 				this->plv->lastPage = 1;
 			}
-		
+
 			this->plv->startPaint();
-			
+
 			i = MAX_NROWS/8 + !!(MAX_NROWS%8);
 			if (!i) {
 				errorf("no space row selections");
 			}
-			
+
 			this->slv->setNColumns(2);
 			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
 			i = log10(fNum+MAX_NROWS-1)+1;
@@ -2258,20 +1381,20 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 				errorf("setColumnWidth failed (1)");
 				return -1;
 			}
-			
-			if ( !this->slv->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( "#", "Name" ))) ) {
+
+			if ( !this->slv->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( { "#", "Name" }))) ) {
 				errorf("failed to set slv headers");
 				return -1;
 			}
-			
+
 			SetFocus(GetDlgItem(hwnd, 3));
-			
+
 			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
 
 			break;
 		}
 		case WM_COMMAND: //{
-			
+
 			if (this->option != 2) {
 				if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
 					//SendMessage(hwnd, WM_U_RET_SL, 3, LOWORD(wParam);
@@ -2279,7 +1402,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 					break;
 				} else if (HIWORD(wParam) == BN_CLICKED) {
 					if (LOWORD(wParam) == 1) {	// add listing
-						
+
 						HWND *arg = malloc(sizeof(HWND));
 						TextEditDialogClass::createWindowInstance(WinInstancer(0, L"Enter Main Index Name", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 150, 150, 500, 500, hwnd, 0, NULL, arg));
 						//SendMessage(thwnd, WM_USER, 0, (LPARAM) this->dnum);
@@ -2288,12 +1411,12 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 				}
 			} else {
 				if (HIWORD(wParam) == BN_CLICKED) {
-					
+
 					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
-					
+
 				}
 			}
-			
+
 			break;
 		//}
 		case WM_SIZE: {
@@ -2305,7 +1428,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 				int32_t x = rect.right / 2 - 100;
 				if (x < 5)
 					x = 5;
-				
+
 				{
 					HWND thwnd = GetDlgItem(hwnd, 1);
 					MoveWindow(thwnd, x, 5, 80, 25, 0);
@@ -2321,7 +1444,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 				HWND thwnd = GetDlgItem(hwnd, 1);
 				MoveWindow(thwnd, x, 5, 80, 25, 0);
 			}
-			
+
 			{
 				HWND thwnd = GetDlgItem(hwnd, 3);
 				MoveWindow(thwnd, 0, DMAN_TOP_MRG, rect.right, rect.bottom-DMAN_TOP_MRG-(!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
@@ -2329,11 +1452,11 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 				HWND thwnd = GetDlgItem(hwnd, 4);
 				MoveWindow(thwnd, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
 			}
-			
+
 			break;
 		}
 		case WM_PAINT: {
-			
+
 			RECT rect = {0};
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
@@ -2345,17 +1468,17 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			PAINTSTRUCT ps;
 
 			hdc = BeginPaint(hwnd, &ps);
-			
+
 			hOldPen = (HPEN) SelectObject(hdc, bgPen1);
 			hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
-			
+
 			Rectangle(hdc, 0, 0, rect.right, DMAN_TOP_MRG);
 			SelectObject(hdc, hPen1);
 			MoveToEx(hdc, 0, 0, NULL);
 			LineTo(hdc, rect.right, 0);
 			MoveToEx(hdc, 0, DMAN_TOP_MRG-1, NULL);
 			LineTo(hdc, rect.right, DMAN_TOP_MRG-1);
-				
+
 			if (this->plv->lastPage > 1) {
 				MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
 				LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
@@ -2363,47 +1486,47 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			SelectObject(hdc, hOldPen);
 			SelectObject(hdc, hOldBrush);
 			EndPaint(hwnd, &ps);
-			
+
 			break;
 		}
 		case WM_MOUSEMOVE: {
-			
+
 			this->plv->hovered = 0;
 			SetCursor(hDefCrs);
-		
+
 			break;
 		}
 		case WM_SETFOCUS: {
 			SetFocus(GetDlgItem(hwnd, 3));
-			
+
 			break;
 		}
 		case WM_USER+1: { 		// refresh num and dir strings
-			
+
 			this->slv->clearRows();
-			
+
 			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
-			
+
 			std::shared_ptr<std::forward_list<std::string>> list_ptr = imiread(fNum, MAX_NROWS);
-			
+
 			if (list_ptr != nullptr && !list_ptr->empty()) {
-				auto workPtr = std::shared_ptr<std::vector<std::vector<std::string>>>();
+				auto workPtr = std::make_shared<std::vector<std::vector<std::string>>>();
 				if (workPtr == nullptr) {
 					errorf("failed to allocate shared_ptr");
 					return 1;
 				}
 				auto &workVector = *workPtr;
-				
+
 				uint64_t uint = fNum;
-				
+
 				for (auto &entry : *list_ptr) {
 					workVector.emplace_back( std::vector<std::string>( { std::to_string(uint), entry } ) );
-					
+
 					uint++;
 				}
-				
+
 				int64_t gotRows = uint - fNum;
-				
+
 				if (gotRows <= 0) {
 					errorf("list_ptr was somehow empty");
 					return 1;
@@ -2412,11 +1535,11 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 					return 1;
 				} else {
 					this->slv->assignRows(workPtr);
-				
+
 					//! TODO: figure this out
 					// columnWidth probably shouldn't be when refreshing and instead only when changing page
 					//this->slv->setColumnWidth();
-					
+
 					//this->slv->bpos[1] = x*CHAR_WIDTH+5;
 				}
 			} else {
@@ -2427,21 +1550,21 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 					return 0;
 				}
 			}
-			
+
 			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
-			
+
 			if (!(InvalidateRect(hwnd, 0, 1))) {
 				errorf("InvalidateRect failed");
 			}
-			
+
 			break;
 		}
 		case WM_U_LISTMAN: {
 			break;
 		}
 		case WM_U_RET_SL: {
-			
-			switch (lParam) {
+
+			switch (wParam) {
 			case 0:
 				return (LRESULT) &this->slv;
 			case 1:
@@ -2458,7 +1581,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 				this->menuCreate(hwnd);
 				break;
 			case 5:	// make selection
-				
+
 				if (this->option == 2) {
 					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
 				}
@@ -2467,24 +1590,24 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			break;
 		}
 		case WM_U_RET_PL: {
-			
-			switch (lParam) {
+
+			switch (wParam) {
 			case 0:
 				//return (LRESULT) &this->plv;
 				errorf("deprecated: 3452089hre");
 			case 1:
-				//! TODO: 
+				//! TODO:
 				SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_REF, 0);
 				break;
 			}
 			break;
 		}
 		case WM_U_RET_TED: {
-				
+
 				char *buf = (char *) wParam;
-				
+
 				if (buf != NULL) {
-					
+
 					errorf_old("WM_U_TED -- Received: \"%s\"", buf);
 					uint64_t uint = mireg(buf);
 					errorf("after mireg");
@@ -2494,32 +1617,32 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 						SendMessage(hwnd, WM_USER, 0, 0);
 					}
 				}
-			
+
 			break;
 		}
 		case WM_ERASEBKGND: {
 			return 1;
 		}
 		case WM_CLOSE: {
-			
+
 			if (this->parent) {
 				EnableWindow(this->parent, 1);
 			}
 			break;
 		}
 		case WM_DESTROY: {
-			
+
 			break;
 		}
 		case WM_NCDESTROY: {
-			
+
 			HWND thwnd = this->parent;
-			
+
 			if (thwnd) {
 				EnableWindow(thwnd, 1);
 				SendMessage(thwnd, WM_U_RET_DMAN, 0, (LPARAM) hwnd);
 			}
-			
+
 			return 0;
 		}
 	}
@@ -2529,7 +1652,912 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 	//return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-//}
+//} MainIndexManClass
+
+//{ DmanClass
+//public:
+// static
+const WindowHelper DmanClass::helper = WindowHelper(std::wstring(L"DmanClass"),
+	[](WNDCLASSW &wc) -> void {
+		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
+		wc.hbrBackground = 0;
+		wc.hCursor = NULL;
+	}
+);
+
+// static
+HWND DmanClass::createWindowInstance(WinInstancer wInstancer) {
+	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new DmanClass(); }));
+	return wInstancer.create(winArgs, helper.winClassName);
+}
+
+int DmanClass::menuCreate(HWND hwnd) {
+	HMENU hMenu;
+
+	if (this->option != 2) {
+		hMenu = CreatePopupMenu();
+		AppendMenuW(hMenu, MF_STRING, 1, L"&Remove");	// if menu handles are changed, the message from WM_COMMAND needs to be changed to correspond to the right case
+		AppendMenuW(hMenu, MF_STRING, 2, L"&Reroute");
+		AppendMenuW(hMenu, MF_STRING, 3, L"&Reroute (RP)");
+
+		TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, this->slv->point.x, this->slv->point.y, 0, hwnd, 0);
+		DestroyMenu(hMenu);
+	}
+
+	return 0;
+};
+
+int DmanClass::menuUse(HWND hwnd, int32_t menu_id) {
+	errorf_old("menu_id is: %d", menu_id);
+
+	uint64_t fNum;
+
+	switch (menu_id) {
+	case 1:
+	case 2:
+	case 3:
+		if (this->option != 2) {
+			fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+			//DelRer(hwnd, menu_id, &this->slv);
+			SendMessage(hwnd, WM_USER, 0, 0);
+			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
+		}
+		break;
+	}
+
+	return 0;
+};
+
+uint64_t DmanClass::getNumElems() {
+	return getlastdnum(this->inum);
+}
+
+LRESULT CALLBACK DmanClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+
+	/*
+	char *p;
+	wchar_t *wp;
+	int32_t i, j, x;
+	uint64_t ll, lastlastpage, fNum;
+	RECT rect;
+	HWND thwnd;
+	oneslnk *link, *link2;
+	*/
+
+	switch(msg) {
+		case WM_CREATE: {
+
+			this->plv = NULL;
+			this->slv = NULL;
+
+			DIRMANARGS *args = *(DIRMANARGS **) lParam;
+
+			if (args) {
+				if (args->inum == 0) {
+					errorf("args->inum is 0");
+					return -1;
+				} else {
+					this->inum = args->inum;
+				}
+
+				this->option = args->option;
+				this->parent = args->parent;
+			} else {
+				errorf("args is NULL");
+				return -1;
+			}
+
+			RECT rect = {0};
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+			HWND thwnd = NULL;
+			uint64_t ll = 0;
+			int32_t i = 0;
+
+			if (this->option != 2) {
+				int32_t x = rect.right / 2 - 100;
+				if (x < 5)
+					x = 5;
+				CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+				CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
+				SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
+				CheckDlgButton(hwnd, 2, BST_UNCHECKED);
+			} else {
+				int32_t x = (rect.right-80) / 2;
+				if (x < 5)
+					x = 5;
+				EnableWindow(this->parent, 0);
+				CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+			}
+
+			thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
+			if (!thwnd) {
+				errorf("failed to create PageListClass");
+				return -1;
+			}
+
+			this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
+			if (!this->plv) {
+				errorf("failed to receive PageListClass pointer");
+				return -1;
+			}
+
+			thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
+			if (!thwnd) {
+				errorf("failed to create StrListClass");
+				return -1;
+			}
+
+			this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
+			if (!this->slv) {
+				errorf("failed to receive StrListClass pointer");
+				return -1;
+			}
+
+			//! TODO: move this to the createWindowInstance arguments
+			if (this->option == 2) {
+				this->slv->option = 1;
+			}
+
+			this->plv->curPage = 1;
+			ll = this->getNumElems();
+			this->plv->lastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
+			if (this->plv->lastPage == 0) {
+				this->plv->lastPage = 1;
+			}
+
+			this->plv->startPaint();
+
+			i = MAX_NROWS/8 + !!(MAX_NROWS%8);
+			if (!i) {
+				errorf("no space row selections");
+			}
+
+			this->slv->setNColumns(2);
+			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+			i = log10(fNum+MAX_NROWS-1)+1;
+			if ( !this->slv->setColumnWidth(0, CHAR_WIDTH*(i)+6) ) {
+				errorf("setColumnWidth failed (0)");
+				return -1;
+			}
+			if ( !this->slv->setColumnWidth(1, 0) ) {
+				errorf("setColumnWidth failed (1)");
+				return -1;
+			}
+
+			if ( !this->slv->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( {"#", "Path"}))) ) {
+				errorf("failed to set slv headers");
+				return -1;
+			}
+			//this->slv->header = malloc(sizeof(char *)*this->slv->nColumns);
+			//this->slv->header[0] = dupstr("#", 5, 0);
+			//this->slv->header[1] = dupstr("Path", 5, 0);
+
+			SetFocus(GetDlgItem(hwnd, 3));
+
+			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
+
+			break;
+		}
+		case WM_COMMAND: {
+
+			if (this->option != 2) {
+				bool checkedRelative = !!(IsDlgButtonChecked(hwnd, 2));
+
+				if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
+					this->menuUse(hwnd, LOWORD(wParam));
+					break;
+				} else if (HIWORD(wParam) == BN_CLICKED) {
+					if (LOWORD(wParam) == 1) {	// add listing
+						std::fs::path retPath = SeekDir(hwnd);
+
+						if (!retPath.empty()) {
+
+							if (checkedRelative) {
+								//! TODO: add error return argument and print in window
+								retPath = makePathRelativeToProgDir(retPath);
+
+								if (!retPath.empty()) {
+									if (!std::fs::is_directory(g_fsPrgDir / retPath)) {
+										errorf("retPath was not directory (1)");
+										g_errorfStream << "retPath was: " << retPath << std::flush;
+
+										retPath.clear();
+									}
+								}
+							} else {
+								if (!std::fs::is_directory(retPath)) {
+									errorf("retPath was not directory (2)");
+									g_errorfStream << "retPath was: " << retPath << std::flush;
+
+									retPath.clear();
+								}
+							}
+
+							if (!retPath.empty()) {
+errorf("calling dreg");
+								dreg(this->inum, retPath);
+
+								SendMessage(hwnd, WM_USER, 0, 0);
+							}
+						}
+					} else if (LOWORD(wParam) == 2) {	// relative-dir button
+						if (checkedRelative) {
+							CheckDlgButton(hwnd, 2, BST_UNCHECKED);
+						} else {
+							CheckDlgButton(hwnd, 2, BST_CHECKED);
+						}
+					}
+				}
+			} else {
+				if (HIWORD(wParam) == BN_CLICKED) {
+
+					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
+
+				}
+			}
+
+			break;
+		}
+		case WM_SIZE: {
+			RECT rect = {0};
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+			if (this->option != 2) {
+				int32_t x = rect.right / 2 - 100;
+				if (x < 5)
+					x = 5;
+
+				{
+					HWND thwnd = GetDlgItem(hwnd, 1);
+					MoveWindow(thwnd, x, 5, 80, 25, 0);
+				} {
+					HWND thwnd = GetDlgItem(hwnd, 2);
+					MoveWindow(thwnd, x+90, 2, 110, 35, 0);
+				}
+			} else {
+				int32_t x = (rect.right-80) / 2;
+				if (x < 5)
+					x = 5;
+				HWND thwnd = GetDlgItem(hwnd, 1);
+				MoveWindow(thwnd, x, 5, 80, 25, 0);
+			}
+
+			{
+				HWND thwnd = GetDlgItem(hwnd, 3);
+				MoveWindow(thwnd, 0, DMAN_TOP_MRG, rect.right, rect.bottom-DMAN_TOP_MRG-(!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
+			} {
+				HWND thwnd = GetDlgItem(hwnd, 4);
+				MoveWindow(thwnd, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
+			}
+
+			break;
+		}
+		case WM_PAINT: {
+
+			RECT rect = {0};
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+
+			HPEN hOldPen;
+			HBRUSH hOldBrush;
+			HDC hdc;
+			PAINTSTRUCT ps;
+
+			hdc = BeginPaint(hwnd, &ps);
+
+			hOldPen = (HPEN) SelectObject(hdc, bgPen1);
+			hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
+
+			Rectangle(hdc, 0, 0, rect.right, DMAN_TOP_MRG);
+			SelectObject(hdc, hPen1);
+			MoveToEx(hdc, 0, 0, NULL);
+			LineTo(hdc, rect.right, 0);
+			MoveToEx(hdc, 0, DMAN_TOP_MRG-1, NULL);
+			LineTo(hdc, rect.right, DMAN_TOP_MRG-1);
+
+			if (this->plv->lastPage > 1) {
+				MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
+				LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
+			}
+			SelectObject(hdc, hOldPen);
+			SelectObject(hdc, hOldBrush);
+			EndPaint(hwnd, &ps);
+
+			break;
+		}
+		case WM_MOUSEMOVE: {
+
+			this->plv->hovered = 0;
+			SetCursor(hDefCrs);
+
+			break;
+		}
+		case WM_SETFOCUS: {
+			SetFocus(GetDlgItem(hwnd, 3));
+
+			break;
+		}
+		case WM_USER+1: {	// refresh num and dir strings
+
+			this->slv->clearRows();
+
+			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+
+			std::shared_ptr<std::forward_list<std::fs::path>> list_ptr = idread(this->inum, (uint64_t) fNum, MAX_NROWS);
+
+			if (list_ptr != nullptr && !list_ptr->empty()) {
+				auto workPtr = std::make_shared<std::vector<std::vector<std::string>>>();
+				if (!workPtr) {
+					errorf("failed to allocate shared_ptr");
+					return 1;
+				}
+				auto &workVector = *workPtr;
+
+				uint64_t uint = fNum;
+
+				for (auto &entry : *list_ptr) {
+					workVector.emplace_back( std::vector<std::string>( { std::to_string(uint), entry.generic_string() } ) );
+
+					uint++;
+				}
+
+				int64_t gotRows = uint - fNum;
+
+				if (gotRows <= 0) {
+					errorf("list_ptr was somehow empty");
+					return 1;
+				} else if (gotRows > MAX_NROWS) {
+					errorf("returned too many entries");
+					return 1;
+				} else {
+					this->slv->assignRows(workPtr);
+
+					//! TODO: figure this out
+					// columnWidth probably shouldn't be when refreshing and instead only when changing page
+					//this->slv->setColumnWidth();
+
+					//this->slv->bpos[1] = x*CHAR_WIDTH+5;
+				}
+			} else {
+				if (this->plv->curPage > 1) {
+					this->plv->curPage--;
+					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
+					PostMessage(hwnd, WM_USER+0, 0, 0);
+					return 0;
+				}
+			}
+
+			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
+
+			if (!(InvalidateRect(hwnd, 0, 1))) {
+				errorf("InvalidateRect failed");
+			}
+
+			break;
+		}
+		case WM_U_LISTMAN: {
+			break;
+		}
+		case WM_U_RET_SL: {
+
+			switch (wParam) {
+			case 0:
+				return (LRESULT) &this->slv;
+			case 1:
+			case 2:
+			case 3:
+				if (this->option != 2) {
+					uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+					//DelRer(hwnd, lParam, &this->slv);
+					SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_LEN_REF, 0);
+				}
+				break;
+			case 4:
+				this->menuCreate(hwnd);
+				break;
+			case 5:	// make selection
+
+				if (this->option == 2) {
+					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
+				}
+				break;
+			}
+			break;
+		}
+		case WM_U_RET_PL: {
+
+			switch (wParam) {
+			case 0:
+				//return (LRESULT) &this->plv;
+				errorf("deprecated: 3452089hre");
+			case 1:
+				//! TODO:
+				SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_REF, 0);
+				break;
+			}
+			break;
+		}
+		case WM_U_RET_TED: {
+
+			break;
+		}
+		case WM_ERASEBKGND: {
+			return 1;
+		}
+		case WM_CLOSE: {
+
+			if (this->parent) {
+				EnableWindow(this->parent, 1);
+			}
+			break;
+		}
+		case WM_DESTROY: {
+
+			break;
+		}
+		case WM_NCDESTROY: {
+
+			HWND thwnd = this->parent;
+
+			if (thwnd) {
+				EnableWindow(thwnd, 1);
+				SendMessage(thwnd, WM_U_RET_DMAN, 0, (LPARAM) hwnd);
+			}
+		}
+	}
+
+	return this->ListManClass::winProc(hwnd, msg, wParam, lParam);
+
+	//return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+
+//} DmanClass
+
+//{ SDmanClass
+//public:
+// static
+const WindowHelper SDmanClass::helper = WindowHelper(std::wstring(L"SDmanClass"),
+	[](WNDCLASSW &wc) -> void {
+		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
+		wc.hbrBackground = 0;
+		wc.hCursor = NULL;
+	}
+);
+
+// static
+HWND SDmanClass::createWindowInstance(WinInstancer wInstancer) {
+	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new SDmanClass(); }));
+	return wInstancer.create(winArgs, helper.winClassName);
+}
+
+int SDmanClass::menuCreate(HWND hwnd) {
+	HMENU hMenu;
+
+	if (this->option != 2) {
+		hMenu = CreatePopupMenu();
+		AppendMenuW(hMenu, MF_STRING, 1, L"&Remove");	// if menu handles are changed, the message from WM_COMMAND needs to be changed to correspond to the right case
+		AppendMenuW(hMenu, MF_STRING, 2, L"&Reroute");
+		AppendMenuW(hMenu, MF_STRING, 3, L"&Reroute (RP)");
+
+		TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, this->slv->point.x, this->slv->point.y, 0, hwnd, 0);
+		DestroyMenu(hMenu);
+	}
+
+	return 0;
+};
+
+int SDmanClass::menuUse(HWND hwnd, int32_t menu_id) {
+	errorf_old("menu_id is: %d", menu_id);
+
+	uint64_t fNum;
+
+	switch (menu_id) {
+	case 1:
+	case 2:
+	case 3:
+		if (this->option != 2) {
+			fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+			//DelRer(hwnd, menu_id, &this->slv);
+			SendMessage(hwnd, WM_USER, 0, 0);
+			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
+		}
+		break;
+	}
+
+	return 0;
+};
+
+uint64_t SDmanClass::getNumElems() {
+	return getlastsdnum(this->inum);
+}
+
+LRESULT CALLBACK SDmanClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+
+	/*
+	char *p;
+	wchar_t *wp;
+	int i, j, x;
+	uint64_t ll, lastlastpage, fNum;
+	HWND thwnd;
+	oneslnk *link, *link2;
+	*/
+
+	switch(msg) {
+		case WM_CREATE: {
+
+			this->plv = NULL;
+			this->slv = NULL;
+
+			SDIRMANARGS *args = *(SDIRMANARGS **) lParam;
+
+			if (args->inum == 0) {
+				errorf("inum is 0");
+				DestroyWindow(hwnd);
+				return 0;
+			}
+
+			if (args) {
+				this->option = args->option;
+				this->parent = args->parent;
+				this->inum = args->inum;
+			} else {
+				errorf("args is NULL");
+				//DestroyWindow(hwnd);
+				//FreeWindowMem(hwnd);
+				return -1;
+
+				// this->option = 0;
+				// this->parent = 0;
+			}
+
+			RECT rect;
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+			HWND thwnd = NULL;
+			uint64_t ll = 0;
+			int32_t i = 0;
+
+			if (this->option != 2) {
+				int32_t x = rect.right / 2 - 100;
+				if (x < 5)
+					x = 5;
+				CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+				//CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, NULL, NULL);
+				//SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
+				//CheckDlgButton(hwnd, 2, BST_UNCHECKED);
+			} else {
+				int32_t x = (rect.right-80) / 2;
+				if (x < 5)
+					x = 5;
+				EnableWindow(this->parent, 0);
+				CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, NULL, NULL);
+				SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont2, 1);
+			}
+
+			thwnd = PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, NULL, NULL));
+			if (!thwnd) {
+				errorf("failed to create PageListClass");
+				return -1;
+			}
+
+			this->plv = std::dynamic_pointer_cast<PageListClass>(WindowClass::getWindowPtr(thwnd));
+			if (!this->plv) {
+				errorf("failed to receive PageListClass pointer");
+				return -1;
+			}
+
+			thwnd = StrListClass::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, NULL, NULL));
+			if (!thwnd) {
+				errorf("failed to create StrListClass");
+				return -1;
+			}
+
+			this->slv = std::dynamic_pointer_cast<StrListClass>(WindowClass::getWindowPtr(thwnd));
+			if (!this->slv) {
+				errorf("failed to receive StrListClass pointer");
+				return -1;
+			}
+
+			//! TODO: move this to the createWindowInstance arguments
+			if (this->option == 2) {
+				this->slv->option = 1;
+			}
+
+			this->plv->curPage = 1;
+			ll = this->getNumElems();
+			this->plv->lastPage = ll/MAX_NROWS + !!(ll % MAX_NROWS);
+			if (this->plv->lastPage == 0) {
+				this->plv->lastPage = 1;
+			}
+
+			this->plv->startPaint();
+
+			i = MAX_NROWS/8 + !!(MAX_NROWS%8);
+			if (!i) {
+				errorf("no space row selections");
+			}
+
+			//! TODO:
+			this->slv->setNColumns(2);
+			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+			i = log10(fNum+MAX_NROWS-1)+1;
+			if ( !this->slv->setColumnWidth(0, CHAR_WIDTH*(i)+6) ) {
+				errorf("setColumnWidth failed (0)");
+				return -1;
+			}
+			if ( !this->slv->setColumnWidth(1, 0) ) {
+				errorf("setColumnWidth failed (1)");
+				return -1;
+			}
+
+			if ( !this->slv->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( {"#", "Path"} ))) ) {
+				errorf("failed to set slv headers");
+				return -1;
+			}
+
+			SetFocus(GetDlgItem(hwnd, 3));
+
+			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
+
+			break;
+		}
+		case WM_COMMAND: {
+
+			if (this->option != 2) {
+
+				if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
+					//SendMessage(hwnd, WM_U_RET_SL, 3, LOWORD(wParam);
+					this->menuUse(hwnd, LOWORD(wParam));
+					break;
+				//! TODO: move next to button creation
+				} else if (HIWORD(wParam) == BN_CLICKED) {
+					if (LOWORD(wParam) == 1) {	// add listing
+
+						DIRMANARGS args = {};
+						args.option = 2;
+						args.inum = this->inum;
+						args.parent = hwnd;
+
+						HWND thwnd = DmanClass::createWindowInstance(WinInstancer(0, L"Select Superdirectory", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, NULL, ghInstance, (LPVOID) &args));
+					}
+				}
+			} else {
+				if (HIWORD(wParam) == BN_CLICKED) {
+
+					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
+
+				}
+			}
+
+			break;
+		}
+		case WM_SIZE: {
+			RECT rect = {0};
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+			if (this->option != 2) {
+				int32_t x = rect.right / 2 - 100;
+				if (x < 5)
+					x = 5;
+
+				{
+					HWND thwnd = GetDlgItem(hwnd, 1);
+					MoveWindow(thwnd, x, 5, 80, 25, 0);
+				} {
+					// HWND thwnd = GetDlgItem(hwnd, 2);
+					// MoveWindow(thwnd, x+90, 2, 110, 35, 0);
+				}
+			} else {
+				int32_t x = (rect.right-80) / 2;
+				if (x < 5)
+					x = 5;
+				HWND thwnd = GetDlgItem(hwnd, 1);
+				MoveWindow(thwnd, x, 5, 80, 25, 0);
+			}
+
+			{
+				HWND thwnd = GetDlgItem(hwnd, 3);
+				MoveWindow(thwnd, 0, DMAN_TOP_MRG, rect.right, rect.bottom-DMAN_TOP_MRG-(!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
+			} {
+				HWND thwnd = GetDlgItem(hwnd, 4);
+				MoveWindow(thwnd, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, 0);
+			}
+
+
+			break;
+		}
+		case WM_PAINT: {
+
+			RECT rect = {0};
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+
+			HPEN hOldPen;
+			HBRUSH hOldBrush;
+			HDC hdc;
+			PAINTSTRUCT ps;
+
+			hdc = BeginPaint(hwnd, &ps);
+
+			hOldPen = (HPEN) SelectObject(hdc, bgPen1);
+			hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
+
+			Rectangle(hdc, 0, 0, rect.right, DMAN_TOP_MRG);
+			SelectObject(hdc, hPen1);
+			MoveToEx(hdc, 0, 0, NULL);
+			LineTo(hdc, rect.right, 0);
+			MoveToEx(hdc, 0, DMAN_TOP_MRG-1, NULL);
+			LineTo(hdc, rect.right, DMAN_TOP_MRG-1);
+
+			if (this->plv->lastPage > 1) {
+				MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
+				LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
+			}
+			SelectObject(hdc, hOldPen);
+			SelectObject(hdc, hOldBrush);
+			EndPaint(hwnd, &ps);
+
+			break;
+		}
+		case WM_MOUSEMOVE: {
+
+			this->plv->hovered = 0;
+			SetCursor(hDefCrs);
+
+			break;
+		}
+		case WM_SETFOCUS: {
+			SetFocus(GetDlgItem(hwnd, 3));
+
+			break;
+		}
+		case WM_USER+1: {		// refresh num and dir strings
+
+			this->slv->clearRows();
+
+			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+
+			std::shared_ptr<std::forward_list<std::fs::path>> list_ptr = idread(this->inum, (uint64_t) fNum, MAX_NROWS);
+
+			if (list_ptr != nullptr && !list_ptr->empty()) {
+				auto workPtr = std::make_shared<std::vector<std::vector<std::string>>>();
+				if (workPtr == nullptr) {
+					errorf("failed to allocate shared_ptr");
+					return 1;
+				}
+				auto &workVector = *workPtr;
+
+				uint64_t uint = fNum;
+
+				for (auto &entry : *list_ptr) {
+					workVector.emplace_back( std::vector<std::string>( { std::to_string(uint), entry.generic_string() } ) );
+
+					uint++;
+				}
+
+				int64_t gotRows = uint - fNum;
+
+				if (gotRows <= 0) {
+					errorf("list_ptr was somehow empty");
+					return 1;
+				} else if (gotRows > MAX_NROWS) {
+					errorf("returned too many entries");
+					return 1;
+				} else {
+					this->slv->assignRows(workPtr);
+
+					//! TODO: figure this out
+					// columnWidth probably shouldn't be when refreshing and instead only when changing page
+					//this->slv->setColumnWidth();
+
+					//this->slv->bpos[1] = x*CHAR_WIDTH+5;
+				}
+			} else {
+				if (this->plv->curPage > 1) {
+					this->plv->curPage--;
+					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
+					PostMessage(hwnd, WM_USER+0, 0, 0);
+					return 0;
+				}
+			}
+
+			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
+
+			if (!(InvalidateRect(hwnd, 0, 1))) {
+				errorf("InvalidateRect failed");
+			}
+
+			break;
+		}
+		case WM_U_LISTMAN: {
+			break;
+		}
+		case WM_U_RET_SL: //{
+
+			switch (wParam) {
+			case 0:
+				return (LRESULT) &this->slv;
+			case 1:
+			case 2:
+			case 3:
+				if (this->option != 2) {
+					uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
+					//DelRer(hwnd, lParam, &this->slv);
+					SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_LEN_REF, 0);
+				}
+				break;
+			case 4:
+				this->menuCreate(hwnd);
+				break;
+			case 5:	// make selection
+
+				if (this->option == 2) {
+					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_RET_SEL_POS, 0);
+				}
+				break;
+			}
+			break;
+		//}
+		case WM_U_RET_PL: {
+
+			switch (wParam) {
+			case 0:
+				//return (LRESULT) &this->plv;
+				errorf("deprecated: 3452089hre (2)");
+			case 1:
+				//! TODO:
+				SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_CH_PAGE_REF, 0);
+				break;
+			}
+			break;
+		}
+		case WM_U_RET_TED: {
+
+			break;
+		}
+		case WM_ERASEBKGND: {
+			return 1;
+		}
+		case WM_CLOSE: {
+
+			if (this->parent) {
+				EnableWindow(this->parent, 1);
+			}
+			break;
+		}
+		case WM_DESTROY: {
+
+			break;
+		}
+		case WM_NCDESTROY: {
+
+			HWND thwnd = this->parent;
+
+			if (thwnd) {
+				EnableWindow(thwnd, 1);
+				SendMessage(thwnd, WM_U_RET_DMAN, 0, (LPARAM) hwnd);
+			}
+		}
+	}
+
+	return this->ListManClass::winProc(hwnd, msg, wParam, lParam);
+
+	//return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+
+//} SDmanClass
 
 //{ ThumbManClass
 //public:
@@ -2557,16 +2585,16 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 	oneslnk *link, *flink, *inlink;
 	HMENU hMenu;
 	ImgF *tempimg;
-	double zoom; 
-	
+	double zoom;
+
 	HPEN hOldPen;
 	HDC hdc;
 	PAINTSTRUCT ps;
-	
+
 	/*
 	switch(msg) {
 		case WM_CREATE: //{
-				
+
 				{
 					HWND thwnd = GetDlgItem(hwnd, 1);
 					MoveWindow(thwnd, x, 5, 80, 25, 0);
@@ -2574,7 +2602,7 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					HWND thwnd = GetDlgItem(hwnd, 2);
 					MoveWindow(thwnd, x+90, 2, 110, 35, 0);
 				}
-				
+
 				{
 					HWND thwnd = GetDlgItem(hwnd, 1);
 					MoveWindow(thwnd, x, 5, 80, 25, 0);
@@ -2582,7 +2610,7 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					HWND thwnd = GetDlgItem(hwnd, 2);
 					MoveWindow(thwnd, x+90, 2, 110, 35, 0);
 				}
-			
+
 			{
 				THMBMANARGS *args = *((void **)lParam);
 				if (args) {
@@ -2593,7 +2621,7 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					return -1;
 				}
 			}
-			
+
 			this->dname = dread(this->dnum);
 			if (this->dname == 0) {
 				errorf("dname came null");
@@ -2601,14 +2629,14 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 				return 0;
 			}
 			this->tfstr = 0;
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			this->plv->curPage = 1;
 			this->plv->lastPage = 1;
-			
+
 			i = MAX_NTHUMBS/8 + !!(MAX_NTHUMBS%8);
 			if (!i) {
 				errorf("no space thumb selections");
@@ -2630,7 +2658,7 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 			this->ivv.DispImage = 0;
 			this->ivv.imgpath = 0;
 			this->ivv.option = 0;
-			
+
 			if (getfilemodified(this->dname) >= getdlastchecked(this->dnum) || (p = firead(this->dnum, 1)) == NULL) {
 				dirfreg(this->dname, 1<<(5-1));
 			} else {
@@ -2644,12 +2672,12 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 			} else {
 				this->plv->lastPage = 1;
 			}
-			
+
 			ThumbListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, SBAR_H, rect.right, rect.bottom-(!!(this->plv->lastPage > 1))*DMAN_BOT_MRG - SBAR_H, hwnd, (HMENU) 3, NULL, NULL));
 			PageListClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, hwnd, (HMENU) 4, NULL, NULL));
 			SearchBarClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, SBAR_H, hwnd, (HMENU) 6, NULL, NULL));
 			SetFocus(GetDlgItem(hwnd, 3));
-			
+
 			SendMessage(hwnd, WM_USER+1, 0, 0);
 			break;
 		//}
@@ -2669,9 +2697,9 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 		//}
 		case WM_PAINT: //{
 			hdc = BeginPaint(hwnd, &ps);
-			
+
 			hOldPen = (HPEN) SelectObject(hdc, hPen1);
-			
+
 			if (this->plv->lastPage > 1 && !(this->option & 1)) {
 				MoveToEx(hdc, 0, rect.bottom-DMAN_BOT_MRG, NULL);
 				LineTo(hdc, rect.right, rect.bottom-DMAN_BOT_MRG);
@@ -2683,7 +2711,7 @@ LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 		case WM_MOUSEMOVE: //{
 			this->plv->hovered = 0;
 			SetCursor(hDefCrs);
-		
+
 			break;
 		//}
 		case WM_SETFOCUS: //{
@@ -2695,27 +2723,27 @@ errorf("setting focus1");
 					SetFocus(GetDlgItem(hwnd, 5));
 				}
 			}
-			
+
 			break;
 		//}
 		case WM_USER: //{	refresh pages
-		
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			lastlastpage = this->plv->lastPage;
 			j = 0, x = 0;
-			
+
 			if (this->tfstr) {
 				this->nitems = getframount(this->tfstr);
 				this->plv->lastPage = this->nitems/MAX_NTHUMBS + !!(this->nitems % MAX_NTHUMBS);
 			} else
 				this->plv->lastPage = 1;
-			
+
 			if (this->plv->curPage > this->plv->lastPage)
 				this->plv->curPage = this->plv->lastPage, j = 1;
-			
+
 			if (this->plv->lastPage != lastlastpage) {
 				SendDlgItemMessageW(hwnd, 4, WM_USER, 0, 0);
 				if (j == 1) {
@@ -2728,11 +2756,11 @@ errorf("setting focus1");
 				this->plv->hovered = 0;
 				SetCursor(hDefCrs);
 			}
-		
+
 			break;
 		//}
 		case WM_USER+1:		//{		refresh fnum and file name strings and thumbnails
-			
+
 			if (this->tlv.strchn[0] != NULL) {
 				killoneschn(this->tlv.strchn[0], 1);
 				this->tlv.strchn[0] = NULL;
@@ -2748,23 +2776,23 @@ errorf("setting focus1");
 					}
 				} free(this->tlv.thumb), this->tlv.thumb = NULL, this->tlv.nThumbs = 0;
 			}
-			
+
 			fnum = (this->plv->curPage-1)*MAX_NTHUMBS+1;
-			
+
 			if (this->tfstr) {
 				if (1) {
 					this->tlv.strchn[0] = ifrread(this->tfstr, (uint64_t) fnum, MAX_NTHUMBS); //! potentially modify it to have fnums and fnames in the same file
-					
+
 					for (link = this->tlv.strchn[0], i = 0; link != 0; link = link->next, i++);
 					if (fnum + i - 1 > this->nitems || (this->plv->curPage == this->plv->lastPage && fnum + i - 1 != this->nitems)) {
 						errorf("thumbman item amount mismatch");
 					}
-					
+
 					if (this->tlv.strchn[0]) {
 						this->tlv.strchn[1] = cfiread(this->dnum, this->tlv.strchn[0]);
 					}
 				}
-			
+
 				if (this->tlv.strchn[0]) {
 					this->tlv.nThumbs = i;
 					this->tlv.thumb = malloc(sizeof(ImgF*)*i);
@@ -2776,7 +2804,7 @@ errorf("setting focus1");
 							sprintf(buffer, "%s\\%s", this->dname, link->str);
 
 							this->tlv.thumb[i] = ReadImage(buffer);
-							
+
 							if (this->tlv.thumb[i] != 0) {
 								tempimg = this->tlv.thumb[i];
 								this->tlv.thumb[i] = FitImage(this->tlv.thumb[i], DEF_THUMBW, DEF_THUMBH, 1, 0);
@@ -2791,7 +2819,7 @@ errorf("setting focus1");
 					}
 				}
 			}
-			
+
 			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);	// update scroll in thmblist
 			if (!(InvalidateRect(hwnd, 0, 1))) {
 				errorf("InvalidateRect failed");
@@ -2799,16 +2827,16 @@ errorf("setting focus1");
 			break;
 		//}
 		case WM_USER+2: //{
-			
+
 			switch(wParam) {
-				
+
 			case 0:		// refresh
 //				this->tlv.nThumbs = MAX_NTHUMBS;
-				
+
 				break;
-				
+
 			case 1:		// change page
-				
+
 				for (i = this->tlv.nThumbs/8+!!(this->tlv.nThumbs%8)-1; i >= 0; i--) {
 					if (i < 0)
 						break;
@@ -2816,16 +2844,16 @@ errorf("setting focus1");
 				}
 				this->tlv.nThumbs = MAX_NTHUMBS;
 				fnum = (this->plv->curPage-1)*MAX_NTHUMBS+1;
-				
+
 				break;
 			}
-			
+
 			PostMessage(hwnd, WM_USER+1, 0, 0);
-			
+
 			break;
 		//}
 		case WM_COMMAND: //{
-				
+
 			if (HIWORD(wParam) == 0) { // menu
 				switch (LOWORD(wParam)) {
 				case 1:
@@ -2838,7 +2866,7 @@ errorf("setting focus1");
 						break;
 					}
 					DestroyWindow(GetDlgItem(hwnd, 3)), DestroyWindow(GetDlgItem(hwnd, 4)), DestroyWindow(GetDlgItem(hwnd, 6));
-					
+
 					if (this->tlv.thumb) {
 						for (i = 0; i > this->tlv.nThumbs; i++) {
 							if (this->tlv.thumb[i] != 0) {
@@ -2846,7 +2874,7 @@ errorf("setting focus1");
 							}
 						} free(this->tlv.thumb), this->tlv.thumb = 0;
 					}
-					
+
 					for (i = 0, (link = this->tlv.strchn[1]) && link != 0; link && i < j; i++, link = link->next);
 					if (!link || !link->str) {
 						errorf_old("no link or string in this->tlv.strchn[1], i: %llu", i);
@@ -2854,29 +2882,29 @@ errorf("setting focus1");
 					}
 					this->ivv.imgpath = malloc(strlen(this->dname)+1+strlen(link->str)+1);
 					sprintf(this->ivv.imgpath, "%s\\%s", this->dname, link->str);
-					
+
 					for (i = 0, (link = this->tlv.strchn[0]) && link != 0; link && i < j; i++, link = link->next);
 					if (!link) {
 						errorf_old("no link in this->tlv.strchn[0], j: %llu", j);
 						DestroyWindow(hwnd);
 					}
-					
+
 					this->ivv.fnum = link->ull;
-					
+
 					if (this->tlv.strchn[0] != 0)
 						killoneschn(this->tlv.strchn[0], 1), this->tlv.strchn[0] = 0;
 					if (this->tlv.strchn[1] != 0)
 						killoneschn(this->tlv.strchn[1], 0), this->tlv.strchn[1] = 0;
-					
+
 //					if (this->tlv.ThumbSel)
 //						free(this->tlv.ThumbSel), this->tlv.ThumbSel = 0;
 					for (j = 0; j < this->tlv.nThumbs/8+!!(this->tlv.nThumbs%8); this->tlv.ThumbSel[j] = 0, j++);
-					
+
 					this->option |= 1;
 					ViewImageClass::createWindowInstance(WinInstancer(0, L"View Image", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, rect.bottom, hwnd, (HMENU) 5, NULL, NULL));
 					SetFocus(GetDlgItem(hwnd, 5));
 					break;
-				case 2:	
+				case 2:
 					link = flink = malloc(sizeof(oneslnk));
 					for (j = 0, inlink = this->tlv.strchn[0]; j < this->tlv.nThumbs && inlink; j++, inlink = inlink->next) {
 						if (this->tlv.ThumbSel[(j)/8] & (1 << j%8)) {
@@ -2894,10 +2922,10 @@ errorf("setting focus1");
 					if (link == 0) {
 						break;
 					}
-					
+
 					thwnd = FileTagEditClass::createWindowInstance(WinInstancer(0, L"Edit Tags", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 150, 150, 500, 500, hwnd, 0, NULL, NULL));
 					SendMessage(thwnd, WM_USER, 0, (LPARAM) this->dnum);
-					
+
 					if (SendMessage(thwnd, WM_USER, 1, (LPARAM) link) != 1) {
 						errorf("didn't get filetagedit confirmation");
 						killoneschn(link, 1);
@@ -2906,7 +2934,7 @@ errorf("setting focus1");
 				}
 				break;
 			}
-			
+
 			break;
 		//}
 		case WM_U_RET_TL: //{
@@ -2923,7 +2951,7 @@ errorf("setting focus1");
 					AppendMenuW(hMenu, MF_STRING, 1, L"&View Image");	// if menu handles are changed, the message from WM_COMMAND needs to be changed to correspond to the right case
 					AppendMenuW(hMenu, MF_STRING, 2, L"&Edit Tags");
 //					AppendMenuW(hMenu, MF_STRING, 3, L"&Reroute (RP)");
-					
+
 					TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, this->tlv.point.x, this->tlv.point.y, 0, hwnd, 0);
 					DestroyMenu(hMenu);
 				}
@@ -2962,31 +2990,31 @@ errorf("setting focus1");
 					DestroyImgF(this->ivv.DispImage);
 					this->ivv.DispImage = 0;
 				}
-				
+
 				this->option &= ~1;
-				
-				
+
+
 				CreateWindowW(L"PageListClass", 0, WS_VISIBLE | WS_CHILD, 0, rect.bottom-DMAN_BOT_MRG+1, rect.right, (!!(this->plv->lastPage > 1))*DMAN_BOT_MRG, hwnd, (HMENU) 4, NULL, NULL);
 				CreateWindowW(L"ThumbListClass", 0, WS_VISIBLE | WS_CHILD, 0, SBAR_H, rect.right, rect.bottom-(!!(this->plv->lastPage > 1))*DMAN_BOT_MRG - SBAR_H, hwnd, (HMENU) 3, NULL, NULL);
 				CreateWindowW(L"SearchBarClass", 0, WS_VISIBLE | WS_CHILD, 0, 0, rect.right, SBAR_H, hwnd, (HMENU) 6, NULL, NULL);
-				
+
 				SendMessage(hwnd, WM_USER+1, 0, 0);
 				SetFocus(hwnd);
-				
+
 				break;
 			}
 			break;
 		//}
 		case WM_U_SBAR: //{
-			
+
 			if (lParam == 0) {
 				p = (char *) wParam;
-				
+
 				if (this->tfstr)
 					releasetfile(this->tfstr, 2);
-				
+
 				this->tfstr = ffireadtagext(this->dnum, p, IMGEXTS);
-				
+
 				if (this->tfstr) {
 					this->nitems = getframount(this->tfstr);
 					this->plv->lastPage = this->nitems/MAX_NTHUMBS + !!(this->nitems % MAX_NTHUMBS);
@@ -2994,20 +3022,20 @@ errorf("setting focus1");
 					this->plv->lastPage = 1;
 errorf("ffireadtagext no result");
 				}
-				
+
 				this->plv->curPage = 1;
 				SendDlgItemMessageW(hwnd, 4, WM_USER, 0, 0);
-				
+
 				SendMessage(hwnd, WM_USER+1, 0, 0);
 			}
-			
+
 			break;
 		//}
 		case WM_KEYDOWN: //{
 			switch(wParam) {
 			case VK_BACK:
 				PostMessage(this->parent, WM_KEYDOWN, wParam, lParam);
-				
+
 				break;
 			}
 			break;
@@ -3018,7 +3046,7 @@ errorf("ffireadtagext no result");
 					free(this->dname);
 				if (this->tfstr)
 					releasetfile(this->tfstr, 2);
-				
+
 				if (this->tlv.ThumbSel) {
 					free(this->tlv.ThumbSel);
 				}
@@ -3032,7 +3060,7 @@ errorf("ffireadtagext no result");
 						}
 					} free(this->tlv.thumb), this->tlv.thumb = 0;
 				}
-				
+
 				if (this->ivv.imgpath) {
 					free(this->ivv.imgpath);
 					this->ivv.imgpath = 0;
@@ -3046,25 +3074,25 @@ errorf("ffireadtagext no result");
 					this->ivv.DispImage = 0;
 				}
 			}
-			
+
 			thwnd = this->parent;
 			//FreeWindowMem(hwnd);
 			if (thwnd) {
 				EnableWindow(thwnd, 1);
 				SendMessage(thwnd, WM_U_RET_TMAN, 0, (LPARAM) hwnd);
 			}
-			
+
 			return 0;
 		//}
 	}
-	
+
 	*/
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
-	
+
 }
 
 
-//}
+//} ThumbManClass
 
 //{ PageListClass
 //public:
@@ -3103,7 +3131,7 @@ void PageListClass::getPages(int32_t edge) {
 	uint16_t decimals, decimals2;
 	uint64_t pos, pos2 = 0, lastnum, lastnum2;
 	uint8_t status = 0;
-	
+
 	this->pageListPtr = nullptr;
 	std::shared_ptr<std::vector<struct ListPage>> result;
 
@@ -3131,7 +3159,7 @@ void PageListClass::getPages(int32_t edge) {
 	do {
 		decimals = (uint16_t) log10(pos)+1;
 		lastnum = pow(10, decimals)-1;
-		
+
 		if (!(status & 4)) {
 			if (lastnum >= curPage) {
 				if (pos - 1 + midremainder / (PAGES_SPACE+decimals*CHAR_WIDTH+PAGE_PAD) >= curPage) {
@@ -3172,7 +3200,7 @@ void PageListClass::getPages(int32_t edge) {
 				midremainder -= (lastnum-pos+1)*(decimals*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE);
 			}
 		}
-		pos = lastnum+1;		
+		pos = lastnum+1;
 	} while (decimals < 100);
 	if (status & 1) {	// if buttons for all pages fit (no arrows)
 		endremainder = endremainder/2 + PAGES_SIDEBUF;	// starting coordinate
@@ -3191,18 +3219,18 @@ void PageListClass::getPages(int32_t edge) {
 		}
 		vec[curPage-1].type |= 1;
 		vec[lastPage-1].type |= 2;
-		
+
 		this->pageListPtr = result;
-		
+
 	} else if (status & 2 || curPage == 1) { // if the selected page's button fits before middle when starting from 1 (no left arrows)
 		endremainder = PAGES_SIDEBUF;
 		if ((pos2 == 0) || !(status & 2)) { // cur page is 1, but doesn't fit
 			pos2 = 1;
 		}
 		result = std::shared_ptr<std::vector<struct ListPage>>(new std::vector<struct ListPage>( (pos2+2) ));
-		
+
 		auto &vec = *result;
-		
+
 		for (pos = 1; pos <= pos2; pos++) {
 			vec[pos-1].type = 0;
 			vec[pos-1].str = utoc(pos);
@@ -3222,9 +3250,9 @@ void PageListClass::getPages(int32_t edge) {
 		vec[pos].left = endremainder;
 //		vec[pos].right = endremainder+2*CHAR_WIDTH+PAGE_PAD;
 		vec[pos].right = endremainder+(((uint16_t) log10(lastPage)+1)*CHAR_WIDTH+PAGE_PAD);
-		
+
 		this->pageListPtr = result;
-		
+
 	} else {
 		status = 0;
 		selstart = (edge - ((uint16_t)(log10(curPage)+1)*CHAR_WIDTH + PAGE_PAD)) / 2;		// space before curpage button; not casting to uint16_t caused it to go off-center
@@ -3240,7 +3268,7 @@ void PageListClass::getPages(int32_t edge) {
 		do {
 			decimals = (uint16_t) log10(pos)+1;
 			lastnum = pow(10, decimals)-1;
-			
+
 			if (!(status & 2)) {
 				if ((lastnum-pos+1)*(decimals*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE) >= endremainder-taillen) {
 					midremainder = endremainder-taillen;
@@ -3256,7 +3284,7 @@ void PageListClass::getPages(int32_t edge) {
 							pos2 = lastnum2+1;
 						}
 					} while (decimals2 < 100);
-					
+
 					if (pos2 < curPage) {	// too small to fit even the selected page
 						pos2 = curPage;
 					}
@@ -3280,7 +3308,7 @@ void PageListClass::getPages(int32_t edge) {
 			endremainder = selstart + endremainder - PAGES_SIDEBUF - headlen;		// an extra PAGES_SPACE is already accounted for in selstart since it's up to the actual start after the space
 			if (endremainder < 0)
 				endremainder = 0;
-			pos2 = lastPage;	
+			pos2 = lastPage;
 		} else {
 			if (!(status & 2)) {
 				status |= 2;
@@ -3294,7 +3322,7 @@ void PageListClass::getPages(int32_t edge) {
 		do {
 			decimals = (uint16_t) log10(pos-1)+1; 	// the actual pos doesn't need to fit
 			lastnum = pow(10, decimals-1);
-			
+
 			if ((pos-lastnum)*(decimals*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE) >= endremainder) {
 				lastnum = pos;
 				pos = pos - endremainder / (decimals*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE);
@@ -3305,13 +3333,13 @@ void PageListClass::getPages(int32_t edge) {
 				pos = lastnum;
 			}
 		} while (decimals > 1);
-		
+
 		result = std::shared_ptr<std::vector<struct ListPage>>(new std::vector<struct ListPage>( (2+(pos2-pos+1)+2*(!(status & 1))) ));
-		
+
 		auto &vec = *result;
-		
+
 		endremainder += PAGES_SIDEBUF;
-		
+
 		vec[0].type = 0;
 		vec[0].str = utoc(1);
 	//		vec[0].str = malloc(3), vec[0].str[0] = '<', vec[0].str[1] = '<', vec[0].str[2] = '\0';
@@ -3350,7 +3378,7 @@ void PageListClass::getPages(int32_t edge) {
 		lastnum--;
 		vec[lastnum].type |= 2;
 		vec[curPage-i+2].type |= 1;
-		
+
 		this->pageListPtr = result;
 	}
 }
@@ -3365,22 +3393,22 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 	HMENU hMenu;
 	switch(msg) {
 		case WM_CREATE: {
-			
+
 			//! TODO: maybe initialize in class instead
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			this->hovered = 0;
 			this->pageListPtr = nullptr;
 			this->curPage = 0;
 			this->lastPage = 0;
-			
+
 			if (this->isPainting()) {
 				this->getPages(rect.right);
 			}
-			
+
 			break;
 		}
 		case WM_SIZE:
@@ -3389,21 +3417,21 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			if (this->isPainting()) {
 				this->getPages(rect.right);
 			}
 			break;
 		}
 		case WM_PAINT: {
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-	
+
 			HDC hdc;
 			PAINTSTRUCT ps;
-			
+
 			HPEN hOldPen;
 			HBRUSH tempBrush, hOldBrush;
 			HFONT hOldFont;
@@ -3417,15 +3445,15 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 			SelectObject(hdc, hPen1);
 			SetBkMode(hdc, TRANSPARENT);
 			tempBrush = CreateSolidBrush(DL_BORDER_COL);
-			
+
 /*			MoveToEx(hdc, PAGES_SIDEBUF, rect.bottom-DMAN_BOT_MRG, NULL);
 			LineTo(hdc, PAGES_SIDEBUF, rect.bottom);
 			MoveToEx(hdc, rect.right/2, rect.bottom-DMAN_BOT_MRG, NULL);
 			LineTo(hdc, rect.right/2, rect.bottom);
 			MoveToEx(hdc, rect.right-PAGES_SIDEBUF-1, rect.bottom-DMAN_BOT_MRG, NULL);
 			LineTo(hdc, rect.right-PAGES_SIDEBUF-1, rect.bottom);
-*/						
-			
+*/
+
 			if (this->pageListPtr != nullptr) {
 				auto &pageList = *pageListPtr;
 				for (i = 0; ; i++) {
@@ -3451,7 +3479,7 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					}
 				}
 			}
-			
+
 			SelectObject(hdc, hOldPen);
 			SelectObject(hdc, hOldFont);
 			SelectObject(hdc, hOldBrush);
@@ -3463,13 +3491,13 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 		}
 		case WM_MOUSEMOVE: {
 			{
-				
+
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
 				int hvrdbefore = this->hovered;
 				this->hovered = 0;
-				
+
 				if (this->pageListPtr) {
 					auto &pageList = *pageListPtr;
 					if (((i = lParam/256/256) >= rect.bottom-18) && (i < rect.bottom-2)) {
@@ -3487,13 +3515,13 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 						}
 					}
 				}
-				
+
 				if (this->hovered != hvrdbefore) {
 					if (!(InvalidateRect(hwnd, 0, 0))) {
 						errorf("InvalidateRect failed");
 					}
 				}
-				
+
 				if (this->hovered) {
 					SetCursor(hCrsHand);
 				} else {
@@ -3503,19 +3531,19 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 			break;
 		}
 		case WM_LBUTTONDOWN: {
-			
+
 			if (!this->pageListPtr) {
 				break;
 			}
 			auto &pageList = *pageListPtr;
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			if (((i = lParam/256/256) >= rect.bottom-18) && (i < rect.bottom-2)) {
 				int temp2 = lParam % (256*256);
-				
+
 				for (i = 0; ; i++) {
 					if (!(pageList[i].type & 1)) {
 						if ((temp2 >= pageList[i].left)	&& (temp2 <= pageList[i].right)) {
@@ -3523,16 +3551,16 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 								if (pageList[i].str[1] == '<')
 									this->curPage = 1;
 								else
-									this->curPage--;								
+									this->curPage--;
 							} else if (pageList[i].str[0] == '>') {
 								if (pageList[i].str[1] == '>')
 									this->curPage = this->lastPage;
 								else
-									this->curPage++;								
+									this->curPage++;
 							} else {
 								this->curPage = ctou(pageList[i].str);
 							}
-							
+
 							for (int j = 0; ; j++) {
 								if (pageList[j].str != nullptr) {
 									free(pageList[j].str);
@@ -3547,8 +3575,8 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 							if (!(InvalidateRect(hwnd, 0, 1))) {
 								errorf("InvalidateRect failed");
 							}
-							SendMessage(GetParent(hwnd), WM_U_RET_PL, 0, 1);
-							
+							SendMessage(GetParent(hwnd), WM_U_RET_PL, 1, 0);
+
 							break;
 						}
 					}
@@ -3556,7 +3584,7 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 						break;
 				}
 			}
-			
+
 			break;
 		}
 		case WM_U_PL: {
@@ -3565,9 +3593,9 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-					
+
 					this->getPages(rect.right);
-					
+
 					break;
 				}
 			}
@@ -3584,7 +3612,7 @@ LRESULT CALLBACK PageListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 }
 
 
-//}
+//} PageListClass
 
 //{ StrListClass
 //public:
@@ -3603,115 +3631,300 @@ HWND StrListClass::createWindowInstance(WinInstancer wInstancer) {
 	return wInstancer.create(winArgs, helper.winClassName);
 }
 
-uint64_t StrListClass::getSingleSelPos(void) {
-	
+int64_t StrListClass::getSingleSelPos(void) const {
+	if (this->getNRows() <= 0) {
+		errorf("getSingleSelPos getNRows <= 0");
+		return -1;
+	}
+	int64_t gotNRows = this->getNRows();
+
 	if (this->rowSelsPtr == nullptr) {
 		errorf("getSingleSelPos rowSelsPtr was null");
-		return 0;
+		return -1;
 	}
-	
-	auto &rowSels = *this->rowSelsPtr;
-	
-	int32_t pos, i;
-	
-	oneslnk *link, *flink;
-	link = flink = malloc(sizeof(oneslnk));
-	for (pos = 0, i = 0; pos < this->nRows; pos++) {
-		if (this->StrListSel[(pos)/8] & (1 << pos%8)) {
-			link = link->next = malloc(sizeof(oneslnk));
-			link->ull = ctou(this->strs[0][pos]);
+	auto selsPtrHolder = this->rowSelsPtr;
+
+	auto &rowSels = *selsPtrHolder;
+
+	int64_t pos, i = -1;
+
+	for (pos = 0; pos < gotNRows; pos++) {
+		if (rowSels[pos]) {
+			if (i == -1) {
+				i = pos;
+			} else {
+				errorf("getSingleSelPos had multiple selections");
+				return -1;
+			}
+		}
+	}
+
+	if (pos != gotNRows) {
+		errorf("didn't go through all rows");
+		return -1;
+	}
+
+	return i;
+}
+
+std::shared_ptr<std::vector<std::string>> StrListClass::getSingleSelRowCopy(void) const {
+	int64_t pos = this->getSingleSelPos();
+
+	if (pos < 0) {
+		return {};
+	}
+
+	std::shared_ptr<std::vector<std::string>> rowCopyPtr( new std::vector<std::string>((*this->rowsPtr)[pos]) );
+
+	return rowCopyPtr;
+}
+
+std::string StrListClass::getSingleSelRowCol(int32_t argCol, ErrorObject *retError = nullptr) const {
+errorf("gssrc pos 0");
+	if (argCol >= this->getNColumns() || argCol < 0) {
+errorf("gssrc err1");
+		setErrorPtr(retError, 2);
+		return {};
+	}
+
+	int64_t pos = this->getSingleSelPos();
+
+	if (pos < 0) {
+errorf("gssrc err2 ");
+		setErrorPtr(retError, 1);
+		return {};
+	}
+
+	return (*this->rowsPtr)[pos][argCol];
+}
+
+
+std::shared_ptr<std::forward_list<int64_t>> StrListClass::getSelPositions(void) const {
+	if (this->getNRows() <= 0) {
+		errorf("getSelPositions getNRows <= 0");
+		return {};
+	}
+	int64_t gotNRows = this->getNRows();
+
+	if (this->rowSelsPtr == nullptr) {
+		errorf("getSelPositions rowSelsPtr was null");
+		return {};
+	}
+	auto selsPtrHolder = this->rowSelsPtr;
+
+	auto &rowSels = *selsPtrHolder;
+
+	if (this->rowsPtr == nullptr) {
+		errorf("getSelPositions rowsPtr was null");
+		return {};
+	}
+	auto rowsPtrHolder = this->rowsPtr;
+
+	auto &rows = *this->rowsPtr;
+
+	std::shared_ptr<std::forward_list<int64_t>> selListPtr( new std::forward_list<int64_t>() );
+
+	if (selListPtr == nullptr) {
+		errorf("shared_ptr alloc fail");
+		return {};
+	}
+
+	std::forward_list<int64_t> &selList = *selListPtr;
+
+	auto it = selList.before_begin();
+
+	int64_t pos, i;
+
+	for (pos = 0, i = 0; pos < gotNRows; pos++) {
+		if (rowSels[pos]) {
+			int64_t toEmplace = pos;
+			it = selList.emplace_after(it, toEmplace);
 			i++;
 		}
 	}
-	link->next = 0;
-	
-	if (pos != this->nRows) {
-		errorf("didn't go through all rows");
-		killoneschn(flink, 1);
-	}
-	
-	link = flink, flink = flink->next;
-	free(link);
-	if (i == 0)
-		return 0;
-	if (i != 1)	//! do this before going through the whole list
-		return 0;
-		
-	if (flink == NULL) {
-		errorf("getsingleselpos -- flink is null");
-		return 0;
-	}
-		
-	uint64_t t = flink->ull;
-	killoneschn(flink, 1);
-	return t;
-}
 
+	if (pos != gotNRows) {
+		errorf("didn't go through all rows");
+		return {};
+	}
+
+	return selListPtr;
+}
 
 bool StrListClass::setNColumns(int32_t argI) {
 	if (argI < 0) {
 		errorf("tried to set nColumns to less than 0");
 		return false;
 	}
-	
+
 	this->nColumns = argI;
-	
+
 	sectionHeadersPtr = nullptr;
-	sectionsPtr = nullptr;
+	rowsPtr = nullptr;
 	rowSelsPtr = nullptr;
-	
-	columnPosPtr = std::shared_ptr<std::vector<int16_t>>( new std::vector<int16_t>({argI}) );
-	
+
+	columnWidthsPtr = std::shared_ptr<std::vector<int16_t>>( new std::vector<int16_t>(argI) );
+
 	return true;
-	
+
 }
 
+bool StrListClass::setHeaders(std::shared_ptr<std::vector<std::string>> argHeaderPtr) {
+	if (!argHeaderPtr) {
+		errorf("setHeaders received nullptr");
+		return false;
+	}
+
+	auto &headerVec = *argHeaderPtr;
+
+	if (headerVec.size() != this->getNColumns()) {
+		errorf("setHeaders vector size doesn't match nColumns");
+		return false;
+	} else {
+		this->sectionHeadersPtr = argHeaderPtr;
+		return true;
+	}
+}
+
+bool StrListClass::setColumnWidth(int32_t colArg, int32_t width) {
+	auto columnWidthsHoldPtr = this->columnWidthsPtr;
+	if (!columnWidthsHoldPtr) {
+		errorf("columnWidthsPtr was null");
+		return false;
+	}
+	auto &colWidths = *columnWidthsHoldPtr;
+
+	int32_t gotNColumns = this->getNColumns();
+
+	if (colArg >= gotNColumns) {
+		errorf("colArg >= gotNColumns");
+		return false;
+	} else if (colArg < 0) {
+		errorf("colArg < 0");
+		return false;
+	}
+
+	colWidths[colArg] = width;
+	if (width < this->minColWidth) {
+		colWidths[colArg] = this->minColWidth;
+	} else if (width > this->maxColWidth) {
+		colWidths[colArg] = this->maxColWidth;
+	}
+
+	return true;
+
+}
+
+int32_t StrListClass::getNColumns(void) const {
+	return this->nColumns;
+}
+
+int32_t StrListClass::getTotalColumnsWidth(void) const {
+	auto holdPtr = this->columnWidthsPtr;
+	if (holdPtr == nullptr) {
+		return 0;
+	}
+
+	auto &columnWidths = *holdPtr;
+
+	int32_t res = 0;
+	for (const auto &width : columnWidths) {
+		res += width;
+	}
+
+	return res;
+}
 
 bool StrListClass::clearRows(void) {
+	this->rowsPtr = nullptr;
+
 	// clear selections as well
-	
+	bool b_clearRes = this->clearSelections();
+
+	return true;
+}
+
+bool StrListClass::assignRows(std::shared_ptr<std::vector<std::vector<std::string>>> inputVectorPtr) {
+	if (!inputVectorPtr) {
+		this->rowsPtr = nullptr;
+		this->rowSelsPtr = nullptr;
+		this->nRows = 0;
+
+		return true;
+	} else {
+		auto &inputVector = *inputVectorPtr;
+
+		int32_t gotNColumns = this->getNColumns();
+
+		for (auto &row : inputVector) {
+			if (row.size() != gotNColumns) {
+				errorf("input row had mismatching columns");
+				this->assignRows(nullptr);
+				return false;
+			}
+		}
+
+		this->rowsPtr = inputVectorPtr;
+		this->nRows = inputVector.size();
+		this->rowSelsPtr.reset( new boost::dynamic_bitset<>(this->nRows) );
+
+		return true;
+	}
+}
+
+int64_t StrListClass::getNRows(void) const {
+	return this->nRows;
+}
+
+bool StrListClass::clearSelections(void) {
+	auto selsHoldPtr = this->rowSelsPtr;
+
+	if (selsHoldPtr) {
+		auto &rowSels = *selsHoldPtr;
+		rowSels.reset();
+	}
 }
 
 LRESULT CALLBACK StrListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
+/*
 	RECT rect;
 	HWND thwnd;
-	
+
 	int64_t i;
 	int j, k, l, pos;
 	uint8_t *buf, exit = 0;
 	wchar_t *wbuf;
 	SCROLLINFO sinfo = {0};
 	//STRLISTV *lv = 0;
-	
-	HDC hdc, hdc2;
-	PAINTSTRUCT ps;
-	HFONT hOldFont;
-	HPEN hOldPen;
-	HBRUSH hOldBrush;
-	HBITMAP hOldBM;
-	
+
+
 	oneslnk **link;
-	
+
 	int len, diff;
 	int64_t lastrow;
 	char uneven, sel;
-	
+*/
+
 	switch(msg) {
-		case WM_CREATE: //{
+		case WM_CREATE: {
 			this->yspos = this->xspos = 0;
 			this->hvrd = 0;
 			this->drag = 0;
 			this->timed = 0;
 			this->lastSel = 0;
-			this->nRows = 0;
-			
-			this->nColumns = 0;
-			
+
+			this->assignRows(nullptr);
+
+			this->setNColumns(0);
+
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
+			//! TODO: add a method to do this instead
+			SCROLLINFO sinfo = {0};
 			sinfo.cbSize = sizeof(SCROLLINFO);
 			sinfo.fMask = SIF_ALL;
 			sinfo.nMin = 0;
@@ -3719,76 +3932,136 @@ LRESULT CALLBACK StrListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 			sinfo.nPage = rect.bottom-STRLIST_TOP_MRG;
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-			
+
 			if (!(ShowScrollBar(hwnd, SB_VERT, 1))) {
 				errorf("ShowScrollBar failed.");
 			}
-			
-			for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-			sinfo.nMax = j-1;
+
+			int j = this->getTotalColumnsWidth();
+			sinfo.nMax = j-1;	// the first column has its first pixel off-screen
 			sinfo.nPage = rect.right;
 			sinfo.nPos = this->xspos;
 			SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-			
+
 errorf("strlistclass create 9");
-			
+
 			break;
-		//}
-		case WM_PAINT: //{
-		
+		}
+		case WM_PAINT: {
+
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-				
+
+			HDC hdc, hdc2;
+			PAINTSTRUCT ps;
+			HFONT hOldFont;
+			HPEN hOldPen;
+			HBRUSH hOldBrush;
+			HBITMAP hOldBM;
+
 			hdc = BeginPaint(hwnd, &ps);
-			
+
 			hdc2 = CreateCompatibleDC(hdc);
 			hOldPen = GetCurrentObject(hdc2, OBJ_PEN);
 			hOldBrush = GetCurrentObject(hdc2, OBJ_BRUSH);
 			hOldFont = (HFONT) SelectObject(hdc2, hFont);
 			SetBkMode(hdc2, TRANSPARENT);
-			
-			i = this->yspos/ROW_HEIGHT;
-			uneven = (i+1) % 2;
-			diff = this->yspos%ROW_HEIGHT;		// diff is the amount of pixels outside the area; ROW_HEIGHT-diff is the amount of pixels in the first row
-			
+
+			int64_t firstRow = this->yspos/ROW_HEIGHT;
+			// upOffset is the number of pixels outside the window in the first row; ROW_HEIGHT-upOffset is the number of pixels in the first row
+			int32_t upOffset = this->yspos%ROW_HEIGHT;
+
 			if (!hListSliceBM) {
-				j = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+				int64_t j = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 				if (j == 0) {
 					j = 1920;
 				}
 				hListSliceBM = CreateCompatibleBitmap(hdc, j, ROW_HEIGHT);
 			}
 			hOldBM = SelectObject(hdc2, hListSliceBM);
-			wbuf = malloc(MAX_PATH*2);
-			lastrow = i + (!!diff)+(rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-diff)%ROW_HEIGHT)/ROW_HEIGHT+(((rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-diff)%ROW_HEIGHT)) > 0) - 1;
-			
-			for (sel = 0; i <= lastrow; i++, sel = 0, uneven = !uneven) {
-				for (j = 0; j < this->nColumns; j++) {
-					for (k = 0, l = 0; l < j; k+= this->bpos[l], l++);
-					k -= this->xspos;
-					if (k >= rect.right) {
+
+			int64_t lastRow = firstRow + (!!upOffset) + (rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-upOffset)%ROW_HEIGHT)/ROW_HEIGHT + (((rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT - upOffset) % ROW_HEIGHT)) > 0) - 1;
+			// (rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-upOffset)%ROW_HEIGHT)/ROW_HEIGHT
+			// = (rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-upOffset))/ROW_HEIGHT + !upOffset
+			// = (rect.bottom-STRLIST_TOP_MRG + upOffset))/ROW_HEIGHT + !upOffset - 1
+			// !!upOffset + !upOffset - 1 = 0
+			//! TODO: uncomment and test
+			// int64_t lastRow = firstRow - 1 + (rect.bottom-STRLIST_TOP_MRG + upOffset))/ROW_HEIGHT + !!((rect.bottom-STRLIST_TOP_MRG + upOffset) % ROW_HEIGHT);
+
+			auto rowSelsHoldPtr = this->rowSelsPtr;
+			auto rowsHoldPtr = this->rowsPtr;
+			auto columnWidthsHoldPtr = this->columnWidthsPtr;
+			auto headersHoldPtr = this->sectionHeadersPtr;
+
+
+
+			int32_t gotNColumns = this->getNColumns();
+			int64_t gotNRows = this->getNRows();
+
+			//! TODO: deinitialize paint objects on return
+
+			// if no columns, draw a single column with no rows
+			if (!columnWidthsHoldPtr || gotNColumns == 0) {
+errorf("no columnWidthsHoldPtr");
+				gotNColumns = 1;
+				gotNRows = 0;
+				columnWidthsHoldPtr = std::shared_ptr<std::vector<int16_t>>( new std::vector<int16_t>({1}) );
+				headersHoldPtr = std::shared_ptr<std::vector<std::string>>( new std::vector<std::string>{""});
+			}
+
+			//! TODO: allow rowSels not to be defined
+			if (!rowSelsHoldPtr || !rowsHoldPtr) {
+				gotNRows = 0;
+				rowsHoldPtr = std::make_shared<std::vector<std::vector<std::string>>>();
+			}
+
+			auto &columnWidths = *columnWidthsHoldPtr;
+			auto &rowSels = *rowSelsHoldPtr;
+
+			auto &rows = *rowsHoldPtr;
+
+			bool uneven = (firstRow+1) % 2;
+			for (int64_t row = firstRow; row <= lastRow; row++, uneven = !uneven) {
+				bool sel = false;
+				for (int32_t col = 0; col < gotNColumns; col++) {
+					// k is set to totalColumnWidths before
+					//int32_t k = 0;
+					int32_t w1 = 0;
+					for (int32_t tempCol = 0; tempCol < col; w1 += columnWidths[tempCol], tempCol++);
+					w1 -= this->xspos;
+					// column has left edge is after view area
+					if (w1 >= rect.right) {
 						break;
 					}
-					if ((l = k + this->bpos[j]) < 0) {
+
+					int32_t w2 = 0;
+					// column has right edge before view area
+					if ((w2 = w1 + columnWidths[col]) < 0) {
 						continue;
 					}
-					if (j+1 == this->nColumns)
-						l = rect.right;
-					if (i < this->nRows && this->StrListSel[(i)/8] & (1 << i%8)) {
+					// is last column
+					if (col+1 >= gotNColumns) {
+						w2 = rect.right;
+					}
+					// row is selected
+					if (row < gotNRows && rowSels[row]) {
 						SelectObject(hdc2, selPen);
 						SelectObject(hdc2, selBrush);
-						sel = 1;
+						sel = true;
+					// row in uneven position
 					} else if (uneven) {
-						if (!(j % 2)) {
+						if (!(col % 2)) {
 							SelectObject(hdc2, bgPen2);
 							SelectObject(hdc2, bgBrush2);
 						} else {
 							SelectObject(hdc2, bgPen4);
 							SelectObject(hdc2, bgBrush4);
 						}
+					// row in even position
 					} else {
-						if (!(j % 2)) {
+						if (!(col % 2)) {
 							SelectObject(hdc2, bgPen3);
 							SelectObject(hdc2, bgBrush3);
 						} else {
@@ -3796,14 +4069,20 @@ errorf("strlistclass create 9");
 							SelectObject(hdc2, bgBrush5);
 						}
 					}
-					Rectangle(hdc2, k, 0, l+(sel && !(j+1 == this->nColumns)), ROW_HEIGHT);
-					if (sel && j > 0) {
+					Rectangle(hdc2, w1, 0, w2 + (sel && !(col+1 == gotNColumns)), ROW_HEIGHT);
+					if (sel && col > 0) {
 						SelectObject(hdc2, selPen2);
-						MoveToEx(hdc2, k, 1, NULL);
-						LineTo(hdc2, k, ROW_HEIGHT-1);
+						MoveToEx(hdc2, w1, 1, NULL);
+						LineTo(hdc2, w1, ROW_HEIGHT-1);
 					}
-					
-					if (i < this->nRows) {
+
+					if (row < gotNRows) {
+						std::wstring wstr = u8_to_u16(rows[row][col]);
+
+						TextOutW(hdc2, w1+3, (ROW_HEIGHT)-(ROW_HEIGHT/2)-7, wstr.c_str(), wstr.length());
+
+						/*
+
 						if (this->strs[j][i] == 0) {
 							if ((MultiByteToWideChar(65001, 0, "<missing>", -1, wbuf, MAX_PATH)) == 0) {
 								errorf("MultiByteToWideChar Failed");
@@ -3815,14 +4094,15 @@ errorf("strlistclass create 9");
 						if (len >= MAX_PATH) {
 							errorf("strlist string too long");
 						} else {
-							TextOutW(hdc2, k+3, (ROW_HEIGHT)-(ROW_HEIGHT/2)-7, wbuf, len);
+							TextOutW(hdc2, w1 + 3, (ROW_HEIGHT)-(ROW_HEIGHT/2)-7, wbuf, len);
 						}
+						*/
 					}
 				}
-				if (i == 0) {
-					BitBlt(hdc, 0, STRLIST_TOP_MRG, rect.right, ROW_HEIGHT-diff, hdc2, 0, diff, SRCCOPY);
+				if (row == 0) {
+					BitBlt(hdc, 0, STRLIST_TOP_MRG, rect.right, ROW_HEIGHT- upOffset, hdc2, 0, upOffset, SRCCOPY);
 				} else {
-					BitBlt(hdc, 0, STRLIST_TOP_MRG+(i)*ROW_HEIGHT-diff, rect.right, ROW_HEIGHT, hdc2, 0, 0, SRCCOPY);
+					BitBlt(hdc, 0, STRLIST_TOP_MRG+(row)*ROW_HEIGHT - upOffset, rect.right, ROW_HEIGHT, hdc2, 0, 0, SRCCOPY);
 				}
 			}
 			SelectObject(hdc2, hOldPen);
@@ -3833,55 +4113,96 @@ errorf("strlistclass create 9");
 			hOldBrush = (HBRUSH) SelectObject(hdc, bgBrush1);
 			hOldPen = (HPEN) SelectObject(hdc, bgPen1);
 			hOldFont = (HFONT) SelectObject(hdc, hFont);
-			
+
 			Rectangle(hdc, 0, 0, rect.right, STRLIST_TOP_MRG);
-			
+
 			SelectObject(hdc, hPen1);
 			MoveToEx(hdc, 0, STRLIST_TOP_MRG-1, NULL);
 			LineTo(hdc, rect.right, STRLIST_TOP_MRG-1);
-			
+
 			SetBkMode(hdc, TRANSPARENT);
-			
-			for (j = 0; j < this->nColumns; j++) {
-				for (k = 0, l = 0; l < j; k+= this->bpos[l], l++);
-				k -= this->xspos;
-				if (k >= rect.right) {		//! test to see if correct relation
+
+			if (!headersHoldPtr) {
+				errorf("headersHoldPtr was null");
+				break;
+			}
+
+			// spec: if nColumns > 0, sectionHeadersPtr must hold a vector with nColumns elements
+			auto &headers = *headersHoldPtr;
+
+			// draw column headers
+			//! TODO: use bitblt so there shouldn't be any flickering issues or overflow from the area
+			for (int32_t col = 0; col < gotNColumns; col++) {
+				int32_t w1 = 0;
+				for (int32_t tempCol = 0; tempCol < col; w1 += columnWidths[tempCol], tempCol++);
+				w1 -= this->xspos;
+				// column has left edge is after view area
+				if (w1 >= rect.right) { //! TODO: test near 0
 					break;
 				}
-				if ((l = k + this->bpos[j]) < 0) {
+
+				int32_t w2 = 0;
+				// column has right edge before view area
+				if ((w2 = w1 + columnWidths[col]) < 0) {
 					continue;
 				}
-				
+				// is last column
+				if (col+1 >= gotNColumns) {
+					w2 = rect.right;
+				}
+
+				Rectangle(hdc, w1, 0, w2, ROW_HEIGHT);
+
+				std::wstring wstr = u8_to_u16(headers[col]);
+
+				TextOutW(hdc, w1 + 3, (ROW_HEIGHT)-(ROW_HEIGHT/2)-7, wstr.c_str(), wstr.length());
+
+				/*
+
 				if (this->header) {
-					if (this->header[j] == 0) {
+					if (this->header[col] == 0) {
 						if ((MultiByteToWideChar(65001, 0, "<missing>", -1, wbuf, MAX_PATH)) == 0) {
 							errorf("MultiByteToWideChar Failed");
 						}
-					} else if ((MultiByteToWideChar(65001, 0, this->header[j], -1, wbuf, MAX_PATH)) == 0) {
+					} else if ((MultiByteToWideChar(65001, 0, this->header[col], -1, wbuf, MAX_PATH)) == 0) {
 						errorf("MultiByteToWideChar Failed");
 					}
 					for (len = 0; wbuf[len] != '\0' && len < MAX_PATH; len++);
 					if (len >= MAX_PATH) {
 						errorf("strlist header string too long");
 					} else {
-						TextOutW(hdc, k+3, (STRLIST_TOP_MRG-14)/2, wbuf, len);
+						TextOutW(hdc, w1 + 3, (STRLIST_TOP_MRG-14)/2, wbuf, len);
 					}
 				}
-				MoveToEx(hdc, k, 0, NULL);
-				LineTo(hdc, k, STRLIST_TOP_MRG-1);
+				*/
+				MoveToEx(hdc, w1, 0, NULL);
+				LineTo(hdc, w1, STRLIST_TOP_MRG-1);
 			}
-			free(wbuf);
-			
+
 			SelectObject(hdc, hOldPen);
 			SelectObject(hdc, hOldBrush);
 			SelectObject(hdc, hOldFont);
 			EndPaint(hwnd, &ps);
 			break;
-		//}
-		case WM_USER: //{
-			
+		}
+		case WM_USER: {
+			SCROLLINFO sinfo = {0};
+			RECT rect;
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+
+			auto widthsHoldPtr = this->columnWidthsPtr;
+			if (!widthsHoldPtr) {
+				return 1;
+			}
+
+			auto &widths = *widthsHoldPtr;
+
+			int32_t gotNColumns = this->getNColumns();
+
 			switch (wParam) {
-			case 1:
+			case 1: {
 				sinfo.fMask = SIF_RANGE | SIF_POS | SIF_PAGE;
 				sinfo.nMin = 0;
 				if (this->nRows == 0)
@@ -3890,35 +4211,39 @@ errorf("strlistclass create 9");
 					sinfo.nMax = ROW_HEIGHT*this->nRows-1;
 				sinfo.nPos = this->yspos = 0;
 				sinfo.nPage = rect.bottom-STRLIST_TOP_MRG;
-				
+
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-				
-				for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-				sinfo.nMax = j-1;
+
+				int32_t w2 = 0;
+				for (int32_t i1 = 0; i1 < this->nColumns; w2 += widths[i1], i1++);
+				sinfo.nMax = w2 - 1;
 				sinfo.nPage = rect.right;
 				sinfo.nPos = this->xspos = 0;
 				SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-				
-				
+
+
 				break;
-				
-			case 2:
+			}
+			case 2: {
 				sinfo.fMask = SIF_RANGE | SIF_POS | SIF_PAGE;
-				if (this->nRows == 0)
+				if (this->nRows == 0) {
 					sinfo.nMax = 0;
-				else
+				} else {
 					sinfo.nMax = ROW_HEIGHT*this->nRows-1;
+				}
 				sinfo.nPos = this->yspos = 0;
 				sinfo.nPage = rect.bottom-STRLIST_TOP_MRG;	// don't know why setting page is necessary
-				
+
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-				
-				for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-				sinfo.nMax = j-1;
+
+				int32_t w2 = 0;
+
+				for (int32_t col1 = 0; col1 < gotNColumns; w2 += widths[col1], col1++);
+				sinfo.nMax = w2 - 1;
 				sinfo.nPage = rect.right;
 				sinfo.nPos = this->xspos = 0;
 				SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-				
+
 				if ((this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG) || (rect.bottom-STRLIST_TOP_MRG <= 0)) {
 					this->yspos = 0;
 					ShowScrollBar(hwnd, SB_VERT, 0);
@@ -3927,27 +4252,79 @@ errorf("strlistclass create 9");
 					if (this->yspos > this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG))
 						this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 				}
-				if ((j <= rect.right) || (rect.right <= 0)) {
+				if ((w2 <= rect.right) || (rect.right <= 0)) {
 					this->xspos = 0;
 					ShowScrollBar(hwnd, SB_HORZ, 0);
 				} else {
 					ShowScrollBar(hwnd, SB_VERT, 1);
-					if (this->xspos > j-rect.right)
-						this->xspos = j-rect.right;
+					if (this->xspos > w2 - rect.right)
+						this->xspos = w2 - rect.right;
 				}
 				break;
 			}
-		//}
-		case WM_U_SL: {
-			switch (wParam) {
 			}
 		}
-		case WM_SIZE: //{
-		
+		case WM_U_SL: {
+			switch (wParam) {
+				case SL_CHANGE_PAGE: {
+					this->yspos = this->xspos = 0;
+					this->hvrd = 0;
+					if (this->drag) {
+						if (!ReleaseCapture()) {
+							errorf("ReleaseCapture failed");
+						}
+					}
+					this->drag = 0;
+					this->timed = 0;
+					this->lastSel = 0;
+
+					RECT rect;
+					if (GetClientRect(hwnd, &rect) == 0) {
+						errorf("GetClientRect failed");
+					}
+
+					//! TODO: add a method to do this instead
+					SCROLLINFO sinfo = {0};
+					sinfo.cbSize = sizeof(SCROLLINFO);
+					sinfo.fMask = SIF_ALL;
+					sinfo.nMin = 0;
+					sinfo.nMax = ROW_HEIGHT*this->getNRows()-1;		// since it starts from 0 ROW_HEIGHT*nRows would be the first pixel after the area
+					sinfo.nPage = rect.bottom-STRLIST_TOP_MRG;
+					sinfo.nPos = this->yspos;
+					SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
+
+					if (!(ShowScrollBar(hwnd, SB_VERT, 1))) {
+						errorf("ShowScrollBar failed.");
+					}
+
+					int j = this->getTotalColumnsWidth();
+					sinfo.nMax = j-1;	// the first column has its first pixel off-screen
+					sinfo.nPage = rect.right;
+					sinfo.nPos = this->xspos;
+					SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
+
+					InvalidateRect(hwnd, NULL, 1);
+
+					break;
+				}
+			}
+		}
+		case WM_SIZE: {
+
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
+			auto widthsHoldPtr = this->columnWidthsPtr;
+			if (!widthsHoldPtr) {
+				return 1;
+			}
+
+			auto &widths = *widthsHoldPtr;
+
+			int32_t gotNColumns = this->getNColumns();
+
 			if (this->nRows*ROW_HEIGHT <= (rect.bottom-STRLIST_TOP_MRG) || (rect.bottom-STRLIST_TOP_MRG <= 0)) {
 				this->yspos = 0;
 				ShowScrollBar(hwnd, SB_VERT, 0);
@@ -3956,264 +4333,254 @@ errorf("strlistclass create 9");
 				if (this->yspos > this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG))
 					this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 			}
-			for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-			if (j <= rect.right || rect.right <= 0) {
+			int32_t w2 = 0;
+			for (int32_t col1 = 0; col1 < gotNColumns; w2 += widths[col1], col1++);
+			if (w2 <= rect.right || rect.right <= 0) {
 				this->xspos = 0;
 				ShowScrollBar(hwnd, SB_HORZ, 0);
 			} else {
 				ShowScrollBar(hwnd, SB_HORZ, 1);
-				if (this->xspos > j-rect.right)
-					this->xspos = j-rect.right;
+				if (this->xspos > w2 - rect.right)
+					this->xspos = w2 - rect.right;
 			}
-			
+
+			SCROLLINFO sinfo = {0};
+
 			sinfo.fMask = SIF_PAGE | SIF_POS;
 			sinfo.nPage = rect.bottom-STRLIST_TOP_MRG;
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-			
+
 			sinfo.nPage = rect.right;
 			sinfo.nPos = this->xspos;
 			SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-			
+
 			if (!this->timed) {		// if the previous timer is a '1' timer, the top text windows will not change
 				SetTimer(hwnd, 0, 16, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
-		//}
-		case WM_VSCROLL: //{
-			
+		}
+		case WM_VSCROLL: {
+			bool b_abort = false;
+			RECT rect;
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+
 			switch(LOWORD(wParam)) {
-				
+
 				case SB_THUMBPOSITION:
 				case SB_THUMBTRACK:
 					this->yspos = HIWORD(wParam);
-					
+
 					break;
 
 				case SB_LINEUP:
-				
+
 					if (this->yspos <= ROW_HEIGHT) {
 						if (this->yspos == 0) {
-							exit = 1;
+							b_abort = true;
 						} else {
 							this->yspos = 0;
 						}
 					} else
 						this->yspos -= ROW_HEIGHT;
-					
+
 					break;
-				
+
 				case SB_LINEDOWN:
-		
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
-					}
-					
+
 					if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {	// nRows*ROW_HEIGHT is the length of the rows and rect.bottom-STRLIST_TOP_MRG is the length of the view area
-						exit = 1;																													// their difference is the amount of pixels outside of view, each increase in yspos reveals one from the bottom
+						b_abort = true;																													// their difference is the amount of pixels outside of view, each increase in yspos reveals one from the bottom
 					} else if (this->yspos >= (this->nRows-1)*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {	// if nRows is changed to an unsigned value all line downs and page downs will break (could be fixed with a cast or moving the removed row or page to the left side of the comparison)
-						this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);	
+						this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 					} else {
 						this->yspos += ROW_HEIGHT;
 					}
 					break;
-				
+
 				case SB_PAGEUP:
-			
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
-					}
-					
+
 					if (this->yspos <= rect.bottom-STRLIST_TOP_MRG) {
 						if (this->yspos == 0) {
-							exit = 1;
+							b_abort = true;
 						} else {
 							this->yspos = 0;
 						}
 					} else this->yspos -= rect.bottom-STRLIST_TOP_MRG;
-					
+
 					break;
-					
+
 				case SB_PAGEDOWN:
-		
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
-					}
-					
+
 					if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos >= (this->nRows)*ROW_HEIGHT-2*(rect.bottom-STRLIST_TOP_MRG)) {
 						this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 					} else
 						this->yspos += rect.bottom-STRLIST_TOP_MRG;
-				
+
 					break;
-					
+
 				case SB_TOP:
-				
+
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else
 						this->yspos = 0;
-					
+
 					break;
-					
+
 				case SB_BOTTOM:
-					
-					if (GetClientRect(hwnd, &rect) == 0) {
-					errorf("GetClientRect failed");
-					}
 					if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
-						exit = 1;
+						b_abort = true;
 					} else
 						this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
-					
+
 					break;
-					
+
 				default:
-					exit = 1;
+					b_abort = true;
 					break;
-			} if (exit)
+			} if (b_abort)
 				break;
-			
+
+			SCROLLINFO sinfo = {0};
+
 			sinfo.fMask = SIF_POS;
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-			
+
 			if (!this->timed) {
 				SetTimer(hwnd, 1, 34, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
-		//}
-		case WM_HSCROLL: //{
-			
+		}
+		case WM_HSCROLL: {
+			bool b_abort = false;
+			RECT rect;
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+
 			switch(LOWORD(wParam)) {
-				
+
 				case SB_THUMBPOSITION:
 				case SB_THUMBTRACK:
 					this->xspos = HIWORD(wParam);
-					
+
 					break;
 
 				case SB_LINEUP:
-				
+
 					if (this->xspos <= ROW_HEIGHT) {
 						if (this->xspos == 0) {
-							exit = 1;
+							b_abort = true;
 						} else {
 							this->xspos = 0;
 						}
 					} else
 						this->xspos -= ROW_HEIGHT;
-					
+
 					break;
-				
-				case SB_LINEDOWN:
-		
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
-					}
-					for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-					
-					if (j <= rect.right || this->xspos == j-rect.right) {
-						exit = 1;
-					} else if (this->xspos >= j-rect.right-ROW_HEIGHT) {
-						this->xspos = j-rect.right;		// if nRows is changed to an unsigned value all line downs and page downs will break
+
+				case SB_LINEDOWN: {
+					int32_t w1 = this->getTotalColumnsWidth();
+
+					if (w1 <= rect.right || this->xspos == w1 - rect.right) {
+						b_abort = true;
+					} else if (this->xspos >= w1 - rect.right-ROW_HEIGHT) {
+						this->xspos = w1 - rect.right;		// if nRows is changed to an unsigned value all line downs and page downs will break
 					} else {
 						this->xspos += ROW_HEIGHT;
 					}
 					break;
-				
+				}
 				case SB_PAGEUP:
-			
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
-					}
-					
+
 					if (this->xspos <= rect.right) {
 						if (this->xspos == 0) {
-							exit = 1;
+							b_abort = true;
 						} else {
 							this->xspos = 0;
 						}
 					} else this->xspos -= rect.right;
-					
+
 					break;
-					
-				case SB_PAGEDOWN:
-		
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf("GetClientRect failed");
-					}
-					for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-					
-					if (j <= rect.right || this->xspos == j-rect.right) {
-						exit = 1;
-					} else if (this->xspos >= j-2*rect.right) {
-						this->xspos = j-rect.right;
-					} else
+
+				case SB_PAGEDOWN: {
+					int32_t w1 = this->getTotalColumnsWidth();
+
+					if (w1 <= rect.right || this->xspos == w1 - rect.right) {
+						b_abort = true;
+					} else if (this->xspos >= w1 - 2*rect.right) {
+						this->xspos = w1 - rect.right;
+					} else {
 						this->xspos += rect.right;
-				
+					}
+
 					break;
-					
+				}
 				case SB_TOP:
-				
+
 					if (this->xspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else
 						this->xspos = 0;
-					
+
 					break;
-					
-				case SB_BOTTOM:
-					
-					if (GetClientRect(hwnd, &rect) == 0) {
-					errorf("GetClientRect failed");
+
+				case SB_BOTTOM: {
+					int32_t w1 = this->getTotalColumnsWidth();
+
+					if (w1 <= rect.right || this->xspos == w1 - rect.right) {
+						b_abort = true;
+					} else {
+						this->xspos = w1 - rect.right;
 					}
-					for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-					
-					if (j <= rect.right || this->xspos == j-rect.right) {
-						exit = 1;
-					} else
-						this->xspos = j-rect.right;
-					
 					break;
-					
-				default:
-					exit = 1;
+				}
+				default: {
+					b_abort = true;
 					break;
-			} if (exit)
+				}
+			} if (b_abort) {
 				break;
-			
+			}
+
+			SCROLLINFO sinfo = {0};
+
 			sinfo.fMask = SIF_POS;
 			sinfo.nPos = this->xspos;
 			SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-			
+
 			if (!this->timed) {
 				SetTimer(hwnd, 1, 34, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
-		//}
-		case WM_MOUSEWHEEL: //{
-		
+		}
+		case WM_MOUSEWHEEL: {
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG)
 				break;
-			
+
+			SCROLLINFO sinfo = {0};
+
 			sinfo.fMask = SIF_POS;
-			
+
 			if ((HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT == 0)
 				break;
-			
+
 			if (this->yspos <= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT) {
 				if (this->yspos == 0)
 					break;
@@ -4224,92 +4591,120 @@ errorf("strlistclass create 9");
 				this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 			} else this->yspos -= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT;
 			sinfo.nPos = this->yspos;
-			
-			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);		
-			
+
+			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
+
 			if (!this->timed)  {
 				SetTimer(hwnd, 1, 34, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
-		//}
-		case WM_MOUSEMOVE: //{
-			
+		}
+		case WM_MOUSEMOVE: {
+
+			auto widthsHoldPtr = this->columnWidthsPtr;
+			if (!widthsHoldPtr) {
+				break;
+			}
+			auto &widths = *widthsHoldPtr;
+
 			if (!this->drag) {
-				for (i = 0, j = -this->xspos; i < this->nColumns-1; i++) {
-					j += this->bpos[i];
-					if ((lParam & (256*256-1)) >= j-2 && (lParam & (256*256-1)) <= j+2) {
-						this->hvrd = i+1;
+				int32_t w2 = 0;
+				int32_t col1 = 0;
+
+				for (col1 = 0, w2 = -this->xspos; col1 < this->nColumns-1; col1++) {
+					w2 += widths[col1];
+					if ((lParam & (256*256-1)) >= w2 - 2 && (lParam & (256*256-1)) <= w2 + 2) {
+						this->hvrd = col1 + 1;
 						SetCursor(hCrsSideWE);
 						break;
 					}
-				} if (i == this->nColumns-1) {
+				} if (col1 == this->nColumns-1) {
 					this->hvrd = 0;
 					SetCursor(hDefCrs);
 				}
 				break;
 			}
-				
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			i = this->drag-1;
-			this->bpos[i] = (((int16_t) (lParam)) - this->drgpos);
-			if (this->bpos[i] < 5)
-				this->bpos[i] = 5;
-			if (this->bpos[i] > rect.right-5+this->xspos) {
-				this->bpos[i] = rect.right-5+this->xspos;
+			int32_t col2 = this->drag-1;
+			widths[col2] = (((int16_t) (lParam)) - this->drgpos);
+			if (widths[col2] < 5)
+				widths[col2] = 5;
+			if (widths[col2] > rect.right-5+this->xspos) {
+				widths[col2] = rect.right-5+this->xspos;
 			}
-			
-			for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-			if (j <= rect.right || rect.right <= 0) {
+
+			int32_t w1 = this->getTotalColumnsWidth();
+			if (w1 <= rect.right || rect.right <= 0) {
 				this->xspos = 0;
 				ShowScrollBar(hwnd, SB_HORZ, 0);
 			} else {
 				ShowScrollBar(hwnd, SB_HORZ, 1);
-				if (this->xspos > j-rect.right)
-					this->xspos = j-rect.right;
+				if (this->xspos > w1 - rect.right)
+					this->xspos = w1 - rect.right;
 			}
-			
+
+			SCROLLINFO sinfo = {0};
+
 			sinfo.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;
 			sinfo.nMin = 0;
-			sinfo.nMax = j-1;
+			sinfo.nMax = w1 - 1;
 			sinfo.nPos = this->xspos;
 			sinfo.nPage = rect.right;
 			SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-			
+
 			if (!this->timed) {
 				SetTimer(hwnd, 0, 34, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
-		//}
-		case WM_LBUTTONDOWN: //{
-			
-			rect.left = lParam & (256*256-1);
-			rect.top = lParam/256/256 & (256*256-1);
-			
+		}
+		case WM_LBUTTONDOWN: {
+			RECT rect2 = {};
+
+			rect2.left = lParam & (256*256-1);
+			rect2.top = lParam/256/256 & (256*256-1);
+
 			if (!this->hvrd || this->drag) {
-				if (rect.top >= STRLIST_TOP_MRG && !this->drag) {
-					pos = this->yspos/ROW_HEIGHT+(rect.top-STRLIST_TOP_MRG + this->yspos%ROW_HEIGHT)/ROW_HEIGHT;	// first position is 0
-					
+				if (rect2.top >= STRLIST_TOP_MRG && !this->drag) {
+					// the row the cursor is hovering over
+					int32_t hoverRow = this->yspos/ROW_HEIGHT+(rect2.top-STRLIST_TOP_MRG + this->yspos%ROW_HEIGHT)/ROW_HEIGHT;	// first position is 0
+
 					if (!(wParam & MK_CONTROL) || (this->option & 1)) {
-						for (i = this->nRows/8+!!(this->nRows%8)-1; i >= 0; this->StrListSel[i] = 0, i--);
+						this->clearSelections();
 					}
-					
-					if (pos < this->nRows) {
+
+					if (hoverRow < this->nRows) {
+						auto selsHoldPtr = rowSelsPtr;
+						if (!selsHoldPtr) {
+							break;
+						}
+
+						auto &rowSels = *selsHoldPtr;
+
 						if (!(wParam & MK_SHIFT) || (this->option & 1)) {
-							this->StrListSel[pos/8] ^= (1 << pos%8);
-							this->lastSel = pos;
+							rowSels[hoverRow] = !rowSels[hoverRow];
+							this->lastSel = hoverRow;
+						//! TODO: with shift, select rows in range if hoverRow is selected and deselect otherwise
 						} else {
-							if ((i = this->lastSel) <= pos) 
-								for (; i <= pos; i++)
-									this->StrListSel[i/8] |= (1 << i%8);
-							else
-								for (; i >= pos; i--)
-									this->StrListSel[i/8] |= (1 << i%8);
+							int64_t sel1 = this->lastSel;
+							bool b_lastSelState = rowSels[sel1];
+							if (sel1 <= hoverRow) {
+								sel1++;
+								for (; sel1 <= hoverRow; sel1++) {
+									rowSels[sel1] = b_lastSelState;
+								}
+							} else {
+								sel1--;
+								for (; sel1 >= hoverRow; sel1--) {
+									rowSels[sel1] = b_lastSelState;
+								}
+							}
 						}
 					}
 					if (!(InvalidateRect(hwnd, 0, 1))) {
@@ -4317,213 +4712,241 @@ errorf("strlistclass create 9");
 					}
 				}
 			} else {
+				auto widthsHoldPtr = this->columnWidthsPtr;
+				if (!widthsHoldPtr) {
+					break;
+				}
+				auto &colWidths = *widthsHoldPtr;
+
 				this->drag = this->hvrd;
-				this->drgpos = rect.left - this->bpos[this->hvrd-1];
+				this->drgpos = rect2.left - colWidths[this->hvrd-1];
 				SetCapture(hwnd);
 			}
-			
+
 			break;
-		//}
-		case WM_LBUTTONUP: //{
-			
+		}
+		case WM_LBUTTONUP: {
+
 			if (!this->drag)
 				break;
 			if (!ReleaseCapture())
 				errorf("ReleaseCapture failed");
 			this->drag = 0;
 			SendMessage(hwnd, WM_MOUSEMOVE, wParam, lParam);
-			
+
 			break;
-		//}
-		case WM_RBUTTONDOWN: //{
-			
-			this->point.x = rect.left = lParam & (256*256-1);
-			this->point.y = rect.top = lParam/256/256 & (256*256-1);
-			if (rect.top < STRLIST_TOP_MRG)
+		}
+		case WM_RBUTTONDOWN: {
+			RECT rect2 = {};
+
+			this->point.x = rect2.left = lParam & (256*256-1);
+			this->point.y = rect2.top = lParam/256/256 & (256*256-1);
+			if (rect2.top < STRLIST_TOP_MRG)
 				break;
 			MapWindowPoints(hwnd, 0, &this->point, 1);
-			
+
 			if (!(wParam & MK_CONTROL)) {
-				pos = this->yspos/ROW_HEIGHT+(rect.top-STRLIST_TOP_MRG + this->yspos%ROW_HEIGHT)/ROW_HEIGHT;
-				if (pos >= this->nRows)
+				int64_t hoverRow = this->yspos/ROW_HEIGHT+(rect2.top-STRLIST_TOP_MRG + this->yspos%ROW_HEIGHT)/ROW_HEIGHT;
+				if (hoverRow >= this->nRows) {
 					break;
-				if (!(this->StrListSel[pos/8] & (1 << pos%8))) {
-					for (i = this->nRows/8+!!(this->nRows%8)-1; i >= 0; this->StrListSel[i] = 0, i--);
-					this->StrListSel[pos/8] ^= (1 << pos%8);
-					this->lastSel = pos;
-				}					
+				}
+				// if row is not selected, clear selections
+				auto selsHoldPtr = this->rowSelsPtr;
+				if (!selsHoldPtr) {
+					break;
+				}
+				auto &rowSels = *selsHoldPtr;
+
+				if (!rowSels[hoverRow]) {
+					this->clearSelections();
+
+					rowSels[hoverRow] = !rowSels[hoverRow];
+					this->lastSel = hoverRow;
+				}
 				if (!(InvalidateRect(hwnd, 0, 1))) {
 					errorf("InvalidateRect failed");
 				}
 			}
-			SendMessage(GetParent(hwnd), WM_U_RET_SL, (WPARAM) GetMenu(hwnd), 4);
-			
+			SendMessage(GetParent(hwnd), WM_U_RET_SL, 4, (LPARAM) GetMenu(hwnd));
+
 			break;
-		//}
-		case WM_TIMER: //{
-			
+		}
+		case WM_TIMER: {
+			bool b_abort = false;
+
 			switch(wParam) {
-				
+
 			case 0:
-			case 1: 
-				
+			case 1:
+
 				KillTimer(hwnd, 0);
 				this->timed = 0;
-				
+
 				if (!(InvalidateRect(hwnd, 0, 0))) {
 					errorf("InvalidateRect failed");
 				}
 				break;
-				
+
 			case 2:
-				
+
 				KillTimer(hwnd, 2);
 				SetTimer(hwnd, 2, 67, 0);
-				
+
+				RECT rect;
+
 				switch(this->LastKey) {
 				case 1:
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos <= ROW_HEIGHT) {
 						this->yspos = 0;
 					} else
 						this->yspos -= ROW_HEIGHT;
-					
+
 					break;
-					
+
 				case 2:
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
 					if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
-						exit = 1;
+						b_abort = true;
 					}
 					else if (this->yspos >= (this->nRows-1)*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
 						this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 					} else
 						this->yspos += ROW_HEIGHT;
-					
+
 					break;
-				
+
 				case 3:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-					
+
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos <= rect.bottom-STRLIST_TOP_MRG) {
 						this->yspos = 0;
 					} else
 						this->yspos -= rect.bottom-STRLIST_TOP_MRG;
-					
+
 					break;
-				
+
 				case 4:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-						
+
 					if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos >= (this->nRows)*ROW_HEIGHT-2*(rect.bottom-STRLIST_TOP_MRG)) {
 						this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 					} else
 						this->yspos += rect.bottom-STRLIST_TOP_MRG;
-					
+
 					break;
-				
+
 				case 5:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-				
+
 					if (this->xspos <= ROW_HEIGHT) {
 						if (this->xspos == 0) {
-							exit = 1;
+							b_abort = true;
 						} else {
 							this->xspos = 0;
 						}
 					} else
 						this->xspos -= ROW_HEIGHT;
-					
+
 					break;
-				
-				case 6:
-		
+
+				case 6: {
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-				
-					for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-						
-					if (j <= rect.right || this->xspos == j-rect.right) {
-						exit = 1;
-					} else if (this->xspos >= j-rect.right-ROW_HEIGHT) {
-						this->xspos = j-rect.right;
-					} else
+
+					int32_t w1 = this->getTotalColumnsWidth();
+
+					if (w1 <= rect.right || this->xspos == w1 - rect.right) {
+						b_abort = true;
+					} else if (this->xspos >= w1 - rect.right-ROW_HEIGHT) {
+						this->xspos = w1 - rect.right;
+					} else {
 						this->xspos += ROW_HEIGHT;
-					
+					}
+
 					break;
-					
-				default:
+				}
+				default: {
 					KillTimer(hwnd, 2);
-					exit = 1;
+					b_abort = true;
 					break;
-				} if (exit)
+				}
+				}
+
+				if (b_abort)
 					break;
-				
+
+				SCROLLINFO sinfo = {0};
+
 				sinfo.fMask = SIF_POS;
 				sinfo.nPos = this->yspos;
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
 				sinfo.nPos = this->xspos;
 				SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-				
+
 				if (!this->timed) {
 					SetTimer(hwnd, 1, 34, 0);
 					this->timed = 1;
 				}
-				
+
 				break;
 			}
 			break;
-		//}
-		case WM_KEYDOWN: //{
-			
+		}
+		case WM_KEYDOWN: {
+			bool b_abort = false;
+			RECT rect;
+			if (GetClientRect(hwnd, &rect) == 0) {
+				errorf("GetClientRect failed");
+			}
+
 			if ((lParam & 0x40000000) != 0)
 				break;
-			
+
 			KillTimer(hwnd, 2);
-			
+
 			switch(wParam) {
-				
+
 			case VK_HOME:
 				if (this->yspos == 0) {
-					exit = 1;
+					b_abort = true;
 				} else {
 					this->yspos = 0;
 				}
 				break;
-			
+
 			case VK_END:
-				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf("GetClientRect failed");
-				}
+
 				if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
-					exit = 1;
+					b_abort = true;
 				} else {
 					this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 				}
-				
+
 				break;
-				
+
 			case VK_UP:
-				
+
 				if (this->yspos == 0) {
-					exit = 1;
+					b_abort = true;
 				} else if (this->yspos <= ROW_HEIGHT) {
 					this->yspos = 0;
 				} else {
@@ -4531,17 +4954,13 @@ errorf("strlistclass create 9");
 					this->LastKey = 1;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_DOWN:
-		
-				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf("GetClientRect failed");
-				}
-					
+
 				if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
-					exit = 1;
+					b_abort = true;
 				} else if (this->yspos >= (this->nRows-1)*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
 					this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 				} else {
@@ -4549,14 +4968,14 @@ errorf("strlistclass create 9");
 					this->LastKey = 2;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_LEFT:
-				
+
 				if (this->xspos <= ROW_HEIGHT) {
 					if (this->xspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else {
 						this->xspos = 0;
 					}
@@ -4565,39 +4984,31 @@ errorf("strlistclass create 9");
 					this->LastKey = 5;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
-			case VK_RIGHT:
-		
-				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf("GetClientRect failed");
-				}
-				
-				
-				for (i = 0, j = 0; i < this->nColumns; j+= this->bpos[i], i++);
-					
-				if (j <= rect.right || this->xspos == j-rect.right) {
-					exit = 1;
-				} else if (this->xspos >= j-rect.right-ROW_HEIGHT) {
-					this->xspos = j-rect.right;
+
+			case VK_RIGHT: {
+
+				int32_t w1 = this->getTotalColumnsWidth();
+
+				if (w1 <= rect.right || this->xspos == w1 - rect.right) {
+					b_abort = true;
+				} else if (this->xspos >= w1 - rect.right-ROW_HEIGHT) {
+					this->xspos = w1 - rect.right;
 				} else {
 					this->xspos += ROW_HEIGHT;
 					this->LastKey = 6;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+			}
+
 			case VK_PRIOR:
-		
-				if (GetClientRect(hwnd, &rect) == 0) {		// forgot this part
-					errorf("GetClientRect failed");
-				}
-					
+
 				if (this->yspos <= rect.bottom-STRLIST_TOP_MRG) {
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else {
 						this->yspos = 0;
 					}
@@ -4606,17 +5017,13 @@ errorf("strlistclass create 9");
 					this->LastKey = 3;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_NEXT:
-		
-				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf("GetClientRect failed");
-				}
-				
+
 				if (this->nRows*ROW_HEIGHT <= rect.bottom-STRLIST_TOP_MRG || this->yspos == this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG)) {
-					exit = 1;
+					b_abort = true;
 				} else if (this->yspos >= (this->nRows)*ROW_HEIGHT-2*(rect.bottom-STRLIST_TOP_MRG)) {
 					this->yspos = this->nRows*ROW_HEIGHT-(rect.bottom-STRLIST_TOP_MRG);
 				} else {
@@ -4625,109 +5032,111 @@ errorf("strlistclass create 9");
 					SetTimer(hwnd, 2, 500, 0);
 				}
 				break;
-				
+
 			case VK_DELETE:
-				
-				exit = 1;
-				SendMessage(GetParent(hwnd), WM_U_RET_SL, (WPARAM) GetMenu(hwnd), 1);
-				
+
+				b_abort = true;
+				SendMessage(GetParent(hwnd), WM_U_RET_SL, 1, (LPARAM) GetMenu(hwnd));
+
 				break;
-				
+
 			case VK_F2:
-				
-				exit = 1;
-				SendMessage(GetParent(hwnd), WM_U_RET_SL, (WPARAM) GetMenu(hwnd), 2);
-								
+
+				b_abort = true;
+				SendMessage(GetParent(hwnd), WM_U_RET_SL, 2, (LPARAM) GetMenu(hwnd));
+
 				break;
-				
-			} if (exit)
+
+			} if (b_abort)
 				break;
-			
+
+			SCROLLINFO sinfo = {0};
+
 			sinfo.fMask = SIF_POS;
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
 			sinfo.nPos = this->xspos;
 			SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
-			
+
 			if (!this->timed) {
 				SetTimer(hwnd, 1, 34, 0);
 				this->timed = 1;
 			}
 			break;
-		//}
-		case WM_SYSKEYDOWN: //{
-			
+		}
+		case WM_SYSKEYDOWN: {
+
 			if (lParam & (unsigned long)(1UL << 29)) {
 				switch(wParam) {
 					case VK_F2:
-						SendMessage(GetParent(hwnd), WM_U_RET_SL, (WPARAM) GetMenu(hwnd), 3);
-						
+						SendMessage(GetParent(hwnd), WM_U_RET_SL, 3, (LPARAM) GetMenu(hwnd));
+
 						break;
 				}
 			}
-			
+
 			break;
-		//}	
-		case WM_KEYUP: //{
-			
+		}
+		case WM_KEYUP: {
+
 			switch(wParam) {
 			case VK_UP:
 				if (this->LastKey == 1) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_DOWN:
 				if (this->LastKey == 2) {
 					KillTimer(hwnd, 2);
 				}
-			
+
 				break;
-				
+
 			case VK_PRIOR:
 				if (this->LastKey == 3) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_NEXT:
 				if (this->LastKey == 4) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_LEFT:
 				if (this->LastKey == 5) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_RIGHT:
 				if (this->LastKey == 6) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
 			}
-			
+
 			break;
-		//}
-		case WM_KILLFOCUS: //{
+		}
+		case WM_KILLFOCUS: {
 			KillTimer(hwnd, 2);
-			
+
 			break;
-		//}
-		case WM_ERASEBKGND: //{
+		}
+		case WM_ERASEBKGND: {
 			return 1;
-		//}
-		case WM_NCDESTROY: //{
+		}
+		case WM_NCDESTROY: {
 errorf("destroyed strlist");
 			return 0;
-		//}
+		}
 	}
 
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -4757,38 +5166,39 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
 	RECT rect;
 	HWND thwnd;
-	
+
 	int64_t i;
 	int j, k, l, pos;
-	uint8_t *buf, exit = 0;
+	uint8_t *buf;
 	wchar_t *wbuf;
 	SCROLLINFO sinfo = {0};
 	//THMBLISTV *lv = 0;
 	BITMAPINFO bminfo = {0};
-	
+
 	HDC hdc, hdc2, hdc3;
 	PAINTSTRUCT ps;
 	HFONT hOldFont;
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
 	HBITMAP hOldBM, hBitmap;
-	
+
 	oneslnk **link;
-	
+
 	int len, diff, rowlen, lastrow, firstrow, sparep;
 	char sel;
-	
+
 	switch(msg) {
-		case WM_CREATE: //{
-			
+		case WM_CREATE: {
+
 			this->yspos = 0;
 			this->hvrd = 0;
 			this->timed = 0;
-			
+
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			rowlen = (rect.right-THMBLIST_LEFT_MRG+DEF_THUMBGAPX) / (DEF_THUMBFW+DEF_THUMBGAPX);
 			if (rowlen < 1)
 				rowlen = 1;
@@ -4796,7 +5206,7 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				lastrow = 1;
 			else
 				lastrow = this->nThumbs/rowlen + !!(this->nThumbs%rowlen);
-			
+
 			sinfo.cbSize = sizeof(SCROLLINFO);
 			sinfo.fMask = SIF_ALL;
 			sinfo.nMin = 0;
@@ -4804,19 +5214,19 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			sinfo.nPage = rect.bottom;
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-			
+
 			if (!(ShowScrollBar(hwnd, SB_VERT, 1))) {
 				errorf("ShowScrollBar failed.");
 			}
-			
+
 			break;
-		//}
+		}
 		case WM_PAINT: //{
-		
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			rowlen = (rect.right-THMBLIST_LEFT_MRG+DEF_THUMBGAPX) / (DEF_THUMBFW+DEF_THUMBGAPX);
 			if (rowlen < 1)
 				rowlen = 1;
@@ -4826,29 +5236,29 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				sparep = (((rect.right-THMBLIST_LEFT_MRG+DEF_THUMBGAPX) - rowlen*(DEF_THUMBFW+DEF_THUMBGAPX)) / (rowlen));
 			} else
 				sparep = 0;
-				
+
 			if (sparep > (DEF_THUMBFW+DEF_THUMBGAPX-1)/2) { // capped at the maximum the gap could get with multiple rows
 				sparep = (DEF_THUMBFW+DEF_THUMBGAPX-1)/2;
 			}
-			
+
 			firstrow = (this->yspos-THMBLIST_TOP_MRG)/(DEF_THUMBFH+DEF_THUMBGAPY);
 			if (this->yspos < THMBLIST_TOP_MRG)
 				firstrow = -1;
-			
+
 			diff = (this->yspos-THMBLIST_TOP_MRG)-firstrow*(DEF_THUMBFH+DEF_THUMBGAPY);		// diff is the amount of pixels outside the area
-			
+
 			bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 			bminfo.bmiHeader.biPlanes = 1;
 			bminfo.bmiHeader.biBitCount = 32;
 			bminfo.bmiHeader.biCompression = BI_RGB;
-			
+
 			hdc = BeginPaint(hwnd, &ps);
-				
+
 			hdc3 = CreateCompatibleDC(hdc);
 			hOldPen = GetCurrentObject(hdc3, OBJ_PEN);
 			hOldBrush = GetCurrentObject(hdc3, OBJ_BRUSH);
 //			hOldFont = (HFONT) SelectObject(hdc2, hFont);
-			
+
 			if (!hThumbListBM) {
 				i = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 				if (i == 0) {
@@ -4860,13 +5270,13 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				hThumbListBM = CreateCompatibleBitmap(hdc, i, j);
 			}
 			hOldBM = SelectObject(hdc3, hThumbListBM);
-			
+
 			SelectObject(hdc3, bgBrush1);
 			SelectObject(hdc3, bgPen1);
 			Rectangle(hdc3, 0, 0, rect.right, rect.bottom);
 			SelectObject(hdc3, bgPen2);
 			SelectObject(hdc3, bgBrush2);
-			
+
 			for (i = 0, lastrow = (!!diff)+(rect.bottom-(DEF_THUMBFH+DEF_THUMBGAPY-diff)%(DEF_THUMBFH+DEF_THUMBGAPY))/(DEF_THUMBFH+DEF_THUMBGAPY)+(!!((rect.bottom-(DEF_THUMBFH+DEF_THUMBGAPY-diff))%(DEF_THUMBFH+DEF_THUMBGAPY))), sel = 0; i < lastrow; i++, pos++, sel = 0) {
 				if (firstrow+i < 0)
 					continue;
@@ -4887,7 +5297,7 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					if (this->thumb[k]) {
 						bminfo.bmiHeader.biWidth = this->thumb[k]->x;
 						bminfo.bmiHeader.biHeight = -this->thumb[k]->y;
-						
+
 						if ((SetDIBitsToDevice(hdc3, THMBLIST_LEFT_MRG+j*(DEF_THUMBFW+DEF_THUMBGAPX+sparep)+(DEF_THUMBFW-this->thumb[k]->x)/2, i*(DEF_THUMBFH+DEF_THUMBGAPY)-diff+(DEF_THUMBFH - this->thumb[k]->y)/2, this->thumb[k]->x, this->thumb[k]->y,
 						0, 0, 0, this->thumb[k]->y, this->thumb[k]->img[0], &bminfo, DIB_RGB_COLORS)) == 0) {
 							errorf_old("SetDIBitsToDevice failed, h: %d, w: %d, source: %llu", this->thumb[k]->y, this->thumb[k]->x, this->thumb[k]->img[0]);
@@ -4896,15 +5306,15 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				}
 			}
 			BitBlt(hdc, 0, 0, rect.right, rect.bottom, hdc3, 0, 0, SRCCOPY);
-			
+
 			DeleteDC(hdc3);
-	
+
 			SelectObject(hdc3, hOldPen);
 			SelectObject(hdc3, hOldBrush);
 			SelectObject(hdc3, hOldBM);
 //			SelectObject(hdc2, hOldFont);
 			EndPaint(hwnd, &ps);
-	
+
 			break;
 		//}
 		case WM_USER: //{	// update scroll info
@@ -4918,7 +5328,7 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				lastrow = 1;
 			else
 				lastrow = this->nThumbs/rowlen + !!(this->nThumbs%rowlen);
-			
+
 			switch (wParam) {
 			case 1:
 				sinfo.fMask = SIF_RANGE | SIF_POS | SIF_PAGE;
@@ -4927,11 +5337,11 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				sinfo.nPos = this->yspos = 0;
 				sinfo.nMax = THMBLIST_TOP_MRG+lastrow*(DEF_THUMBFH+DEF_THUMBGAPY)-DEF_THUMBGAPY-1;
 				sinfo.nPage = rect.bottom;
-				
+
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-				
+
 				break;
-				
+
 			case 2:
 				sinfo.fMask = SIF_RANGE | SIF_POS | SIF_PAGE;
 				sinfo.cbSize = sizeof(SCROLLINFO);
@@ -4946,19 +5356,19 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				} else {
 					ShowScrollBar(hwnd, SB_VERT, 1);
 				}
-				
+
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-				
+
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
-				
+
 				break;
 			}
 			break;
 		//}
 		case WM_SIZE: //{ ROW_HEIGHT
-		
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
@@ -4969,7 +5379,7 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				lastrow = 1;
 			else
 				lastrow = this->nThumbs/rowlen + !!(this->nThumbs%rowlen);
-			
+
 			sinfo.cbSize = sizeof(SCROLLINFO);
 			sinfo.fMask = SIF_ALL;
 			sinfo.nMin = 0;
@@ -4985,142 +5395,143 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			}
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-			
+
 			if (!this->timed) {		// if the previous timer is a '1' timer, the top text windows will not change
 				SetTimer(hwnd, 0, 16, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
 		//}
-		case WM_VSCROLL: //{
-			
+		case WM_VSCROLL: {
+			bool b_abort = false;
+
 			switch(LOWORD(wParam)) {
-				
+
 				case SB_THUMBPOSITION:
 				case SB_THUMBTRACK:
 					this->yspos = HIWORD(wParam);
-					
+
 					break;
 
 				case SB_LINEUP:
-				
+
 					if (this->yspos <= ROW_HEIGHT) {
 						if (this->yspos == 0) {
-							exit = 1;
+							b_abort = true;
 						} else {
 							this->yspos = 0;
 						}
 					} else
 						this->yspos -= ROW_HEIGHT;
-					
+
 					break;
-				
+
 				case SB_LINEDOWN:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
 					if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos >= sinfo.nMax+1-ROW_HEIGHT-rect.bottom) {	// if nThumbs is changed to an unsigned value all line downs and page downs will break (could be fixed with a cast or moving the removed row or page to the left side of the comparison)
-						this->yspos = sinfo.nMax+1-rect.bottom;	
+						this->yspos = sinfo.nMax+1-rect.bottom;
 					} else {
 						this->yspos += ROW_HEIGHT;
 					}
 					break;
-				
+
 				case SB_PAGEUP:
-			
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-					
+
 					if (this->yspos <= rect.bottom) {
 						if (this->yspos == 0) {
-							exit = 1;
+							b_abort = true;
 						} else {
 							this->yspos = 0;
 						}
 					} else this->yspos -= rect.bottom;
-					
+
 					break;
-					
+
 				case SB_PAGEDOWN:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
-					
+
 					if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos >= sinfo.nMax+1-2*rect.bottom) {
 						this->yspos = sinfo.nMax+1-rect.bottom;
 					} else
 						this->yspos += rect.bottom;
-				
+
 					break;
-					
+
 				case SB_TOP:
-				
+
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else
 						this->yspos = 0;
-					
+
 					break;
-					
+
 				case SB_BOTTOM:
-					
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
 					if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-						exit = 1;
+						b_abort = true;
 					} else
 						this->yspos = sinfo.nMax+1-(rect.bottom);
-					
+
 					break;
-					
+
 				default:
-					exit = 1;
+					b_abort = true;
 					break;
-			} if (exit)
+			} if (b_abort)
 				break;
-			
+
 			sinfo.fMask = SIF_POS;
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-			
+
 			if (!this->timed) {
 				SetTimer(hwnd, 1, 34, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
-		//}
+		}
 		case WM_MOUSEWHEEL: //{
-		
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
 			sinfo.fMask = SIF_RANGE;
 			GetScrollInfo(hwnd, SB_VERT, &sinfo);
-			
+
 			if (sinfo.nMax+1 <= rect.bottom)
 				break;
-			
+
 			sinfo.fMask = SIF_POS;
-			
+
 			if ((HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT == 0)
 				break;
-			
+
 			if (this->yspos <= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT) {
 				if (this->yspos == 0)
 					break;
@@ -5131,14 +5542,14 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				this->yspos = sinfo.nMax+1-rect.bottom;
 			} else this->yspos -= (int16_t)(HIWORD(wParam))/ROW_HEIGHT/2*ROW_HEIGHT;
 			sinfo.nPos = this->yspos;
-			
-			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);		
-			
+
+			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
+
 			if (!this->timed)  {
 				SetTimer(hwnd, 1, 34, 0);
 				this->timed = 1;
 			}
-			
+
 			break;
 		//}
 		case WM_MOUSEMOVE: //{
@@ -5155,11 +5566,11 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				sparep = (((rect.right-THMBLIST_LEFT_MRG+DEF_THUMBGAPX) - rowlen*(DEF_THUMBFW+DEF_THUMBGAPX)) / (rowlen));
 			} else
 				sparep = 0;
-				
+
 			if (sparep > (DEF_THUMBFW+DEF_THUMBGAPX-1)/2) { // capped at the maximum the gap could get with multiple rows
 				sparep = (DEF_THUMBFW+DEF_THUMBGAPX-1)/2;
 			}
-			
+
 			if ((j = (int16_t)(lParam & (256*256-1))) < THMBLIST_LEFT_MRG || (k = (int16_t)((lParam/256/256) & (256*256-1))+this->yspos-THMBLIST_TOP_MRG) < 0 || (j - THMBLIST_LEFT_MRG) % (DEF_THUMBFW+DEF_THUMBGAPX+sparep) >= DEF_THUMBFW || (k+this->yspos) % (DEF_THUMBFH+DEF_THUMBGAPY) >= DEF_THUMBFH) {
 				this->hvrd = 0;
 				SetCursor(hDefCrs);
@@ -5169,9 +5580,9 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					}
 				} break;
 			}
-			
+
 			this->hvrd = (k/(DEF_THUMBFH+DEF_THUMBGAPY))*rowlen+(j - THMBLIST_LEFT_MRG)/(DEF_THUMBFW+DEF_THUMBGAPX+sparep)+1;
-			
+
 			if (this->hvrd > this->nThumbs) {
 				this->hvrd = 0;
 				SetCursor(hDefCrs);
@@ -5187,22 +5598,22 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					errorf("InvalidateRect failed");
 				}
 			}
-			
+
 			break;
 		//}
 		case WM_LBUTTONDOWN: //{
-			
+
 			if (!(wParam & MK_CONTROL)) {
 				for (i = this->nThumbs/8+!!(this->nThumbs%8)-1; i >= 0; this->ThumbSel[i] = 0, i--);
 			}
-			
+
 			if (this->hvrd > 0 && this->hvrd <= this->nThumbs) {
 				pos = this->hvrd-1;
 				if (!(wParam & MK_SHIFT)) {
 					this->ThumbSel[pos/8] ^= (1 << pos%8);
 					this->lastSel = pos;
 				} else {
-					if ((i = this->lastSel) <= pos) 
+					if ((i = this->lastSel) <= pos)
 						for (; i <= pos; i++)
 							this->ThumbSel[i/8] |= (1 << i%8);
 					else
@@ -5214,24 +5625,24 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				errorf("InvalidateRect failed");
 			}
 			SetFocus(hwnd);
-			
+
 			break;
 		//}
 		case WM_LBUTTONUP: //{
-			
-		
-			
+
+
+
 			break;
 		//}
 		case WM_RBUTTONDOWN: //{
-			
-			
+
+
 			this->point.x = rect.left = lParam & (256*256-1);
 			this->point.y = rect.top = lParam/256/256 & (256*256-1);
 			if (rect.top < 0)
 				break;
 			MapWindowPoints(hwnd, 0, &this->point, 1);
-			
+
 			if (!(wParam & MK_CONTROL)) {
 				if (this->hvrd > this->nThumbs || this->hvrd < 1)
 					break;
@@ -5246,40 +5657,41 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				}
 			}
 			SendMessage(GetParent(hwnd), WM_U_RET_TL, (WPARAM) GetMenu(hwnd), 4);
-			
+
 			break;
 		//}
-		case WM_TIMER: //{
-			
+		case WM_TIMER: {
+			bool b_abort = false;
+
 			switch(wParam) {
-				
+
 			case 0:
-			case 1: 
-				
+			case 1:
+
 				KillTimer(hwnd, 0);
 				this->timed = 0;
-				
+
 				if (!(InvalidateRect(hwnd, 0, 0))) {
 					errorf("InvalidateRect failed");
 				}
 				break;
-				
+
 			case 2:
-				
+
 				KillTimer(hwnd, 2);
 				SetTimer(hwnd, 2, 67, 0);
-				
+
 				switch(this->LastKey) {
 				case 1:
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos <= ROW_HEIGHT) {
 						this->yspos = 0;
 					} else
 						this->yspos -= ROW_HEIGHT;
-					
+
 					break;
-					
+
 				case 2:
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
@@ -5287,100 +5699,101 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
 					if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-						exit = 1;
+						b_abort = true;
 					}
 					else if (this->yspos >= sinfo.nMax+1-ROW_HEIGHT-rect.bottom) {
 						this->yspos = sinfo.nMax+1-rect.bottom;
 					} else
 						this->yspos += ROW_HEIGHT;
-					
+
 					break;
-				
+
 				case 3:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-					
+
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos <= rect.bottom) {
 						this->yspos = 0;
 					} else
 						this->yspos -= rect.bottom;
-					
+
 					break;
-				
+
 				case 4:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
-						
+
 					if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-						exit = 1;
+						b_abort = true;
 					} else if (this->yspos >= sinfo.nMax+1-2*rect.bottom) {
 						this->yspos = sinfo.nMax+1-rect.bottom;
 					} else
 						this->yspos += rect.bottom;
-					
+
 					break;
-				
+
 				case 5:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-					
+
 					break;
-				
+
 				case 6:
-		
+
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
-					
+
 					break;
-					
+
 				default:
 					KillTimer(hwnd, 2);
-					exit = 1;
+					b_abort = true;
 					break;
-				} if (exit)
+				} if (b_abort)
 					break;
-				
+
 				sinfo.fMask = SIF_POS;
 				sinfo.nPos = this->yspos;
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-				
+
 				if (!this->timed) {
 					SetTimer(hwnd, 1, 34, 0);
 					this->timed = 1;
 				}
-				
+
 				break;
 			}
 			break;
-		//}
-		case WM_KEYDOWN: //{
-			
+		}
+		case WM_KEYDOWN: {
+			bool b_abort = false;
+
 			if ((lParam & 0x40000000) != 0)
 				break;
-			
+
 			KillTimer(hwnd, 2);
-			
+
 			switch(wParam) {
-				
+
 			case VK_HOME:
 				if (this->yspos == 0) {
-					exit = 1;
+					b_abort = true;
 				} else {
 					this->yspos = 0;
 				}
 				break;
-			
+
 			case VK_END:
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
@@ -5388,16 +5801,16 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				sinfo.fMask = SIF_RANGE;
 				GetScrollInfo(hwnd, SB_VERT, &sinfo);
 				if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-					exit = 1;
+					b_abort = true;
 				} else
 					this->yspos = sinfo.nMax+1-(rect.bottom);
-				
+
 				break;
-				
+
 			case VK_UP:
-				
+
 				if (this->yspos == 0) {
-					exit = 1;
+					b_abort = true;
 				} else if (this->yspos <= ROW_HEIGHT) {
 					this->yspos = 0;
 				} else {
@@ -5405,19 +5818,19 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					this->LastKey = 1;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_DOWN:
-		
+
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
 				sinfo.fMask = SIF_RANGE;
 				GetScrollInfo(hwnd, SB_VERT, &sinfo);
-					
+
 				if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-					exit = 1;
+					b_abort = true;
 				} else if (this->yspos >= sinfo.nMax+1-ROW_HEIGHT-rect.bottom) {
 					this->yspos = sinfo.nMax+1-rect.bottom;
 				} else {
@@ -5425,42 +5838,42 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					this->LastKey = 2;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_LEFT:
-				
+
 				if (1) {
 				} else {
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_RIGHT:
-		
+
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
-					
+
 				if (1) {
-					exit = 1;
+					b_abort = true;
 				} else if (0) {
 				} else {
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_PRIOR:
-		
+
 				if (GetClientRect(hwnd, &rect) == 0) {		// forgot this part
 					errorf("GetClientRect failed");
 				}
-					
+
 				if (this->yspos <= rect.bottom) {
 					if (this->yspos == 0) {
-						exit = 1;
+						b_abort = true;
 					} else {
 						this->yspos = 0;
 					}
@@ -5469,19 +5882,19 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					this->LastKey = 3;
 					SetTimer(hwnd, 2, 500, 0);
 				}
-				
+
 				break;
-				
+
 			case VK_NEXT:
-		
+
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
 				sinfo.fMask = SIF_RANGE;
 				GetScrollInfo(hwnd, SB_VERT, &sinfo);
-				
+
 				if (sinfo.nMax <= rect.bottom || this->yspos == sinfo.nMax+1-rect.bottom) {
-					exit = 1;
+					b_abort = true;
 				} else if (this->yspos >= sinfo.nMax+1-2*rect.bottom) {
 					this->yspos = sinfo.nMax+1-rect.bottom;
 				} else {
@@ -5490,101 +5903,101 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					SetTimer(hwnd, 2, 500, 0);
 				}
 				break;
-				
+
 			case VK_DELETE:
-				
-				exit = 1;
+
+				b_abort = true;
 				SendMessage(GetParent(hwnd), WM_U_RET_TL, (WPARAM) GetMenu(hwnd), 1);
-				
+
 				break;
-				
+
 			case VK_F2:
-				
-				exit = 1;
+
+				b_abort = true;
 				SendMessage(GetParent(hwnd), WM_U_RET_TL, (WPARAM) GetMenu(hwnd), 2);
-								
+
 				break;
 			case VK_BACK:
 				PostMessage(GetParent(hwnd), WM_KEYDOWN, wParam, lParam);
-				
+
 				break;
-			} if (exit)
+			} if (b_abort)
 				break;
-			
+
 			sinfo.fMask = SIF_POS;
 			sinfo.nPos = this->yspos;
 			SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
-			
+
 			if (!this->timed) {
 				SetTimer(hwnd, 1, 34, 0);
 				this->timed = 1;
 			}
 			break;
-		//}
+		}
 		case WM_SYSKEYDOWN: //{
-			
+
 			if (lParam & (1UL << 29)) {
 				switch(wParam) {
 					case VK_F2:
 						SendMessage(GetParent(hwnd), WM_U_RET_TL, (WPARAM) GetMenu(hwnd), 3);
-						
+
 						break;
 				}
 			}
-			
+
 			break;
-		//}	
+		//}
 		case WM_KEYUP: //{
-			
+
 			switch(wParam) {
 			case VK_UP:
 				if (this->LastKey == 1) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_DOWN:
 				if (this->LastKey == 2) {
 					KillTimer(hwnd, 2);
 				}
-			
+
 				break;
-				
+
 			case VK_PRIOR:
 				if (this->LastKey == 3) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_NEXT:
 				if (this->LastKey == 4) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_LEFT:
 				if (this->LastKey == 5) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
-				
+
 			case VK_RIGHT:
 				if (this->LastKey == 6) {
 					KillTimer(hwnd, 2);
 				}
-				
+
 				break;
 			}
-			
+
 			break;
 		//}
 		case WM_KILLFOCUS: //{
 			KillTimer(hwnd, 2);
-			
+
 			break;
 		//}
 		case WM_ERASEBKGND: //{
@@ -5622,30 +6035,29 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
 	RECT rect;
 	HWND thwnd;
-	
+
 	int64_t i;
 	int j, k, l, m;
-	uint8_t exit = 0;
 	IMGVIEWV *ev = 0;
 	BITMAPINFO bminfo = {0};
-	
+
 	HDC hdc, hdc2;
 	PAINTSTRUCT ps;
 	HFONT hOldFont;
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
 	HBITMAP hOldBM, hBitmap;
-	
+
 	int len;
 	char sel, *buf;
-	
+
 	HDC thdc, hdcMem;
 	HBITMAP oldBitmap;
-	
+
 	static HBITMAP hThumbListBM;
-	
+
 	double ratio, midpos;
-	
+
 	switch(msg) {
 		case WM_CREATE: //{
 			if (!(ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0))) { // get mem from parent
@@ -5653,11 +6065,11 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				errorf("No external variables returned");
 				return 0;
 			}
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			if (!ev->imgpath) {
 				errorf("no imgpath");
 				DestroyWindow(GetParent(hwnd));
@@ -5671,21 +6083,21 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			ev->fit = BIT_VI_FIT_MODE_ENABLED;
 			ev->DispImage = NULL;
 			ev->zoomp = 0;
-			
+
 			if (!BIT_VI_FIT_MODE_ENABLED) {
 				ev->midX = (long double)ev->FullImage->x / 2;
 				ev->midY = (long double)ev->FullImage->y / 2;
 			}
-			
+
 			ev->drag = 0;
 			ev->timed = 0;
-			
+
 			ev->dispframe = 0;
-			
+
 			if (ev->FullImage->n > 1) {
 				SetTimer(hwnd, 2, ev->FullImage->dur[ev->dispframe]*10, 0);
 			}
-			
+
 			//! later maybe add the option to stretch even if it fits
 			//! the following is also served by WM_USER
 			if (!(ev->fit & BIT_VI_FIT_DISP_IS_ORIG)) {
@@ -5695,7 +6107,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			} else {
 				ev->fit &= ~BIT_VI_FIT_DISP_IS_ORIG;
 			}
-		
+
 			if (ev->FullImage->x > rect.right || ev->FullImage->y > rect.bottom) {
 				ev->DispImage = FitImage(ev->FullImage, rect.right, rect.bottom, 0, 0);
 			} else {
@@ -5709,9 +6121,9 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				DestroyWindow(GetParent(hwnd));
 				return 0;
 			}
-			
-//errorf_old("1: ev->midX: %Lf, ev->midY: %Lf, x: %lld, y: %lld", ev->midX, ev->midY, ev->FullImage->x, ev->FullImage->y);  
-			
+
+//errorf_old("1: ev->midX: %Lf, ev->midY: %Lf, x: %lld, y: %lld", ev->midX, ev->midY, ev->FullImage->x, ev->FullImage->y);
+
 			break;
 		//}
 		case WM_PAINT: //{
@@ -5720,25 +6132,25 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				errorf("ev is null");
 				break;
 			}
-		
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 			bminfo.bmiHeader.biPlanes = 1;
 			bminfo.bmiHeader.biBitCount = 32;
 			bminfo.bmiHeader.biCompression = BI_RGB;
-			
+
 			hdc = BeginPaint(hwnd, &ps);
-				
+
 			hdc2 = CreateCompatibleDC(hdc);
 			hOldPen = GetCurrentObject(hdc2, OBJ_PEN);
 			hOldBrush = GetCurrentObject(hdc2, OBJ_BRUSH);
 			hOldFont = (HFONT) SelectObject(hdc2, hFont);
-			
+
 			SetBkMode(hdc2, TRANSPARENT);
-			
+
 			if (!hThumbListBM) {
 				i = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 				if (i == 0) {
@@ -5750,11 +6162,11 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				hThumbListBM = CreateCompatibleBitmap(hdc, i, j);
 			}
 			hOldBM = SelectObject(hdc2, hThumbListBM);
-			
+
 			SelectObject(hdc2, bgBrush1);
 			SelectObject(hdc2, bgPen1);
 			Rectangle(hdc2, 0, 0, rect.right, rect.bottom);
-			
+
 // errorf_old("ev->xpos: %d, ev->ypos: %d", ev->xpos, ev->ypos);
 			if (ev->DispImage) {
 				bminfo.bmiHeader.biWidth = ev->DispImage->x;
@@ -5781,18 +6193,18 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					free(buf);
 				}
 			}
-			
+
 			BitBlt(hdc, 0, 0, rect.right, rect.bottom, hdc2, 0, 0, SRCCOPY);
-	
+
 			SelectObject(hdc2, hOldPen);
 			SelectObject(hdc2, hOldBrush);
 			SelectObject(hdc2, hOldBM);
 			SelectObject(hdc2, hOldFont);
-			
+
 			DeleteDC(hdc2);
 
 			EndPaint(hwnd, &ps);
-	
+
 			break;
 		//}
 		case WM_SIZE: //{
@@ -5817,9 +6229,9 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			if (ev->fit & BIT_VI_FIT_MODE_ENABLED) {
-				
+
 				if (!(ev->fit & BIT_VI_FIT_DISP_IS_ORIG)) {
 					if (ev->DispImage) {
 						DestroyImgF(ev->DispImage);
@@ -5827,7 +6239,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				} else {
 					ev->fit &= ~BIT_VI_FIT_DISP_IS_ORIG;
 				}
-			
+
 				if (ev->FullImage->x > rect.right || ev->FullImage->y > rect.bottom) {
 					ev->DispImage = FitImage(ev->FullImage, rect.right, rect.bottom, 0, 0);
 				} else {
@@ -5841,7 +6253,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					DestroyWindow(GetParent(hwnd));
 					return 0;
 				}
-				
+
 			} else {
 				if (ev->fit & (BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y) && ev->xdisp < rect.right && ev->ydisp < rect.bottom) {	// if zoomed image fits
 					ev->xpos = ((int64_t)ev->xdisp - rect.right)/2;
@@ -5853,7 +6265,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 						ev->midX = (long double)ev->FullImage->x / 2;
 					} else {
 						l = rect.right;		// width is the width of window
-						
+
 						if (!(ev->fit & BIT_VI_FIT_RESIZE_FITS_X)) {
 							i = ((int64_t)(rect.right - rect.right % 2) - (ev->DispImage->x - ev->DispImage->x % 2))/2; // difference between dispimage size and new dispimage size both rounded down to nearest multiple of 2 -- that way image position is adjusted by pixel every other pixel
 							ev->xpos -= i;	// image is revealed and hidden from both directions equally -- xpos moves the image in the opposite direction
@@ -5880,7 +6292,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 						ev->midY = (long double)ev->FullImage->y / 2;
 					} else {
 						m = rect.bottom;		// height is the height of window
-						
+
 						if (!(ev->fit & BIT_VI_FIT_RESIZE_FITS_Y)) {
 							i = ((int64_t)(rect.bottom - rect.bottom % 2) - (ev->DispImage->y - ev->DispImage->y % 2))/2;
 							ev->ypos -= i;
@@ -5904,7 +6316,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					}
 					errorf("calling resizeimagechunk 1");
 					ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, ev->xpos, ev->ypos);
-					
+
 					ev->fit &= ~(BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y);
 					if (ev->DispImage) {
 						if (ev->xdisp <= rect.right) {
@@ -5919,7 +6331,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				}
 			}
 			InvalidateRect(hwnd, 0, 0);
-			
+
 			break;
 		//}
 		case WM_MOUSEWHEEL: //{		//! have zooming refresh dragging
@@ -5931,7 +6343,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			if ((i = (int16_t)(HIWORD(wParam))/WHEEL_DELTA) == 0) {
 				break;
 			}
@@ -5947,7 +6359,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			} else {
 				j = k = 0;
 			}
-			
+
 			if (ev->fit & BIT_VI_FIT_DISP_IS_ORIG) {	// clean up and initializing zoomp if previously fit to screen
 				ev->fit &= ~BIT_VI_FIT_DISP_IS_ORIG;
 				ev->fit &= ~BIT_VI_FIT_MODE_ENABLED;
@@ -5968,7 +6380,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					ev->fit &= ~BIT_VI_FIT_MODE_ENABLED;
 				}
 			}
-			
+
 			while (i != 0) {
 				if (i > 0) {
 					if (ev->zoomp < 300) {
@@ -6000,12 +6412,12 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					i++;
 				}
 			}
-			
+
 			if (0 && ev->zoomp == 100) {	//! potential optimization when not resized at all
 			} else {
 				ev->xdisp = ev->FullImage->x*((double)ev->zoomp/100);	// ev->xdisp/(zoomp/100) is guaranteed to be at most ev->FullImage->x because of truncation
 				ev->ydisp = ev->FullImage->y*((double)ev->zoomp/100);
-				
+
 				if (ev->FullImage->x > ev->FullImage->y && j) {		// to calculate previous middle position in new size
 					ratio = (double) ev->xdisp / j;		// where j is the previous ev->xdisp or 0 if image was stretched to screen or fit to screen in x-axis
 				} else if (k) {
@@ -6014,13 +6426,13 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					ratio = 0;
 				}
 				// ratio is the relation between old and new ydisp calculated by the larger x or y; or it is 0 if the image previously fit into the frame
-				
+
 				if (ev->xdisp <= rect.right) {
 					l = ev->xdisp;		// width of the retrieved image is the same as the whole image
 					ev->xpos = 0;		// the position in the image changed by dragging with mouse
 				} else {	// calculate new position after zoom
 					l = rect.right;		// width is the width of window
-					
+
 					if (ratio) {
 						midpos = (ev->xpos+(double)rect.right/2)*ratio;		// no extra 0,5 needed -- if pos was 0 and window width was 1, midpos would correctly be 0,5 already
 					} else {
@@ -6040,13 +6452,13 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 						ev->midX = (long double)(ev->xpos + (rect.right)/2.0)/(ev->zoomp/100.0);
 					}
 				}
-				
+
 				if (ev->ydisp <= rect.bottom) {
 					m = ev->ydisp;
 					ev->ypos = 0;
 				} else {
 					m = rect.bottom;
-					
+
 					if (ratio) {
 						midpos = (ev->ypos+(double)rect.bottom/2)*ratio;		// no extra 0,5 needed -- if pos was 0 and window width was 1, midpos would correctly be 0,5 already
 					} else {
@@ -6067,12 +6479,12 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					}
 				}
 				// l and m are the x and y of the retrieved image chunk
-				
+
 				errorf("calling resizeimagechunk 2");
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, ev->xpos, ev->ypos);
 			}
 			ev->fit &= ~(BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y);
-			
+
 			if (ev->DispImage) {
 				if (ev->xdisp <= rect.right) {
 					ev->fit |= BIT_VI_FIT_RESIZE_FITS_X;
@@ -6084,9 +6496,9 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				}
 			}
 			InvalidateRect(hwnd, 0, 0);
-			
-//errorf_old("ev->midX: %Lf, ev->midY: %Lf, x: %lld, y: %lld", ev->midX, ev->midY, ev->FullImage->x, ev->FullImage->y);  
-			
+
+//errorf_old("ev->midX: %Lf, ev->midY: %Lf, x: %lld, y: %lld", ev->midX, ev->midY, ev->FullImage->x, ev->FullImage->y);
+
 			break;
 		//}
 		case WM_LBUTTONDOWN: //{
@@ -6100,7 +6512,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			}
 			if (ev->drag)
 				break;
-			
+
 			if ((ev->fit & BIT_VI_FIT_RESIZE_FITS_X && ev->fit & BIT_VI_FIT_RESIZE_FITS_Y) || ev->fit & BIT_VI_FIT_MODE_ENABLED) {
 				break;
 			}
@@ -6109,9 +6521,9 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			ev->ydrgpos = lParam/256/256 & (256*256-1);
 			ev->xdrgstart = ev->xpos;
 			ev->ydrgstart = ev->ypos;
-			
+
 			SetCapture(hwnd);
-			
+
 			break;
 		//}
 		case WM_LBUTTONUP: //{
@@ -6120,14 +6532,14 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				errorf("ev is null");
 				break;
 			}
-			
+
 			if (!ev->drag)
 				break;
 			if (!ReleaseCapture())
 				errorf("ReleaseCapture failed");
 			ev->drag = 0;
 			SendMessage(hwnd, WM_MOUSEMOVE, wParam, lParam);
-			
+
 			break;
 		//}
 		case WM_MOUSEMOVE: //{
@@ -6136,7 +6548,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				errorf("ev is null");
 				break;
 			}
-			
+
 			SetCursor(hDefCrs);
 			if (!ev->drag) {
 				break;
@@ -6169,14 +6581,14 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			} else {
 				m = ev->ydisp;
 				k = 0;
-			} 
+			}
 			if (!ev->timed) {
 				if (ev->DispImage) {
 					DestroyImgF(ev->DispImage);
 				}
 				errorf("calling resizeimagechunk 3");
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, j, k);
-/*			
+/*
 				ev->fit &= ~(BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y);
 				if (ev->DispImage) {	//! maybe remove this portion since the status shouldn't change under WM_MOUSEMOVE
 					if (ev->xdisp <= rect.right) {
@@ -6189,7 +6601,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					}
 				}
 */				InvalidateRect(hwnd, 0, 0);
-				
+
 				ev->timed = 1;
 				SetTimer(hwnd, 1, 10, 0);
 			} else {
@@ -6216,9 +6628,9 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			if (wParam == 1) {
-				
+
 				if (!(ev->fit & BIT_VI_FIT_RESIZE_FITS_X)) {
 					l = rect.right;
 					j = ev->xpos;
@@ -6266,7 +6678,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				} else {
 					ev->dispframe++;
 				}
-				
+
 				KillTimer(hwnd, 2);
 				SetTimer(hwnd, 2, ev->FullImage->dur[ev->dispframe]*10, 0);
 				InvalidateRect(hwnd, 0, 0);
@@ -6277,7 +6689,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			switch(wParam) {
 			case VK_BACK:
 				PostMessage(GetParent(hwnd), WM_U_VI, (WPARAM) GetMenu(hwnd), 1);
-				
+
 				break;
 			}
 			break;
@@ -6318,20 +6730,20 @@ LRESULT CALLBACK FileTagEditClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, L
 
 	RECT rect;
 	HWND thwnd;
-	
+
 	int64_t i, len;
 	FTEV *ev = 0;
 	char *buf, space_flag;
 	wchar_t *wbuf;
 	oneslnk *addaliaschn, *remaliaschn;
 	oneslnk *link1, *link2, *link3, *link4, *link5;
-	
+
 	HDC hdc;
 	PAINTSTRUCT ps;
 	HFONT hOldFont;
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
-	
+
 
 //errorf("x");
 /*
@@ -6341,35 +6753,35 @@ errorf("fte create1");
 			ev = AllocWindowMem(hwnd, sizeof(FTEV));
 			ev->dnum = 0, ev->fnumchn = ev->tagnumchn = ev->aliaschn = 0;
 			ev->rmnaliaschn = ev->regaliaschn = ev->remtagnumchn = ev->addtagnumchn = 0;
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			EditSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL, 5, 5, 350, 200, hwnd, (HMENU) 1, NULL, NULL));
 
 			SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont, 1);
 //			SendDlgItemMessageW(hwnd, 1, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
-			
+
 			EnableWindow(GetDlgItem(hwnd, 1), 0); // disable textedit until it is filled by tags
-			
+
 			CreateWindowW(L"Button", L"Apply", WS_VISIBLE | WS_CHILD, 5, 225, 80, 25, hwnd, (HMENU) 2, NULL, NULL);
 			SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
 errorf("fte create9");
-			
+
 			break;
 		//}
 		case WM_PAINT: //{
-	
+
 			break;
 		//}
 		case WM_SIZE: //{
-			
+
 			break;
 		//}
 		case WM_MOUSEMOVE: //{
 			SetCursor(hDefCrs);
-			
+
 			break;
 		//}
 		case WM_USER: //{	// input dnum or fnums
@@ -6381,7 +6793,7 @@ errorf("fte user 2");
 			} else if ((uint64_t) wParam == 1) {
 				ev->fnumchn = (oneslnk*) lParam;
 errorf("fte user 2.2");
-				
+
 				if (ev->fnumchn) {
 errorf("fte user 2.3");
 					sortoneschnull(ev->fnumchn, 0);
@@ -6398,12 +6810,12 @@ errorf("fte user 3");
 		//}
 		case WM_USER+1: //{	// apply changes
 			ev = GetWindowMem(hwnd);
-			
+
 errorf("applying changes");
 			if (ev->rmnaliaschn) {
 				if (!(CreateAliasClass::createWindowInstance().create(0, L"", WS_VISIBLE | WS_POPUP, 5, 5, 200, 200, hwnd, 0, NULL, NULL))) {
 					errorf("failed to create registeralias window");
-					
+
 					killoneschn(ev->rmnaliaschn, 0), ev->rmnaliaschn = 0;
 					if (ev->regaliaschn) {
 						killoneschn(ev->regaliaschn, 0), ev->regaliaschn = 0;
@@ -6414,7 +6826,7 @@ errorf("applying changes");
 					if (ev->addtagnumchn) {
 						killoneschn(ev->addtagnumchn, 1), ev->addtagnumchn = 0;
 					}
-					
+
 				}
 			} else {
 errorf_old("addtagnumchn %d, regaliaschn %d, remtagnumchn %d", ev->addtagnumchn, ev->regaliaschn, ev->remtagnumchn);
@@ -6424,7 +6836,7 @@ while (link1) {
 	link1 = link1->next;
 }
 				twowaytcregaddrem(ev->dnum, ev->fnumchn, ev->addtagnumchn, ev->regaliaschn, ev->remtagnumchn, 1+2+4);
-				
+
 				if (ev->regaliaschn) {
 					killoneschn(ev->regaliaschn, 0), ev->regaliaschn = 0;
 				}
@@ -6434,12 +6846,12 @@ while (link1) {
 				if (ev->addtagnumchn) {
 					killoneschn(ev->addtagnumchn, 1), ev->addtagnumchn = 0;
 				}
-				
+
 				PostMessage(hwnd, WM_USER+2, 0, 0);
 			}
-			
+
 			break;
-		//}	
+		//}
 		case WM_USER+2: //{		load tags
 			ev = GetWindowMem(hwnd);
 
@@ -6452,18 +6864,18 @@ while (link1) {
 					killoneschn(ev->aliaschn, 0);
 					ev->aliaschn = 0;
 				}
-				
+
 				if (cfireadtag(ev->dnum, ev->fnumchn, 0, &link1, 1)) {
 					errorf("cfireadtag failed");
 				}
-				
+
 				if (link1) {
 errorf("made it to combining tags");
 					link2 = link1->next;
 					while (link2) {		// remove tagnums that don't appear in all files
 						link3 = link1->vp;
 						link4 = link2->vp;
-						
+
 						while (link3 && link4) {
 							if ((i = (link3->ull - link4->ull)) == 0) {
 								if (link3 == link1->vp) {
@@ -6475,7 +6887,7 @@ errorf("made it to combining tags");
 									free(link3);
 									link3 = link5->next;
 								}
-								
+
 								link4 = link4->next;
 							} else if (i > 0) {
 								link4 = link4->next;
@@ -6494,13 +6906,13 @@ errorf("made it to combining tags");
 				} else {
 					ev->tagnumchn = 0;
 				}
-				
+
 				if (ev->tagnumchn) {
 errorf("made it to retrieving aliases");
 
 					ctread(ev->dnum, ev->tagnumchn, &ev->aliaschn, 0, 1);
 errorf("made it after ctread");
-					
+
 					if (!ev->aliaschn) {
 						errorf("ctread failed");
 					} else {
@@ -6508,7 +6920,7 @@ errorf("made it after ctread");
 						if (!ev->aliaschn->str) {
 							errorf("empty alias in aliaschn");
 						}
-						
+
 						for (i = 0, link1 = ev->aliaschn; link1; link1 = link1->next) {
 							if (link1->str) {
 								for (len = 0, space_flag = 0; link1->str[len] != '\0'; (link1->str[len] == ' ')?(space_flag = 1):(link1->str[len] == '\\' || link1->str[len] == '"')?(i++):0, i++, len++);
@@ -6517,7 +6929,7 @@ errorf("made it after ctread");
 									i += 2;
 							}
 						}
-						
+
 						buf = malloc(i);
 						for (i = 0, link1 = ev->aliaschn; link1; link1 = link1->next) {
 							if (link1->str) {
@@ -6534,7 +6946,7 @@ errorf("made it after ctread");
 								}
 							}
 						} buf[i++] = '\0';
-						
+
 						wbuf = malloc(i*2);
 						if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf, i)) == 0) {
 							errorf("MultiByteToWideChar Failed");
@@ -6543,11 +6955,11 @@ errorf("made it after ctread");
 						SetWindowTextW(GetDlgItem(hwnd, 1), wbuf);
 						free(wbuf);
 					}
-				}		
+				}
 			}
-			
+
 errorf("fte9");
-			
+
 			break;
 		//}
 		case WM_ERASEBKGND: //{
@@ -6557,7 +6969,7 @@ errorf("fte9");
 		case WM_COMMAND: //{
 errorf("fte comm");
 			ev = GetWindowMem(hwnd);
-			
+
 			if (HIWORD(wParam) == EN_UPDATE && !ev->clean_flag) {
 				thwnd = GetDlgItem(hwnd, 1);
 				ev->clean_flag = 1;
@@ -6576,15 +6988,15 @@ errorf("fte comm");
 							return 1;
 						}
 						GetWindowTextW(thwnd, wbuf, len);
-						
+
 						buf = malloc(len*4);
-						
+
 						if ((WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, buf, len*4, NULL, NULL)) == 0) {
 							errorf("WideCharToMultiByte Failed");
 						}
 						free(wbuf);
 					}
-					
+
 					keepremovedandadded(ev->aliaschn, buf, &addaliaschn, &remaliaschn, 0);	// also considering directly turning the parsed aliases into tag nums then keeping removed and added from them
 errorf("made it past keepremovedandadded");
 					if (buf) {
@@ -6600,7 +7012,7 @@ errorf("made it past keepremovedandadded");
 	// errorf_old("removed aliases: %s", link1->str);
 	// link1 = link1->next;
 // }
-					
+
 					if (remaliaschn) {
 errorf("aliases to be removed exist");
 link1 = remaliaschn;
@@ -6641,7 +7053,7 @@ while (link1) {
 errorf("no aliases to add");
 						ev->addtagnumchn = 0, ev->rmnaliaschn = 0;
 					}
-					
+
 errorf_old("ev->rmnaliaschn: %d, ev->addtagnumchn: %d, ev->remtagnumchn: %d", ev->rmnaliaschn, ev->addtagnumchn, ev->remtagnumchn);
 link1 = ev->rmnaliaschn;
 while (link1) {
@@ -6653,9 +7065,9 @@ while (link1) {
 	errorf_old("adding tag num: %llu", link1->ull);
 	link1 = link1->next;
 }
-					
+
 					link1 = ev->addtagnumchn, link2 = ev->remtagnumchn;
-					
+
 					while (link1 && link2) {	// if a tag gets removed but another alias containing the tag gets added
 						if ((i = (link1->ull - link2->ull)) == 0) {
 							if (link1 == ev->addtagnumchn) {
@@ -6667,7 +7079,7 @@ while (link1) {
 								free(link1);
 								link1 = link3->next;
 							}
-							
+
 							if (link2 == ev->remtagnumchn) {
 								ev->remtagnumchn = ev->remtagnumchn->next;
 								free(link2);
@@ -6685,9 +7097,9 @@ while (link1) {
 							link1 = link1->next;
 						}
 					}
-					
+
 					link1 = ev->addtagnumchn, link2 = ev->tagnumchn;
-					
+
 					while (link1 && link2) {	// if an alias containing an existing tag gets added
 						if ((i = (link1->ull - link2->ull)) == 0) {
 							if (link1 == ev->addtagnumchn) {
@@ -6699,7 +7111,7 @@ while (link1) {
 								free(link1);
 								link1 = link3->next;
 							}
-							
+
 							link2 = link2->next;
 						} else if (i > 0) {
 							link2 = link2->next;
@@ -6708,9 +7120,9 @@ while (link1) {
 							link1 = link1->next;
 						}
 					}
-					
+
 					link1 = ev->remtagnumchn, link2 = ev->tagnumchn;
-					
+
 					while (link1 && link2) {	// if for some reason the tag name doesn't alias back to itself
 						if ((i = (link1->ull - link2->ull)) == 0) {
 							link3 = link1;
@@ -6741,16 +7153,16 @@ while (link1) {
 							link1 = link3->next;
 						}
 					}
-					
+
 					SendMessage(hwnd, WM_USER+1, 0, 0);
-					
-					break;			
-					
-										
+
+					break;
+
+
 				}
 else if (LOWORD(wParam) == 2) {
 	errorf_old("ev->rmnaliaschn: %d, ev->regaliaschn: %d, ev->remtagnumchn: %d, ev->addtagnumchn: %d", ev->rmnaliaschn, ev->regaliaschn, ev->remtagnumchn, ev->addtagnumchn);
-	
+
 }
 			}
 errorf("fte comm 9");
@@ -6792,13 +7204,13 @@ errorf("fte destroy2.5");
 				killoneschn(ev->addtagnumchn, 1);
 			}
 errorf("fte destroy3");
-			
+
 			//FreeWindowMem(hwnd);
 errorf("fte destroy4");
 
 errorf_old("parent: %llu", GetParent(hwnd));
 			SetFocus(GetParent(hwnd));
-			
+
 			return 0;
 		//}
 	}
@@ -6830,15 +7242,15 @@ LRESULT CALLBACK CreateAliasClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, L
 
 	RECT rect;
 	HWND thwnd;
-	
+
 	int64_t i;
-	
+
 	HDC hdc;
 	PAINTSTRUCT ps;
 	HFONT hOldFont;
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
-	
+
 	switch(msg) {
 		case WM_CREATE: //{
 			ShowWindow(hwnd, 0);
@@ -6851,13 +7263,13 @@ LRESULT CALLBACK CreateAliasClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, L
 				errorf("couldn't get parent window memory for createalias");
 				return -1;
 			}
-			
+
 			PostMessage(hwnd, WM_USER, 0, 0);
-			
+
 			break;
 		//}
 		case WM_PAINT: //{
-	
+
 			break;
 		//}
 		case WM_USER: //{
@@ -6865,11 +7277,11 @@ LRESULT CALLBACK CreateAliasClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, L
 			this->parent->rmnaliaschn = 0;
 			PostMessage(thwnd, WM_USER+1, 0, 0);
 			DestroyWindow(hwnd);
-			
+
 			break;
 		//}
 		case WM_SIZE: //{
-			
+
 			break;
 		//}
 		case WM_ERASEBKGND: //{
@@ -6902,7 +7314,7 @@ const DeferredRegWindowHelper EditSuperClass::helper = DeferredRegWindowHelper(s
 		if (t_wc.lpfnWndProc == NULL) {
 			errorf("t_wc has no proc");
 		}
-		
+
 		wc.style = t_wc.style;
 		wc.cbClsExtra = t_wc.cbClsExtra;
 		wc.cbWndExtra = t_wc.cbWndExtra;
@@ -6910,9 +7322,9 @@ const DeferredRegWindowHelper EditSuperClass::helper = DeferredRegWindowHelper(s
 		wc.hCursor = t_wc.hCursor;
 		wc.hbrBackground = t_wc.hbrBackground;
 		wc.lpszMenuName = t_wc.lpszMenuName;
-		
+
 		g_OldEditProc = t_wc.lpfnWndProc;
-		
+
 	}
 );
 
@@ -6924,21 +7336,21 @@ HWND EditSuperClass::createWindowInstance(WinInstancer wInstancer) {
 }
 
 LRESULT CALLBACK EditSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	
+
 	//return CallWindowProcW(g_OldEditProc, hwnd, msg, wParam, lParam);
 
 	RECT rect;
 	HWND thwnd;
-	
+
 	switch(msg) {
 		case WM_CREATE: //{
 errorf("creating editsuperclass inner");
 			//ShowWindow(hwnd, 0);
-			
+
 			//PostMessage(hwnd, WM_USER, 0, 0);
-			
+
 			return CallWindowProcW(g_OldEditProc, hwnd, msg, wParam, lParam);
-			
+
 			break;
 		//}
 		case WM_KEYDOWN: //{
@@ -6998,10 +7410,10 @@ LRESULT CALLBACK SearchBarClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
 	RECT rect;
 	HWND thwnd;
-	
+
 	int button_x = 25;
 	int textb_h = 20;
-	
+
 	switch(msg) {
 		case WM_CREATE: //{
 			if (GetClientRect(hwnd, &rect) == 0) {
@@ -7009,13 +7421,13 @@ LRESULT CALLBACK SearchBarClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			}
 			EditSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 5, rect.right - 5 - button_x - 5 - 5, textb_h, hwnd, (HMENU) 1, NULL, NULL));
 			CreateWindowW(L"Button", L"", WS_VISIBLE | WS_CHILD, rect.right - 5 - button_x, 5, button_x, button_x, hwnd, (HMENU) 2, NULL, NULL);
-						
+
 		//}
 		case WM_SIZE: //{
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			thwnd = GetDlgItem(hwnd, 1);
 			MoveWindow(thwnd, 5, 5, rect.right - 5 - button_x - 5 - 5, textb_h, 0);
 			thwnd = GetDlgItem(hwnd, 2);
@@ -7026,11 +7438,11 @@ LRESULT CALLBACK SearchBarClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				if (LOWORD(wParam) == 2) {
 					thwnd = GetDlgItem(hwnd, 1);
 					CleanEditText(thwnd);
-					
+
 					wchar_t *wbuf;
 					int64_t len;
 					char *buf = NULL;
-					
+
 					len = GetWindowTextLengthW(thwnd);
 					if (!len) {
 					} else {
@@ -7040,13 +7452,13 @@ LRESULT CALLBACK SearchBarClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 							return 1;
 						}
 						GetWindowTextW(thwnd, wbuf, len);
-						
+
 						buf = mb_from_wide(wbuf);
 						free(wbuf);
 					}
-					
+
 					SendMessage(GetParent(hwnd), WM_U_RET_SBAR, (WPARAM) buf, (LPARAM) 0);
-					
+
 					free(buf);
 				}
 			}
@@ -7084,64 +7496,64 @@ LRESULT CALLBACK TextEditDialogClass::winProc(HWND hwnd, UINT msg, WPARAM wParam
 
 	RECT rect;
 	HWND thwnd;
-	
+
 	int64_t i, len;
-	
+
 	HDC hdc;
 	PAINTSTRUCT ps;
 	HFONT hOldFont;
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
-	
+
 	switch(msg) {
 		case WM_CREATE: //{
-			
+
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			
+
 			EditSuperClass::createWindowInstance(WinInstancer(0, L"Default name", WS_VISIBLE | WS_CHILD | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL, 5, 5, 350, 200, hwnd, (HMENU) 1, NULL, NULL));
 
 			SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) hFont, 1);
 			SendDlgItemMessageW(hwnd, 1, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
-			
+
 			CreateWindowW(L"Button", L"Apply", WS_VISIBLE | WS_CHILD, 5, 225, 80, 25, hwnd, (HMENU) 2, NULL, NULL);
 			SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) hFont2, 1);
-			
+
 			//PostMessage(hwnd, WM_USER+1, 0, 0);
-			
+
 			break;
 		//}
 		case WM_PAINT: //{
-	
+
 			break;
 		//}
 		case WM_SIZE: //{
-			
+
 			break;
 		//}
 		case WM_MOUSEMOVE: //{
 			SetCursor(hDefCrs);
-			
+
 			break;
 		//}
 		case WM_USER+1: //{
 			//ev = GetWindowMem(hwnd);
-			
+
 			//FreeWindowMem(hwnd);
 
 			//SetFocus(GetParent(hwnd));
-			
+
 			{
 				char *buf = "Default name";
-				
+
 				SendMessage(GetParent(hwnd), WM_U_RET_TED, (WPARAM) buf, (LPARAM) 0);
 				DestroyWindow(hwnd);
-				
+
 			}
-			
+
 			//free(buf);
-			
+
 			break;
 		//}
 		case WM_COMMAND: //{
@@ -7152,14 +7564,14 @@ LRESULT CALLBACK TextEditDialogClass::winProc(HWND hwnd, UINT msg, WPARAM wParam
 				this->clean_flag = 0;
 			} else if (HIWORD(wParam) == BN_CLICKED) { //! handle getting pressed when already pressed
 				if (LOWORD(wParam) == 2) {
-					
+
 					thwnd = GetDlgItem(hwnd, 1);
 					this->clean_flag = 1;
 					CleanEditText(thwnd);
 					this->clean_flag = 0;
-					
+
 					char *buf = 0;
-					
+
 					len = GetWindowTextLengthW(thwnd);
 					if (!len) {
 						buf = 0;
@@ -7171,36 +7583,36 @@ LRESULT CALLBACK TextEditDialogClass::winProc(HWND hwnd, UINT msg, WPARAM wParam
 							return 1;
 						}
 						GetWindowTextW(thwnd, wbuf, len);
-						
+
 						buf = malloc(len*4);
-						
+
 						if ((WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, buf, len*4, NULL, NULL)) == 0) {
 							errorf("WideCharToMultiByte Failed");
 						}
 						free(wbuf);
 					}
-					
+
 					SendMessage(GetParent(hwnd), WM_U_RET_TED, (WPARAM) buf, (LPARAM) 0);
-					
+
 					if (buf) {
 						free(buf);
 					}
 					DestroyWindow(hwnd);
-					
+
 					break;
-					
-										
+
+
 				}
 			}
 			break;
 		//}
 		case WM_NCDESTROY: //{
 			//ev = GetWindowMem(hwnd);
-			
+
 			//FreeWindowMem(hwnd);
 
 			SetFocus(GetParent(hwnd));
-			
+
 			return 0;
 		//}
 	}
@@ -7210,20 +7622,20 @@ LRESULT CALLBACK TextEditDialogClass::winProc(HWND hwnd, UINT msg, WPARAM wParam
 
 //}
 
-void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would require replacing option and slv with nRows, StrListSel, strchn[0] and strchn[1] 
+void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would require replacing option and slv with nRows, StrListSel, strchn[0] and strchn[1]
 	wchar_t *wbuf;
 	oneslnk *link, *flink, *inlink;
 	int i, j, pos;
 	char *buf, confirmed = 0;
 	RECT rect;
-	
+
 	//char (*rerf)(uint64_t dnum, char *dpath) = drer;
 	//char (*rmvf)(uint64_t dnum) = drmv;
 	//int (*crmvf)(oneslnk *dnumchn) = cdrmv;
 	char (*rerf)(uint64_t dnum, char *dpath) = NULL;
 	char (*rmvf)(uint64_t dnum) = NULL;
 	int (*crmvf)(oneslnk *dnumchn) = NULL;
-	
+
 	link = flink = malloc(sizeof(oneslnk));
 	for (pos = 0, i = 0; pos < slv->nRows; pos++) {
 		if (slv->StrListSel[(pos)/8] & (1 << pos%8)) {
@@ -7241,11 +7653,11 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 	free(link);
 	if (i == 0)
 		return;
-	
+
 	switch(option) {
-		
+
 		case 1:
-			
+
 			buf = malloc(46+20+MAX_PATH*4);
 			wbuf = malloc(2*(46+20+MAX_PATH));
 			if (i == 1) {
@@ -7280,7 +7692,7 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 				}
 			}
 			free(buf), free(wbuf);
-			
+
 			if (confirmed) {
 				for (pos = 0; pos < slv->nRows; pos++) {
 					if (slv->StrListSel[(pos)/8] & (1 << pos%8)) {
@@ -7299,9 +7711,9 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 					slv->StrListSel[(j)/8] |= (1 << j%8);
 				}
 			}
-			
+
 			break;
-		
+
 		case 2:
 		case 3:
 
@@ -7310,32 +7722,32 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 			}
 			buf = malloc(MAX_PATH*4);
 			pos = i;
-			
+
 			for (link = flink; link != 0; link = link->next) {	//! change binfo.lpszTitle to include dnum and dpath of dir being rerouted
 				//! TODO: add error return argument and print in window
 				std::fs::path retPath = SeekDir(hwnd);
 				if (!retPath.empty()) {
 					bool abort = false;
-					
+
 					if (option == 3) {
-						
+
 						//! TODO: add error return argument and print in window
 						retPath = makePathRelativeToProgDir(retPath);
-						
+
 						if (!retPath.empty()) {
 							if (!std::fs::is_directory(g_fsPrgDir / retPath)) {
 								errorf("retPath was not directory");
 								g_errorfStream << "retPath was: " << retPath << std::flush;
-								
+
 								retPath.clear();
 							}
 						}
 					}
-					
+
 					if (retPath.empty()) {
 						abort = true;
 					}
-					
+
 					if (!abort) {
 						if (pos == 1) {
 							rerf(link->ull, buf);
@@ -7352,10 +7764,10 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 			if (pos != 1 && MessageBoxW(hwnd, L"Apply changes?", L"Confirm", MB_YESNO) == IDYES) {
 				//! pop queue here
 			} else {
-				
+
 			}
-			free(buf);	
-			
+			free(buf);
+
 			break;
 	}
 	killoneschn(flink, 1);
@@ -7366,7 +7778,7 @@ int CleanEditText(HWND hwnd) {
 	int64_t len;
 	wchar_t *buf;
 	DWORD selstart, selend;
-	
+
 	len = GetWindowTextLengthW(hwnd);
 	if (!len) {
 		return 0;
@@ -7377,11 +7789,11 @@ int CleanEditText(HWND hwnd) {
 		return 1;
 	}
 	GetWindowTextW(hwnd, buf, len);
-	
+
 	for (i = 0, offset = 0; buf[i] != '\0'; i++) {
 		if (buf[i] == '\n' || buf[i] == '\t' || buf[i] == '\r') {
 			if (i+offset < selstart) {
-				selstart--;				
+				selstart--;
 			} if (i+offset < selend) {
 				selend--;
 			}
@@ -7389,8 +7801,8 @@ int CleanEditText(HWND hwnd) {
 		} else {
 			buf[i-offset] = buf[i];
 		}
-	} 
-	
+	}
+
 	buf[i-offset] = buf[i];
 	if (offset == 0) {
 		free(buf);
@@ -7407,7 +7819,7 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 	char buf[10000];
 	uint64_t ull1, ull2;
 	uint8_t quoted;
-	
+
 	if (!parsedchn) {
 		errorf("no parsedchn");
 		return 1;
@@ -7418,7 +7830,7 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 		return 1;
 	}
 	link = flink = malloc(sizeof(oneslnk)), flink->str = 0;
-	
+
 	ull1 = ull2 = quoted = 0;
 	while (1) {
 		if (ull2 >= 10000) {
@@ -7465,7 +7877,7 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 			} ull1++;
 		}
 	}
-	
+
 	link->next = 0;
 	*parsedchn = flink->next;
 	free(flink);
@@ -7474,7 +7886,7 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 
 char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, oneslnk **remaliaschn, uint8_t presort) {		// if presorted for origchn
 	oneslnk *parsedchn, *link1, *link2, *link3, *link4;
-	
+
 	if (!addaliaschn || !remaliaschn) {
 		errorf("no addaliaschn or no remaliaschn");
 		return 1;
@@ -7485,7 +7897,7 @@ char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, one
 	} else {
 		parsefiletagstr(buf, &parsedchn);
 	}
-	
+
 	if (parsedchn) {
 		if (sortoneschn(parsedchn, (int(*)(void*,void*)) strcmp, 0)) {
 			errorf("sortoneschn failed");
@@ -7502,7 +7914,7 @@ char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, one
 			}
 		}
 	}
-	
+
 ////////
 if (!origchn) { errorf("remadd no origchn"); } else { errorf("remadd with origchn"); } //!
 ////////
@@ -7546,7 +7958,7 @@ while (link1) {
 					free(link1);
 					link1 = link3->next;
 				}
-				
+
 				if (link2 == origchn) {
 					origchn = origchn->next;
 					if (link2->str) free(link2->str);
@@ -7568,7 +7980,7 @@ while (link1) {
 		*remaliaschn = origchn;
 	} else {
 		*remaliaschn = link4 = malloc(sizeof(oneslnk));
-		
+
 		while (link1 && link2) {
 			int32_t i = strcmp(link1->str, link2->str);
 			if (i == 0) {
@@ -7582,12 +7994,12 @@ while (link1) {
 					if (link1->str) free(link1->str);
 					link1 = link3->next;
 				}
-				
+
 				link2 = link2->next;
 			} else if (i > 0) {
 				link4 = link4->next = malloc(sizeof(oneslnk));
 				link4->str = dupstr(link2->str, 10000, 0);
-				
+
 				link2 = link2->next;
 			} else {
 				link3 = link1;
@@ -7597,15 +8009,15 @@ while (link1) {
 		while (link2) {
 			link4 = link4->next = malloc(sizeof(oneslnk));
 			link4->str = dupstr(link2->str, 10000, 0);
-			
+
 			link2 = link2->next;
 		}
 		link4->next = 0, link4 = *remaliaschn, *remaliaschn = (*remaliaschn)->next;
 		free(link4);
 	}
-	
+
 	*addaliaschn = parsedchn;
-		
+
 	return 0;
 }
 
@@ -7613,11 +8025,11 @@ void dialogf(HWND hwnd, char *str, ...) {
 	char buf[1001];
 	wchar_t *wbuf;
 	va_list args;
-	
+
 	va_start(args, str);
 	wbuf = malloc((2*(vsprintf(buf, str, args)+1)));
 	va_end(args);
-	
+
 	if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf, 1001)) == 0) {
 		errorf("MultiByteToWideChar Failed");
 	}

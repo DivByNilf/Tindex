@@ -5,6 +5,10 @@
 #include <memory>
 #include <map>
 
+#include <boost/dynamic_bitset.hpp>
+
+#include "errorobj.hpp"
+
 //{ Structs
 
 struct MainInitStruct {
@@ -241,6 +245,8 @@ public:
 	
 	HWND parent;
 	
+	virtual uint64_t getSingleSelID(void) const;
+	
 protected:
 	std::shared_ptr<PageListClass> plv;
 	std::shared_ptr<StrListClass> slv;
@@ -348,7 +354,9 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
-	uint64_t getSingleSelPos(void);
+	static const int32_t minColWidth = 2;
+	// arbitrary pixel cap
+	static const int32_t maxColWidth = 20000;
 	
 	uint32_t lastSel;
 	int32_t xspos, yspos;
@@ -357,30 +365,40 @@ public:
 	char hvrd, drag, timed;
 	POINT point;
 	
-	bool setHeaders(std::shared_ptr<std::vector<std::string>> argHeaderPtr);
+	inline int64_t getSingleSelPos(void) const;
+	
+	std::shared_ptr<std::vector<std::string>> getSingleSelRowCopy(void) const;
+	
+	std::shared_ptr<std::forward_list<int64_t>> getSelPositions(void) const;
+	
+	std::string getSingleSelRowCol(int32_t argCol, ErrorObject *retError = nullptr) const;
 	
 	bool setNColumns(int32_t);
 	
-	int32_t getNColumns(void);
+	bool setHeaders(std::shared_ptr<std::vector<std::string>> argHeaderPtr);
 	
-	bool setColumnWidth(int32_t columnN, int32_t width);
+	bool setColumnWidth(int32_t colArg, int32_t width);
+	
+	int32_t getNColumns(void) const;
+	
+	inline int32_t getTotalColumnsWidth(void) const;
 	
 	bool clearRows(void);
 	
 	bool assignRows(std::shared_ptr<std::vector<std::vector<std::string>>> inputVectorPtr);
 	
-	std::shared_ptr<std::vector<uint64_t>> getSelectedPositions(void) const;
-	
 	int64_t getNRows(void) const;
 	
-protected:
-	std::shared_ptr<std::vector<std::string>> sectionHeadersPtr;
-	std::shared_ptr<std::vector<std::vector<std::string>>> rowsPtr;
-	std::shared_ptr<std::vector<uint8_t>> rowSelsPtr;
-	std::shared_ptr<std::vector<int16_t>> columnWidthsPtr;
+	bool clearSelections(void);
 	
+protected:
 	int32_t nColumns;
 	int64_t nRows;
+	
+	std::shared_ptr<std::vector<std::string>> sectionHeadersPtr;
+	std::shared_ptr<std::vector<int16_t>> columnWidthsPtr;
+	std::shared_ptr<std::vector<std::vector<std::string>>> rowsPtr;
+	std::shared_ptr<boost::dynamic_bitset<>> rowSelsPtr;
 	
 };
 

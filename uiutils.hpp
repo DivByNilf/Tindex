@@ -1,7 +1,12 @@
 #include "windows.h"
 
 #include <filesystem>
+#include <stdint.h>
 
-std::fs::path SeekDir(const HWND &hwnd, HRESULT *result_ptr = nullptr);
+#include "errorobj.hpp"
 
-std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, std::string *retError = nullptr);
+std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr = nullptr);
+
+std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, ErrorObject *retError = nullptr);
+
+uint64_t stringToUint(std::string str, ErrorObject *retError = nullptr);
