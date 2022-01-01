@@ -3,11 +3,19 @@
 prog/
 bin/
 obj/
+build/
+lib/
 *.bin
 *.exe
 
 # compiled .o files
 *.o
+
+# cmake files
+/CMakeFiles/
+/CMakeCache.txt
+/_deps/
+/Makefile
 
 # other
 
