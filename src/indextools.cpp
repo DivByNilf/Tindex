@@ -70,7 +70,12 @@ TopIndexSessionHandler g_indexSessionHandler = TopIndexSessionHandler();
 //{ main index
 
 uint64_t getlastminum(void) {
+errorf("getlastminum before openSession");
+g_errorfStream << "g_errorfStream test 1: " << std::flush;
+g_errorfStream << "g_errorfStream test 2: " << std::flush;
+g_errorfStream << "g_errorfStream test 3: " << std::flush;
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
+errorf("getlastminum after openSession");
 
 	if (indexSession == nullptr) {
 		errorf("getlastminum could not open session");
@@ -78,7 +83,9 @@ uint64_t getlastminum(void) {
 	}
 
 	int32_t error = 0;
+errorf("getlastminum before getNofVirtualEntries");
 	return indexSession->getNofVirtualEntries(error);
+errorf("getlastminum after getNofVirtualEntries");
 }
 
 uint64_t mireg(char *miname) {
@@ -246,7 +253,7 @@ uint64_t getlastdnum(uint64_t minum) {
 	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
 
 	if (indexSession == nullptr) {
-		errorf("getlastminum could not open session");
+		errorf("getlastdnum could not open session");
 		return 0;
 	}
 

@@ -288,7 +288,7 @@ public:
 class HandlerAccessor {
 	friend class IndexSession;
 private:
-	static removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr);
+	static void removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr);
 };
 
 //! TODO: make reference to parent (handler?) atomic
@@ -300,7 +300,7 @@ public:
 
 	IndexSession() = delete;
 	IndexSession(const IndexSession &) = delete;
-	operator=(const IndexSession &other) = delete;
+	IndexSession &operator=(const IndexSession &other) = delete;
 	
 	IndexSession(IndexSessionHandler &handler_, const IndexID &indexID_) : handler{handler_}, indexID{indexID_} {}
 	
@@ -1301,7 +1301,7 @@ class IndexSessionHandler {
 public:
 	IndexSessionHandler() = default;
 	IndexSessionHandler(const IndexSessionHandler &) = delete;
-	operator=(const IndexSessionHandler &other) = delete;
+	IndexSessionHandler &operator=(const IndexSessionHandler &other) = delete;
 	
 	virtual ~IndexSessionHandler() = default;
 	
@@ -1314,7 +1314,7 @@ protected:
 	
 };
 
-HandlerAccessor::removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr) {
+void HandlerAccessor::removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr) {
 	handler.removeRefs(indexID, session_ptr);
 }
 
@@ -1343,7 +1343,8 @@ protected:
 	virtual bool removeRefs(const IndexID &indexID, const IndexSession *session_ptr) {
 		auto findIt = openSessions.find(indexID);
 		if (findIt == openSessions.end()) {
-			errorf("(removeRefs) couldn't find indexID entry");
+			g_errorfStream << "(TopIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str << ")" << std::flush; 
+			//errorf("(TopIndexSessionHandler::removeRefs) couldn't find indexID entry");
 		} else {
 			if ((IndexSession *) findIt->second.lock().get() == session_ptr || (IndexSession *) findIt->second.lock().get() == nullptr) {
 				
@@ -1384,6 +1385,7 @@ private:
 			//! probably could just construct to shared without the assistant function
 			std::shared_ptr<U> session_ptr = g_MakeSharedIndexSession<U>(*this, args...);
 			if (session_ptr != nullptr) {
+g_errorfStream << "session_ptr1: " << std::flush;
 				auto inputPair = std::pair<IndexID, std::weak_ptr<TopIndex>>(U::indexID, session_ptr);
 				if (inputPair.second.lock() != nullptr) {
 					auto resPair = openSessions.emplace(inputPair);
@@ -1392,6 +1394,8 @@ private:
 					} else if (resPair.second == false) {
 						errorf("indexID already registered");
 					} else {
+g_errorfStream << "session_ptr: " << session_ptr << std::flush;
+g_errorfStream << "registered indexID: " << ((IndexID) U::indexID).str << std::flush;
 						return session_ptr;
 					}
 				} else {
@@ -1480,7 +1484,8 @@ protected:
 	virtual bool removeRefs(const IndexID &indexID, const IndexSession *session_ptr) {
 		auto findIt = openSessions.find(indexID);
 		if (findIt == openSessions.end()) {
-			errorf("(removeRefs) couldn't find indexID entry");
+			g_errorfStream << "(SubIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str << ")" << std::flush; 
+			//errorf("(removeRefs) couldn't find indexID entry");
 		} else {
 			if ((IndexSession *) findIt->second.lock().get() == session_ptr || (IndexSession *) findIt->second.lock().get() == nullptr) {
 				

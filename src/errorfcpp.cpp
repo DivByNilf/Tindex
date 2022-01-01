@@ -55,9 +55,13 @@ void g_errorfStdStr(std::string str) {
 class FlushToFileBuf : public std::basic_stringbuf<char> {
 private:
 	virtual int sync() override {
-		this->std::basic_stringbuf<char>::sync();
+		if (this->std::basic_stringbuf<char>::sync()) {
+			g_errorfStdStr("basic_stringbuf sync failed");
+			return -1;
+		}
 		g_errorfStdStr(std::string(this->str()));
 		this->str("");
+		return 0;
 	}
 };
 

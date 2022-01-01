@@ -201,10 +201,25 @@ int MainInit(struct MainInitStruct &ms) {
 	if (ms.hMutex == NULL) {
 		return 2;
 	}
+errorf("maininit 2");
+	{
+		HMODULE hModule = LoadLibraryW(L"Msftedit.dll");
+		if (hModule == NULL) {
+			errorf("failed to load Msftedit.dll");
+			return 3;
+		}
+	}
 
-	LoadLibrary(TEXT("Msftedit.dll"));
+errorf("maininit 3");
+	{
+		bool b1 = EditSuperClass::helper.registerWindowClass();
+		if (!b1) {
+			errorf("ESC helper registerWindowClass failed");
+			return 3;
+		}
+	}
 
-	EditSuperClass::helper.registerWindowClass();
+errorf("maininit 4");
 
 	hDefCrs = LoadCursorA(NULL, IDC_ARROW);
 	hCrsSideWE = LoadCursorA(NULL, IDC_SIZEWE);
@@ -594,10 +609,16 @@ bool DeferredRegWindowHelper::registerWindowClass() {
 		int c = RegisterClassW(&wc);
 		if (!c) {
 			errorf("RegisterClassW failed");
+			int error1 = GetLastError();
+			g_errorfStream << error1 << std::flush;
+			return false;
 		} else {
 			isRegistered = true;
+			return true;
 		}
 	}
+	errorf("RWC already registered");
+	return true;
 }
 
 //} Non-WindowClass
@@ -1390,6 +1411,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			SetFocus(GetDlgItem(hwnd, 3));
 
 			SendMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
+errorf("miman 6");
 
 			break;
 		}
@@ -1456,6 +1478,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			break;
 		}
 		case WM_PAINT: {
+errorf("miman paint 1");
 
 			RECT rect = {0};
 			if (GetClientRect(hwnd, &rect) == 0) {
@@ -1502,14 +1525,18 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			break;
 		}
 		case WM_USER+1: { 		// refresh num and dir strings
+errorf("miman u+1 -- 1");
 
 			this->slv->clearRows();
+errorf("miman u+1 -- 2");
 
 			uint64_t fNum = (this->plv->curPage-1)*MAX_NROWS+1;
 
 			std::shared_ptr<std::forward_list<std::string>> list_ptr = imiread(fNum, MAX_NROWS);
+errorf("miman u+1 -- 3");
 
 			if (list_ptr != nullptr && !list_ptr->empty()) {
+errorf("miman u+1 -- 4");
 				auto workPtr = std::make_shared<std::vector<std::vector<std::string>>>();
 				if (workPtr == nullptr) {
 					errorf("failed to allocate shared_ptr");
@@ -1543,6 +1570,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 					//this->slv->bpos[1] = x*CHAR_WIDTH+5;
 				}
 			} else {
+errorf("miman u+1 -- 5");
 				if (this->plv->curPage > 1) {
 					this->plv->curPage--;
 					PostMessage(hwnd, WM_U_LISTMAN, LISTMAN_REFRESH, 0);
@@ -1551,6 +1579,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 				}
 			}
 
+errorf("miman u+1 -- 6");
 			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
 
 			if (!(InvalidateRect(hwnd, 0, 1))) {
@@ -1563,6 +1592,7 @@ g_errorfStream << "getNumElems: " << ll << std::flush;
 			break;
 		}
 		case WM_U_RET_SL: {
+errorf("miman WM_U_RET_SL -- 1");
 
 			switch (wParam) {
 			case 0:
@@ -3882,7 +3912,10 @@ bool StrListClass::clearSelections(void) {
 	if (selsHoldPtr) {
 		auto &rowSels = *selsHoldPtr;
 		rowSels.reset();
+		return true;
 	}
+	errorf("StrListClass::clearSelections no rowSelsPtr");
+	return false;
 }
 
 LRESULT CALLBACK StrListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -3908,6 +3941,7 @@ LRESULT CALLBACK StrListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
 	switch(msg) {
 		case WM_CREATE: {
+errorf("strlistclass create 1");
 			this->yspos = this->xspos = 0;
 			this->hvrd = 0;
 			this->drag = 0;
@@ -7307,6 +7341,7 @@ LRESULT CALLBACK CreateAliasClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, L
 const DeferredRegWindowHelper EditSuperClass::helper = DeferredRegWindowHelper(std::wstring(L"EditSuperClass"),
 	[](WNDCLASSW &wc) -> void {
 		WNDCLASSW t_wc = {0};
+errorf("ESC helper 1");
 		int c = GetClassInfoW(NULL, MSFTEDIT_CLASS, &t_wc);
 		if (!c) {
 			g_errorfStream << "GetClassInfoW failed" << "\n";
@@ -7324,6 +7359,7 @@ const DeferredRegWindowHelper EditSuperClass::helper = DeferredRegWindowHelper(s
 		wc.lpszMenuName = t_wc.lpszMenuName;
 
 		g_OldEditProc = t_wc.lpfnWndProc;
+errorf("ESC helper 2");
 
 	}
 );
@@ -8023,15 +8059,14 @@ while (link1) {
 
 void dialogf(HWND hwnd, char *str, ...) {
 	char buf[1001];
-	wchar_t *wbuf;
 	va_list args;
 
 	va_start(args, str);
-	wbuf = malloc((2*(vsprintf(buf, str, args)+1)));
+	std::shared_ptr<wchar_t[]> wbuf = std::shared_ptr<wchar_t[]> (new wchar_t[(vsprintf(buf, str, args)+1)]);
 	va_end(args);
 
-	if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf, 1001)) == 0) {
+	if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf.get(), 1001)) == 0) {
 		errorf("MultiByteToWideChar Failed");
 	}
-	MessageBoxW(hwnd, wbuf, 0, 0);
+	MessageBoxW(hwnd, wbuf.get(), 0, 0);
 }
