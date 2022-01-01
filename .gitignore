@@ -20,6 +20,7 @@ lib/
 # other
 
 /*.txt
+!/CMakeLists.txt
 
 # files starting with dot except .gitignore
 .*

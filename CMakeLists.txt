@@ -1,0 +1,140 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(FTI)
+
+# GoogleTest requires at least C++11
+set(CMAKE_CXX_STANDARD 17)
+
+###
+
+# define a simple macro
+macro(assert TEST COMMENT)
+  if(NOT ${TEST})
+    message("Assertion failed: ${COMMENT}")
+  endif()
+endmacro()
+
+###
+
+# search for pkg-config
+include (FindPkgConfig)
+if (NOT PKG_CONFIG_FOUND)
+    message (FATAL_ERROR "pkg-config not found")
+endif ()
+
+# check for libpng
+pkg_check_modules (LIBPNG libpng16 REQUIRED)
+if (NOT LIBPNG_FOUND)
+    message(FATAL_ERROR "You don't seem to have libpng16 development libraries installed")
+else ()
+    include_directories (${LIBPNG_INCLUDE_DIRS})
+    link_directories (${LIBPNG_LIBRARY_DIRS})
+    link_libraries (${LIBPNG_LIBRARIES})
+endif ()
+
+pkg_check_modules (LIBJPEG libjpeg REQUIRED)
+if (NOT LIBJPEG_FOUND)
+    message(FATAL_ERROR "You don't seem to have libjpeg development libraries installed")
+else ()
+    include_directories (${LIBJPEG_INCLUDE_DIRS})
+    link_directories (${LIBJPEG_LIBRARY_DIRS})
+    link_libraries (${LIBJPEG_LIBRARIES})
+endif ()
+
+pkg_check_modules (ICUUC icu-uc REQUIRED)
+if (NOT ICUUC_FOUND)
+    message(FATAL_ERROR "You don't seem to have icu-uc development libraries installed")
+else ()
+    include_directories (${ICUUC_INCLUDE_DIRS})
+    link_directories (${ICUUC_LIBRARY_DIRS})
+    link_libraries (${ICUUC_LIBRARIES})
+endif ()
+
+###
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+set(CMAKE_CFLAGS "-ggdb -w")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CFLAGS} -std=c++20 -fpermissive")
+set(CMAKE_CXX_FLAGS "${CMAKE_CFLAGS} -std=c++20")
+
+#set(CMAKE_RC_COMPILER "windres")
+#set(CMAKE_RC_COMPILER_ARG1 "")
+#set(CMAKE_RC_COMPILER_ARG1 "")
+#set(CMAKE_RC_COMPILER_LOADED 1)
+#set(CMAKE_RC_SOURCE_FILE_EXTENSIONS rc;RC)
+#set(CMAKE_RC_OUTPUT_EXTENSION .obj)
+#set(CMAKE_RC_COMPILER_ENV_VAR "RC")
+
+set(CMAKE_RC_COMPILER_INIT windres)
+ENABLE_LANGUAGE(RC)
+#SET(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
+SET(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT> --use-temp-file")
+#  --use-temp-file
+
+
+#find_file(OpenCL_DLL "C:/Windows/System32/OpenCL.dll")
+#find_file(OpenCL_DLL "/c/Windows/System32/OpenCL.dll" NO_CACHE)
+#find_file(OpenCL_DLL OpenCL.dll PATHS "C:/Windows/System32" NO_CMAKE_FIND_ROOT_PATH)
+#find_file(OpenCL_DLL OpenCL.dll PATHS "C:/Windows/SysWOW64" NO_DEFAULT_PATH)
+#assert(OpenCL_DLL "Unable to find file OpenCL_DLL")
+
+#find_library(OpenCL_LIB OpenCL.dll PATHS "C:/Windows/System32" NO_CMAKE_FIND_ROOT_PATH)
+#add_library(OpenCL_LIB SHARED OpenCL.dll PATHS "C:/Windows/System32" NO_CMAKE_FIND_ROOT_PATH)
+# add_library(OPENCL_LIB SHARED IMPORTED)
+#add_library(OPENCL_LIB STATIC "C:/Windows/System32/OpenCL.dll")
+#set_target_properties(OPENCL_LIB PROPERTIES LINKER_LANGUAGE C)
+#set_target_properties(OPENCL_LIB PROPERTIES IMPORTED_LOCATION "C:/Windows/System32/OpenCL.dll")
+
+#assert(OPENCL_LIB "Unable to find library OPENCL_LIB")
+
+#message("test: ${OPENCL_LIB}")
+
+# find_package(OpenCL REQUIRED)
+# target_link_libraries(vadd OpenCL::OpenCL)
+
+
+
+#file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
+#file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
+set(SOURCES main.cpp arrayarithmetic.c bytearithmetic.c portables.c breakpath.c dirfiles.c indextools.cpp images.c ioextras.c stringchains.c tfiles.c dupstr.c openclfunc.c errorfcpp.cpp uiutils.cpp portablescpp.cpp ioextrascpp.cpp prgdir.cpp errorobj.cpp)
+
+#  resources.rc
+
+list(TRANSFORM SOURCES PREPEND ${CMAKE_BINARY_DIR}/src/)
+
+list(APPEND SOURCES "${CMAKE_BINARY_DIR}/data/resources.rc")
+
+#add_executable(fti WIN32 ${SOURCES} ${OpenCL_DLL})
+
+add_executable(fti WIN32 ${SOURCES} )
+
+## maybe there is a better way to link?
+SET_TARGET_PROPERTIES(fti PROPERTIES LINK_FLAGS "-municode -mwindows C:/Windows/System32/OpenCL.dll -lcomctl32 -lole32 -luuid")
+#target_sources(fti INTERFACE ${OpenCL_DLL})
+#target_link_libraries(fti OPENCL_LIB)
+
+#find_package(PNG REQUIRED)
+#include_directories(${PNG_INCLUDE_DIR})
+#target_link_libraries(fti PNG::PNG)
+#target_link_libraries(fti ${PNG_LIBRARY})
+target_link_libraries(fti LIBPNG)
+target_link_libraries(fti LIBJPEG)
+# fix
+target_link_libraries(fti GIF)
+
+target_link_libraries(fti ICUUC)
+
+###
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
