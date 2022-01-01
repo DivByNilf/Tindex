@@ -67,7 +67,6 @@ struct subdirentry {
 
 class FileCloser {
 public:
-	const FILE *fp;
 	bool released = false;
 	
 	FileCloser() = delete;
@@ -82,6 +81,9 @@ public:
 	void release(void) {
 		released = true;
 	}
+private:
+FILE *fp;
+
 };
 
 class FilePathDeleter {
@@ -1651,7 +1653,7 @@ public:
 	
 	SubDirEntry(uint64_t &parentInum_, std::fs::path &subPath_) : parentInum{parentInum_}, subPath{subPath_} {}
 	
-	bool isValid(void) {
+	bool isValid(void) const {
 		return false;
 	}
 	

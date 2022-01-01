@@ -77,7 +77,7 @@ HRESULT SeekDir(HWND hwnd, char *retstr) {
 }
 */
 
-std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr = nullptr) {
+std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr) {
 	if (resultPtr != nullptr) {
 		resultPtr = 0;
 	}
@@ -96,7 +96,7 @@ std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr = nullptr) {
 			errorf("Can't initialize COM");
 		}
 		
-		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileOpenDialog, (void *) &pfd);
+		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileOpenDialog, (LPVOID *) &pfd);
 		if (SUCCEEDED(hr)) {
 			if (SUCCEEDED(hr)) {
 				DWORD dwFlags;
@@ -141,12 +141,12 @@ std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr = nullptr) {
 		errorf("Can't initialize COM"); 
 	}
 	if (resultPtr != nullptr) {
-		resultPtr = hr;
+		*resultPtr = hr;
 	}
 	return retPath;
 }
 
-std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, ErrorObject *retError = nullptr) {
+std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, ErrorObject *retError) {
 	//int pdpdc, cpdc;		// pdpdc -- prog dir parent directory count, common pdc
 	//char *rbuf;
 	//int i, j;
@@ -208,7 +208,7 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 
 static constexpr uint64_t maxUint = UINT64_MAX;
 
-uint64_t stringToUint(std::string str, ErrorObject *retError = nullptr) {
+uint64_t stringToUint(std::string str, ErrorObject *retError) {
 	uint64_t ret_uint = 0;
 	try {
 		ret_uint = std::stoull(str);

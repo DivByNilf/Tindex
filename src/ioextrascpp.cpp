@@ -32,7 +32,7 @@ void put_u64_stream_pref(std::ostream &ios, uint64_t uint) {
 g_errorfStream << "writing: " << uint << std::flush;
 g_errorfStream << "i: " << i << ", len: " << len << std::flush;
 	
-		ios.write(&str[i], len+1);
+		ios.write((char *) &str[i], len+1);
 	}
 }
 
@@ -80,7 +80,7 @@ void put_u64_stream_fixed(std::ostream &ios, uint64_t uint) {
 		int len = 8;
 		i = 1;
 	
-		ios.write(&str[i], len);
+		ios.write((char *) &str[i], len);
 	}
 }
 

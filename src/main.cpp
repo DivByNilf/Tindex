@@ -188,7 +188,8 @@ int MainInit(struct MainInitStruct &ms) {
 		return 1;
 	}
 	//! TODO: remove the c_string PrgDir from every file
-	g_prgDir = dupstr(g_fsPrgDir.string().c_str(), 32767*4, 0);
+	//! TODO:  remove the use of dupstr and the ugly cast
+	g_prgDir = dupstr((char *) g_fsPrgDir.string().c_str(), 32767*4, 0);
 	if (g_prgDir == nullptr) {
 		errorf("Preinit: g_PrgDir init failed");
 		return 1;
@@ -221,9 +222,9 @@ errorf("maininit 3");
 
 errorf("maininit 4");
 
-	hDefCrs = LoadCursorA(NULL, IDC_ARROW);
-	hCrsSideWE = LoadCursorA(NULL, IDC_SIZEWE);
-	hCrsHand = LoadCursorA(NULL, IDC_HAND);
+	hDefCrs = LoadCursor(NULL, IDC_ARROW);
+	hCrsSideWE = LoadCursor(NULL, IDC_SIZEWE);
+	hCrsHand = LoadCursor(NULL, IDC_HAND);
 
 	hFont = CreateFontW(14, 0, 0, 0, FW_MEDIUM, 0, 0, 0, 0, 0, 0, 0, 0, L"Consolas");
 	hFontUnderlined = CreateFontW(14, 0, 0, 0, FW_MEDIUM, 0, 1, 0, 0, 0, 0, 0, 0, L"Consolas");
@@ -681,7 +682,7 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 				file_map_name = wide_from_mb(buf);
 				*/
 				//! TODO:
-				wchar_t *file_map_name = u8_to_u16(s).c_str();
+				const wchar_t *file_map_name = u8_to_u16(s).c_str();
 
 				hMapFile = std::shared_ptr<void>(
 					CreateFileMappingW(
@@ -694,6 +695,7 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 					), CloseHandle
 				);
 
+				//// should be embedded in std::wstring
 				//free(file_map_name);
 
 				if (hMapFile == NULL) {
@@ -1270,7 +1272,7 @@ int MainIndexManClass::menuUse(HWND hwnd, int32_t menu_id) {
 		case 4:
 			{
 
-				SDIRMANARGS *args = calloc(1, sizeof(SDIRMANARGS));
+				SDIRMANARGS *args = (SDIRMANARGS *) calloc(1, sizeof(SDIRMANARGS));
 				args->option = 0;
 				args->parent = hwnd;
 				args->inum = this->getSingleSelID();
@@ -1311,7 +1313,7 @@ LRESULT CALLBACK MainIndexManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 			this->plv = NULL;
 			this->slv = NULL;
 
-			MIMANARGS *args = *((void **)lParam);
+			MIMANARGS *args = *((MIMANARGS **)lParam);
 
 			if (args) {
 				this->option = args->option;
@@ -1425,7 +1427,7 @@ errorf("miman 6");
 				} else if (HIWORD(wParam) == BN_CLICKED) {
 					if (LOWORD(wParam) == 1) {	// add listing
 
-						HWND *arg = malloc(sizeof(HWND));
+						HWND *arg = (HWND*) malloc(sizeof(HWND));
 						TextEditDialogClass::createWindowInstance(WinInstancer(0, L"Enter Main Index Name", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 150, 150, 500, 500, hwnd, 0, NULL, arg));
 						//SendMessage(thwnd, WM_USER, 0, (LPARAM) this->dnum);
 						free(arg);
@@ -3166,7 +3168,7 @@ void PageListClass::getPages(int32_t edge) {
 	std::shared_ptr<std::vector<struct ListPage>> result;
 
 	if (lastPage == 1 || (curPage > lastPage) || (curPage == 0)) {
-		return 0;
+		return;
 	}
 
 	headlen = ((1+1)*CHAR_WIDTH+2*(PAGES_SPACE+PAGE_PAD)); // space for the left arrow and '1' button
@@ -3270,7 +3272,7 @@ void PageListClass::getPages(int32_t edge) {
 		}
 		vec[curPage-1].type |= 1;
 		vec[pos-1].type = 0;
-		vec[pos-1].str = malloc(2), vec[pos-1].str[0] = '>', vec[pos-1].str[1] = '\0';
+		vec[pos-1].str = (char *) malloc(2), vec[pos-1].str[0] = '>', vec[pos-1].str[1] = '\0';
 		vec[pos-1].left = endremainder;
 		vec[pos-1].right = endremainder+CHAR_WIDTH+PAGE_PAD;
 		endremainder += CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
@@ -3378,7 +3380,7 @@ void PageListClass::getPages(int32_t edge) {
 		vec[0].right = endremainder+1*CHAR_WIDTH+PAGE_PAD;
 		endremainder += 2*CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
 		vec[1].type = 0;
-		vec[1].str = malloc(2), vec[1].str[0] = '<', vec[1].str[1] = '\0';
+		vec[1].str = (char *) malloc(2), vec[1].str[0] = '<', vec[1].str[1] = '\0';
 		vec[1].left = endremainder;
 		vec[1].right = endremainder+CHAR_WIDTH+PAGE_PAD;
 		endremainder += CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
@@ -3392,7 +3394,7 @@ void PageListClass::getPages(int32_t edge) {
 		}
 		if (!(status & 1)) {
 			vec[lastnum].type = 0;
-			vec[lastnum].str = malloc(2), vec[lastnum].str[0] = '>', vec[lastnum].str[1] = '\0';
+			vec[lastnum].str = (char *) malloc(2), vec[lastnum].str[0] = '>', vec[lastnum].str[1] = '\0';
 			vec[lastnum].left = endremainder;
 			vec[lastnum].right = endremainder+CHAR_WIDTH+PAGE_PAD;
 			endremainder += CHAR_WIDTH+PAGE_PAD+PAGES_SPACE;
@@ -3709,7 +3711,7 @@ std::shared_ptr<std::vector<std::string>> StrListClass::getSingleSelRowCopy(void
 	return rowCopyPtr;
 }
 
-std::string StrListClass::getSingleSelRowCol(int32_t argCol, ErrorObject *retError = nullptr) const {
+std::string StrListClass::getSingleSelRowCol(int32_t argCol, ErrorObject *retError) const {
 errorf("gssrc pos 0");
 	if (argCol >= this->getNColumns() || argCol < 0) {
 errorf("gssrc err1");
@@ -3998,8 +4000,8 @@ errorf("strlistclass create 9");
 			hdc = BeginPaint(hwnd, &ps);
 
 			hdc2 = CreateCompatibleDC(hdc);
-			hOldPen = GetCurrentObject(hdc2, OBJ_PEN);
-			hOldBrush = GetCurrentObject(hdc2, OBJ_BRUSH);
+			hOldPen = (HPEN) GetCurrentObject(hdc2, OBJ_PEN);
+			hOldBrush = (HBRUSH) GetCurrentObject(hdc2, OBJ_BRUSH);
 			hOldFont = (HFONT) SelectObject(hdc2, hFont);
 			SetBkMode(hdc2, TRANSPARENT);
 
@@ -4014,7 +4016,7 @@ errorf("strlistclass create 9");
 				}
 				hListSliceBM = CreateCompatibleBitmap(hdc, j, ROW_HEIGHT);
 			}
-			hOldBM = SelectObject(hdc2, hListSliceBM);
+			hOldBM = (HBITMAP) SelectObject(hdc2, hListSliceBM);
 
 			int64_t lastRow = firstRow + (!!upOffset) + (rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-upOffset)%ROW_HEIGHT)/ROW_HEIGHT + (((rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT - upOffset) % ROW_HEIGHT)) > 0) - 1;
 			// (rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-upOffset)%ROW_HEIGHT)/ROW_HEIGHT
@@ -5289,8 +5291,8 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			hdc = BeginPaint(hwnd, &ps);
 
 			hdc3 = CreateCompatibleDC(hdc);
-			hOldPen = GetCurrentObject(hdc3, OBJ_PEN);
-			hOldBrush = GetCurrentObject(hdc3, OBJ_BRUSH);
+			hOldPen = (HPEN) GetCurrentObject(hdc3, OBJ_PEN);
+			hOldBrush = (HBRUSH) GetCurrentObject(hdc3, OBJ_BRUSH);
 //			hOldFont = (HFONT) SelectObject(hdc2, hFont);
 
 			if (!hThumbListBM) {
@@ -5303,7 +5305,7 @@ LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				}
 				hThumbListBM = CreateCompatibleBitmap(hdc, i, j);
 			}
-			hOldBM = SelectObject(hdc3, hThumbListBM);
+			hOldBM = (HBITMAP) SelectObject(hdc3, hThumbListBM);
 
 			SelectObject(hdc3, bgBrush1);
 			SelectObject(hdc3, bgPen1);
@@ -6179,8 +6181,8 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			hdc = BeginPaint(hwnd, &ps);
 
 			hdc2 = CreateCompatibleDC(hdc);
-			hOldPen = GetCurrentObject(hdc2, OBJ_PEN);
-			hOldBrush = GetCurrentObject(hdc2, OBJ_BRUSH);
+			hOldPen = (HPEN) GetCurrentObject(hdc2, OBJ_PEN);
+			hOldBrush = (HBRUSH) GetCurrentObject(hdc2, OBJ_BRUSH);
 			hOldFont = (HFONT) SelectObject(hdc2, hFont);
 
 			SetBkMode(hdc2, TRANSPARENT);
@@ -6195,7 +6197,7 @@ LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				}
 				hThumbListBM = CreateCompatibleBitmap(hdc, i, j);
 			}
-			hOldBM = SelectObject(hdc2, hThumbListBM);
+			hOldBM = (HBITMAP) SelectObject(hdc2, hThumbListBM);
 
 			SelectObject(hdc2, bgBrush1);
 			SelectObject(hdc2, bgPen1);
@@ -7338,7 +7340,7 @@ LRESULT CALLBACK CreateAliasClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, L
 //{ EditSuperClass
 //public:
 // static
-const DeferredRegWindowHelper EditSuperClass::helper = DeferredRegWindowHelper(std::wstring(L"EditSuperClass"),
+DeferredRegWindowHelper EditSuperClass::helper(DeferredRegWindowHelper(std::wstring(L"EditSuperClass"),
 	[](WNDCLASSW &wc) -> void {
 		WNDCLASSW t_wc = {0};
 errorf("ESC helper 1");
@@ -7362,7 +7364,7 @@ errorf("ESC helper 1");
 errorf("ESC helper 2");
 
 	}
-);
+));
 
 // static
 HWND EditSuperClass::createWindowInstance(WinInstancer wInstancer) {
@@ -7483,7 +7485,7 @@ LRESULT CALLBACK SearchBarClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					if (!len) {
 					} else {
 						len++;
-						if (!(wbuf = malloc(len*2))) {
+						if (!(wbuf = (wchar_t *) malloc(len*2))) {
 							errorf("malloc failed");
 							return 1;
 						}
@@ -7614,13 +7616,13 @@ LRESULT CALLBACK TextEditDialogClass::winProc(HWND hwnd, UINT msg, WPARAM wParam
 					} else {
 						len++;
 						wchar_t *wbuf;
-						if (!(wbuf = malloc(len*2))) {
+						if (!(wbuf = (wchar_t *) malloc(len*2))) {
 							errorf("malloc failed");
 							return 1;
 						}
 						GetWindowTextW(thwnd, wbuf, len);
 
-						buf = malloc(len*4);
+						buf = (char *) malloc(len*4);
 
 						if ((WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, buf, len*4, NULL, NULL)) == 0) {
 							errorf("WideCharToMultiByte Failed");
@@ -7672,10 +7674,10 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 	char (*rmvf)(uint64_t dnum) = NULL;
 	int (*crmvf)(oneslnk *dnumchn) = NULL;
 
-	link = flink = malloc(sizeof(oneslnk));
+	link = flink = (oneslnk *) malloc(sizeof(oneslnk));
 	for (pos = 0, i = 0; pos < slv->nRows; pos++) {
 		if (slv->StrListSel[(pos)/8] & (1 << pos%8)) {
-			link = link->next = malloc(sizeof(oneslnk));
+			link = link->next = (oneslnk *) malloc(sizeof(oneslnk));
 			link->ull = ctou(slv->strs[0][pos]);
 			i++;
 		}
@@ -7694,8 +7696,8 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 
 		case 1:
 
-			buf = malloc(46+20+MAX_PATH*4);
-			wbuf = malloc(2*(46+20+MAX_PATH));
+			buf = (char *) malloc(46+20+MAX_PATH*4);
+			wbuf = (wchar_t *) malloc(2*(46+20+MAX_PATH));
 			if (i == 1) {
 				char *temp;
 				char *SelDir = utoc(flink->ull);
@@ -7756,7 +7758,7 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
-			buf = malloc(MAX_PATH*4);
+			buf = (char *) malloc(MAX_PATH*4);
 			pos = i;
 
 			for (link = flink; link != 0; link = link->next) {	//! change binfo.lpszTitle to include dnum and dpath of dir being rerouted
@@ -7820,7 +7822,7 @@ int CleanEditText(HWND hwnd) {
 		return 0;
 	} len++;
 	SendMessage(hwnd, EM_GETSEL, (WPARAM) &selstart, (LPARAM) &selend);
-	if (!(buf = malloc(len*2))) {
+	if (!(buf = (wchar_t *) malloc(len*2))) {
 		errorf("malloc failed");
 		return 1;
 	}
@@ -7865,7 +7867,7 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 		errorf("no input string in parsefiletagstr");
 		return 1;
 	}
-	link = flink = malloc(sizeof(oneslnk)), flink->str = 0;
+	link = flink = (oneslnk *) malloc(sizeof(oneslnk)), flink->str = 0;
 
 	ull1 = ull2 = quoted = 0;
 	while (1) {
@@ -7878,16 +7880,16 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 		if (input[ull1] == '\0') {
 			if (ull2 != 0) {
 				buf[ull2] = '\0';
-				link = link->next = malloc(sizeof(oneslnk));
-				link->str = dupstr(buf, 10000, 0);
+				link = link->next = (oneslnk *) malloc(sizeof(oneslnk));
+				link->str = (unsigned char *) dupstr(buf, 10000, 0);
 			}
 			break;
 		} else if (input[ull1] == '"') {
 			if (quoted) {
 				if (ull2 != 0) {
 					buf[ull2] = '\0';
-					link = link->next = malloc(sizeof(oneslnk));
-					link->str = dupstr(buf, 10000, 0);
+					link = link->next = (oneslnk *) malloc(sizeof(oneslnk));
+					link->str = (unsigned char *) dupstr(buf, 10000, 0);
 					ull2 = 0;
 				}
 			}
@@ -7896,8 +7898,8 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 		} else if (input[ull1] == ' ' && !quoted) {
 			if (ull2 != 0) {
 				buf[ull2] = '\0';
-				link = link->next = malloc(sizeof(oneslnk));
-				link->str = dupstr(buf, 10000, 0);
+				link = link->next = (oneslnk *) malloc(sizeof(oneslnk));
+				link->str = (unsigned char *) dupstr(buf, 10000, 0);
 				ull2 = 0;
 			}
 			ull1++;
@@ -7944,7 +7946,7 @@ char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, one
 			errorf("parsed null string");
 		}
 		for (link1 = parsedchn; link1->next; link1 = link1->next) {
-			if (strcmp(link1->next->str, link1->str) == 0) {
+			if (strcmp((char *) link1->next->str, (char *) link1->str) == 0) {
 				link2 = link1->next, link1 = link1->next->next;
 				free(link2->str), free(link2);
 			}
@@ -7981,7 +7983,7 @@ while (link1) {
 	link1 = parsedchn, link2 = origchn;
 	if (!presort) {
 		while (link1 && link2) {
-			int32_t i = strcmp(link1->str, link2->str);
+			int32_t i = strcmp((char *) link1->str, (char *) link2->str);
 			if (i == 0) {
 				if (link1 == parsedchn) {
 					parsedchn = parsedchn->next;
@@ -8015,10 +8017,10 @@ while (link1) {
 		}
 		*remaliaschn = origchn;
 	} else {
-		*remaliaschn = link4 = malloc(sizeof(oneslnk));
+		*remaliaschn = link4 = (tagoneslink *) malloc(sizeof(oneslnk));
 
 		while (link1 && link2) {
-			int32_t i = strcmp(link1->str, link2->str);
+			int32_t i = strcmp((char *) link1->str, (char *) link2->str);
 			if (i == 0) {
 				if (link1 == parsedchn) {
 					parsedchn = parsedchn->next;
@@ -8033,8 +8035,8 @@ while (link1) {
 
 				link2 = link2->next;
 			} else if (i > 0) {
-				link4 = link4->next = malloc(sizeof(oneslnk));
-				link4->str = dupstr(link2->str, 10000, 0);
+				link4 = link4->next = (tagoneslink *) malloc(sizeof(oneslnk));
+				link4->str = (unsigned char *) dupstr((char *) link2->str, 10000, 0);
 
 				link2 = link2->next;
 			} else {
@@ -8043,8 +8045,8 @@ while (link1) {
 			}
 		}
 		while (link2) {
-			link4 = link4->next = malloc(sizeof(oneslnk));
-			link4->str = dupstr(link2->str, 10000, 0);
+			link4 = link4->next = (tagoneslink *) malloc(sizeof(oneslnk));
+			link4->str = (unsigned char *) dupstr((char *) link2->str, 10000, 0);
 
 			link2 = link2->next;
 		}

@@ -1220,6 +1220,7 @@ unsigned char parse_srexp(char **s) {
 
 
 int stack_srch_alias(char **sp, twoslnk **aliasstack, SREXP *sexp) {
+/*
 	long long i, j, innerpar;
 	signed char quotes, outerpar, innerquotes;
 	char *s = *sp;
@@ -1333,11 +1334,14 @@ errorf_old("buf: %s", buf);
 	astack->u[0].vp = sexp;
 	astack->u[1].str = buf;
 	*aliasstack = astack;
+*/
 
 	return 0;
 }
 
 SEARCHSTRUCT *initftagsearch(char *searchstr, unsigned char *retarg, uint64_t dnum) { //! implement
+/*
+
 	retarg? *retarg = 0:0;
 	if (!searchstr) {
 		return NULL;
@@ -1704,21 +1708,17 @@ if (aliasstack) {
 			aliasstack = nextlnk;
 		}
 
-		/*
-		while (numstack != NULL) {
-			nextlnk = numstack->next;
-
-
-
-			free(numstack);
-			numstack = nextlnk;
-		}
-		*/
+		//while (numstack != NULL) {
+		//	nextlnk = numstack->next;
+		//	free(numstack);
+		//	numstack = nextlnk;
+		//}
 
 		freesrexp(rootexp);
 
 		return NULL;
 	}
+	*/
 }
 
 void killsearchexpr(struct searchexpr *sexp) {
@@ -1807,6 +1807,7 @@ void endsearch(SEARCHSTRUCT *sstruct) {
 }
 
 char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfile
+/*
 	FILE *fIndex, *tfile, *tfilerec;
 	unsigned char buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], *p, *p2, *p3, ascending = 0, uc;
 	int c, i, flag;
@@ -1955,6 +1956,7 @@ char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfi
 		errorf("nPut is 0");
 		return 0;
 	}
+*/
 }
 
 uint64_t getframount(char *tfstr) {
@@ -1987,6 +1989,7 @@ uint64_t getframount(char *tfstr) {
 }
 
 uint64_t frinitpos(char *tfstr, uint64_t inpos, uint64_t *retnpos) {
+/*
 	char buf[MAX_PATH*4], ch;
 	int i, c;
 	uint64_t npos, pos = 0, lastnpos = 0;
@@ -2026,9 +2029,11 @@ uint64_t frinitpos(char *tfstr, uint64_t inpos, uint64_t *retnpos) {
 	if (retnpos)
 		*retnpos = lastnpos;
 	return pos;
+*/
 }
 
 oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
+/*
 	FILE *tfile;
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
@@ -2102,6 +2107,7 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
 		npos++;
 	}
 	fclose(tfile);
+*/
 	return 0;
 }
 //}
@@ -2140,6 +2146,7 @@ char aliasentryto(FILE *fromfile, FILE *tofile, uint64_t aliascode) {	// doesn't
 }
 
 char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
+/*
 	FILE *tAlias, *ttAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
 	int i, c, j;
@@ -2275,10 +2282,12 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 	if (tAlias) {
 		MBremove(bif);
 	}
+*/
 	return 0;
 }
 
 char rtreg(uint64_t dnum, char *tname, uint64_t tagnum) { //! untested
+/*
 	int i;
 	oneslnk *link1, *link2;
 
@@ -2308,11 +2317,12 @@ char rtreg(uint64_t dnum, char *tname, uint64_t tagnum) { //! untested
 	link1->str = tname, link2->ull = tagnum;
 	crtreg(dnum, link1, link2);
 	free(link1), free(link2);
-
+*/
 	return 0;
 }
 
 oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { //! untested	//! in the future: resolve multiple tags from alias and alias from alias -- option to read only original tag aliases
+/*
 	FILE *tAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], done = 0;
 	int i, c, d;
@@ -2508,7 +2518,7 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 		errorf("sorttwoschnull failed");
 		return 1;
 	}
-
+*/
 	return 0;
 }
 
@@ -2593,6 +2603,7 @@ uint64_t getlasttnum(uint64_t dnum) {		//! not done
 }
 
 char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk **newtagnums, oneslnk *remtagnums) {	//! untested
+/*
 	FILE *tIndex, *ttIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
 	int c, i;
@@ -2883,10 +2894,12 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 	addtolasttnum(dnum, j, 0);
 
 	MBremove(bif);
+*/
 	return 0;
 }
 
 uint64_t treg(uint64_t dnum, char *tname, oneslnk *fnums) {
+/*
 	int c, i;
 	uint64_t lasttnum = 0;
 	oneslnk *link, *rettagnum;
@@ -2911,9 +2924,11 @@ uint64_t treg(uint64_t dnum, char *tname, oneslnk *fnums) {
 		lasttnum = 0;
 	}
 	return lasttnum;
+*/
 }
 
 char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **retfnums, unsigned char presort) {	//! untested
+/*
 	FILE *tIndex;
 	unsigned char buf[MAX_PATH*4];
 	int c, i;
@@ -3070,10 +3085,12 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 		*retfnums = link4->next;
 		free(link4);
 	}
+*/
 	return 0;
 }
 
 char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk *remtagnums, unsigned char presort) { // presort for 1: fnums, 2: addtagnums, 4: remtagnums	//! add presort functionality
+/*
 	oneslnk *tnums, *link1, *link2;
 	char buf1[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], buf4[MAX_PATH*4];
 	int c;
@@ -3160,7 +3177,7 @@ errorf("twoway 4");
 		killoneschn(tnums, 1);
 	}
 	MBremove(buf2), MBremove(buf4);
-
+*/
 	return 0;
 }
 

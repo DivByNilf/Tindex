@@ -129,7 +129,7 @@ public:
 	
 	static std::shared_ptr<WindowClass> createWindowMemory(HWND hwnd, WinCreateArgs &winArgs);
 	
-	static boolean WindowClass::releaseWindowMemory(HWND hwnd);
+	static boolean releaseWindowMemory(HWND hwnd);
 	
 	static LRESULT CALLBACK generalWinProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	
@@ -176,6 +176,8 @@ public:
 	const std::wstring winClassName;
 	
 	//void (*const modifyWinStruct)(WNDCLASSW &wc);
+
+	WindowHelper &operator=(WindowHelper &) = delete;
 	
 	WindowHelper(const std::wstring, void (*)(WNDCLASSW &wc));
 	WindowHelper(const std::wstring winClassName_);
@@ -187,6 +189,8 @@ public:
 class DeferredRegWindowHelper : public WindowHelper {
 public:
 	DeferredRegWindowHelper(const std::wstring, void (*)(WNDCLASSW &wc));
+
+	DeferredRegWindowHelper &operator=(DeferredRegWindowHelper &) = delete;
 	
 	virtual bool registerWindowClass() override;
 private:
@@ -472,7 +476,7 @@ public:
 class EditSuperClass : public WindowClass {
 public:
 //! TODO: make the helper a reference in each windowclass
-	static const DeferredRegWindowHelper helper;
+	static DeferredRegWindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
