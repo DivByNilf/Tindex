@@ -3,7 +3,7 @@
 //to do: directory index record
 
 #include "indextools.hpp"
-#include "indextools_static.hpp"
+#include "indextools_private.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
