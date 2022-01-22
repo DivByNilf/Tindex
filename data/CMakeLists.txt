@@ -1,0 +1,1 @@
+add_library(main_data_objects OBJECT resources.rc)

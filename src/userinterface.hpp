@@ -173,14 +173,14 @@ public:
 
 class WindowHelper {
 public:
-	const std::wstring winClassName;
+	const std::wstring winClassName_;
 	
 	//void (*const modifyWinStruct)(WNDCLASSW &wc);
 
 	WindowHelper &operator=(WindowHelper &) = delete;
 	
 	WindowHelper(const std::wstring, void (*)(WNDCLASSW &wc));
-	WindowHelper(const std::wstring winClassName_);
+	WindowHelper(const std::wstring winClassName);
 	WindowHelper() = delete;
 	
 	virtual bool registerWindowClass();
@@ -193,9 +193,12 @@ public:
 	DeferredRegWindowHelper &operator=(DeferredRegWindowHelper &) = delete;
 	
 	virtual bool registerWindowClass() override;
+
+	bool isRegistered(void) const;
+
 private:
 	void (*modifyWinStruct)(WNDCLASSW &wc);
-	bool isRegistered;
+	bool isRegistered_;
 };
 
 class MsgHandler : public WindowClass {
@@ -351,6 +354,13 @@ protected:
 	void getPages(int32_t edge);
 };
 
+class BoolSelectionList {
+public:
+	std::vector<uint8_t> sel_vec_;
+	uint64_t len_ = 0;
+
+};
+
 class StrListClass : public WindowClass {
 public:
 	static const WindowHelper helper;
@@ -398,6 +408,8 @@ public:
 protected:
 	int32_t nColumns;
 	int64_t nRows;
+
+	BoolSelectionList bool_sel_list_;
 	
 	std::shared_ptr<std::vector<std::string>> sectionHeadersPtr;
 	std::shared_ptr<std::vector<int16_t>> columnWidthsPtr;

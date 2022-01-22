@@ -565,7 +565,7 @@ HWND WinInstancer::create(std::shared_ptr<WinCreateArgs> winArgs, const std::wst
 
 
 // WindowHelper
-WindowHelper::WindowHelper(const std::wstring winClassName_, void (*modifyWinStruct)(WNDCLASSW &wc)) : winClassName{winClassName_} {
+WindowHelper::WindowHelper(const std::wstring winClassName, void (*modifyWinStruct)(WNDCLASSW &wc)) : winClassName_{winClassName} {
 	WNDCLASSW wc = {0};
 
 	wc.style = 0;
@@ -574,7 +574,7 @@ WindowHelper::WindowHelper(const std::wstring winClassName_, void (*modifyWinStr
 
 	modifyWinStruct(wc);
 
-	wc.lpszClassName = this->winClassName.c_str();
+	wc.lpszClassName = this->winClassName_.c_str();
 	wc.lpfnWndProc = WindowClass::generalWinProc;
 	wc.hInstance = ghInstance;
 
@@ -585,15 +585,15 @@ WindowHelper::WindowHelper(const std::wstring winClassName_, void (*modifyWinStr
 	}
 }
 
-WindowHelper::WindowHelper(const std::wstring winClassName_) : winClassName{winClassName_} {}
+WindowHelper::WindowHelper(const std::wstring winClassName_) : winClassName_{winClassName_} {}
 
 bool WindowHelper::registerWindowClass() {}
 
 // DeferredRegWindowHelper
-DeferredRegWindowHelper::DeferredRegWindowHelper(const std::wstring winClassName_, void (*modifyWinStruct_)(WNDCLASSW &wc)) : modifyWinStruct{modifyWinStruct_}, isRegistered(false), WindowHelper(winClassName_) {}
+DeferredRegWindowHelper::DeferredRegWindowHelper(const std::wstring winClassName_, void (*modifyWinStruct_)(WNDCLASSW &wc)) : modifyWinStruct{modifyWinStruct_}, isRegistered_(false), WindowHelper(winClassName_) {}
 
 bool DeferredRegWindowHelper::registerWindowClass() {
-	if (!this->isRegistered) {
+	if (!this->isRegistered_) {
 
 		WNDCLASSW wc = {0};
 
@@ -604,7 +604,7 @@ bool DeferredRegWindowHelper::registerWindowClass() {
 		modifyWinStruct(wc);
 
 		wc.lpfnWndProc = WindowClass::generalWinProc;
-		wc.lpszClassName = this->winClassName.c_str();
+		wc.lpszClassName = this->winClassName_.c_str();
 		wc.hInstance = ghInstance;
 
 		int c = RegisterClassW(&wc);
@@ -614,12 +614,17 @@ bool DeferredRegWindowHelper::registerWindowClass() {
 			g_errorfStream << error1 << std::flush;
 			return false;
 		} else {
-			isRegistered = true;
+			isRegistered_ = true;
 			return true;
 		}
 	}
 	errorf("RWC already registered");
+	g_errorfStream << "tried to register: " << u16_to_u8(std::wstring(winClassName_)) << std::flush;
 	return true;
+}
+
+bool DeferredRegWindowHelper::isRegistered(void) const {
+	return isRegistered_;
 }
 
 //} Non-WindowClass
@@ -639,7 +644,7 @@ const WindowHelper MsgHandler::helper = WindowHelper(std::wstring(L"MsgHandlerCl
 // static
 HWND MsgHandler::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new MsgHandler(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -666,7 +671,7 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
 				s += "/HWND";
 
-				errorf("file_map_name is:" + s);
+				// errorf("file_map_name is:" + s);
 
 				/*
 				char buf[MAX_PATH*4];
@@ -746,7 +751,7 @@ const WindowHelper TabWindow::helper = WindowHelper(std::wstring(L"TabWindowClas
 // static
 HWND TabWindow::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new TabWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -785,7 +790,6 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			}
 
 			HWND thwnd = 0;
-errorf("TabWindow creating Tab");
 			dispWindow = thwnd = TabClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, rect.bottom, hwnd, (HMENU) 3, NULL, NULL));
 
 			if (!thwnd) {
@@ -871,7 +875,7 @@ const WindowHelper TabClass::helper = WindowHelper(std::wstring(L"TabClass"),
 // static
 HWND TabClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new TabClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK TabClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -1214,7 +1218,7 @@ const WindowHelper MainIndexManClass::helper = WindowHelper(std::wstring(L"MainI
 // static
 HWND MainIndexManClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new MainIndexManClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 int MainIndexManClass::menuCreate(HWND hwnd) {
@@ -1700,7 +1704,7 @@ const WindowHelper DmanClass::helper = WindowHelper(std::wstring(L"DmanClass"),
 // static
 HWND DmanClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new DmanClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 int DmanClass::menuCreate(HWND hwnd) {
@@ -2166,7 +2170,7 @@ const WindowHelper SDmanClass::helper = WindowHelper(std::wstring(L"SDmanClass")
 // static
 HWND SDmanClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new SDmanClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 int SDmanClass::menuCreate(HWND hwnd) {
@@ -2605,7 +2609,7 @@ const WindowHelper ThumbManClass::helper = WindowHelper(std::wstring(L"ThumbManC
 // static
 HWND ThumbManClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new ThumbManClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK ThumbManClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -3140,7 +3144,7 @@ const WindowHelper PageListClass::helper = WindowHelper(std::wstring(L"PageListC
 // static
 HWND PageListClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new PageListClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 bool PageListClass::isPainting() {
@@ -3660,7 +3664,7 @@ const WindowHelper StrListClass::helper = WindowHelper(std::wstring(L"StrListCla
 // static
 HWND StrListClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new StrListClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 int64_t StrListClass::getSingleSelPos(void) const {
@@ -3720,6 +3724,7 @@ errorf("gssrc err1");
 	}
 
 	int64_t pos = this->getSingleSelPos();
+g_errorfStream << "gssrc got singleselpos: " << pos << std::flush;
 
 	if (pos < 0) {
 errorf("gssrc err2 ");
@@ -3727,6 +3732,7 @@ errorf("gssrc err2 ");
 		return {};
 	}
 
+errorf("gssrc pos 5");
 	return (*this->rowsPtr)[pos][argCol];
 }
 
@@ -5195,7 +5201,7 @@ const WindowHelper ThumbListClass::helper = WindowHelper(std::wstring(L"ThumbLis
 // static
 HWND ThumbListClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new ThumbListClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK ThumbListClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -6064,7 +6070,7 @@ const WindowHelper ViewImageClass::helper = WindowHelper(std::wstring(L"ViewImag
 // static
 HWND ViewImageClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new ViewImageClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK ViewImageClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -6759,7 +6765,7 @@ const WindowHelper FileTagEditClass::helper = WindowHelper(std::wstring(L"FileTa
 // static
 HWND FileTagEditClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new FileTagEditClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK FileTagEditClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -7271,7 +7277,7 @@ const WindowHelper CreateAliasClass::helper = WindowHelper(std::wstring(L"Create
 // static
 HWND CreateAliasClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new CreateAliasClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK CreateAliasClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -7368,9 +7374,13 @@ errorf("ESC helper 2");
 
 // static
 HWND EditSuperClass::createWindowInstance(WinInstancer wInstancer) {
-	EditSuperClass::helper.registerWindowClass();
+	// has to be registered before window instance is created
+	if (!EditSuperClass::helper.isRegistered()) {
+		errorf("createWindowInstance: ESC not registered");
+		return NULL;
+	}
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new EditSuperClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK EditSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -7441,7 +7451,7 @@ const WindowHelper SearchBarClass::helper = WindowHelper(std::wstring(L"SearchBa
 // static
 HWND SearchBarClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new SearchBarClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK SearchBarClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -7527,7 +7537,7 @@ const WindowHelper TextEditDialogClass::helper = WindowHelper(std::wstring(L"Tex
 // static
 HWND TextEditDialogClass::createWindowInstance(WinInstancer wInstancer) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new TextEditDialogClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName);
+	return wInstancer.create(winArgs, helper.winClassName_);
 }
 
 LRESULT CALLBACK TextEditDialogClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

@@ -1,0 +1,58 @@
+arrayarithmetic.c
+	- util, standard_c
+breakpath.c
+	- util
+bytearithmetic.c
+	- util, standard_c
+dirfiles.c
+	- util, file io
+dupstr.c
+	- util, small util
+errorf.c
+	- logging, deprecated
+errorf.cpp
+	- logging
+errorobj.cpp
+	- logging, error response
+images.c
+	- api, file io
+indextools.cpp
+	- api, core
+ioextras.c
+	- util, deprecated
+ioextras.cpp
+	- util
+listdirtofile.c
+	- util
+main.cpp
+	- main
+openclfunc.c
+	- api
+portables.c
+	- util, portability
+portablescpp.cpp
+	- util, portability
+prgdir.cpp
+	- util
+stringchains.c
+	- util, deprecated
+tfiles.c
+	- util, file io
+uiutils.cpp
+	- util
+userinterface.cpp
+	- api, core
+	
+
+
+main
+	main.cpp
+	
+core
+	indextools.cpp
+	userinterface.cpp
+	
+external library api
+	images.c
+	openclfunc.c
+	

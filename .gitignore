@@ -16,6 +16,10 @@ lib/
 /CMakeCache.txt
 /_deps/
 /Makefile
+# */CMakeFiles/
+CMakeFiles/
+*.cmake
+*/Makefile
 
 # other
 
