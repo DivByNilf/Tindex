@@ -1,7 +1,5 @@
 ### GoogleTest
 
-# TODO: move this to the tests cmakelists
-
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -10,9 +8,6 @@ FetchContent_Declare(
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
-
-
-#find_package(gtest REQUIRED)
 
 add_executable(
     all_tests
@@ -24,16 +19,14 @@ add_executable(
 
 target_link_libraries(
     all_tests
-    #hello_test
     gtest_main
 )
   
 include(GoogleTest)
 gtest_discover_tests(all_tests)
 
-#target_include_directories(indextools_static_tests.cc.obj PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
 # just the main source directory of the project (./src)
+# enables header files to be found
 target_include_directories(all_tests PRIVATE ${FTI_SRC_DIR})
 
 set(OUT )
@@ -46,10 +39,4 @@ target_link_libraries(all_tests ${OUT})
 
 # OpenCL references
 
-SET_TARGET_PROPERTIES(all_tests PROPERTIES LINK_FLAGS "C:/Windows/System32/OpenCL.dll")
-
-
-
-#message("CMAKE_CURRENT_SOURCE_DIR: " ${FTI_SRC_DIR})
-#include_directories(${FTI_SRC_DIR})
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+SET_TARGET_PROPERTIES(all_tests PROPERTIES LINK_FLAGS "C:/Windows/System32/OpenCL.dll -pthread")

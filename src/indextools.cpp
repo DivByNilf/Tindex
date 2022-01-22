@@ -71,9 +71,6 @@ TopIndexSessionHandler g_indexSessionHandler = TopIndexSessionHandler();
 
 uint64_t getlastminum(void) {
 errorf("getlastminum before openSession");
-g_errorfStream << "g_errorfStream test 1: " << std::flush;
-g_errorfStream << "g_errorfStream test 2: " << std::flush;
-g_errorfStream << "g_errorfStream test 3: " << std::flush;
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 errorf("getlastminum after openSession");
 

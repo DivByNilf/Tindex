@@ -146,11 +146,7 @@ public:
 
 	IndexID(std::string str);
 
-	auto operator<=>(const IndexID& rhs) const;
-
-	bool operator==(const IndexID& rhs) const;
-
-	bool operator<(const IndexID& rhs) const;
+	std::strong_ordering operator<=>(const IndexID& rhs) const;
 };
 
 class HandlerAccessor {
@@ -1372,7 +1368,6 @@ std::shared_ptr<U> TopIndexSessionHandler::openTopIndexSession(Ts&& ... args) {
 		//! probably could just construct to shared without the assistant function
 		std::shared_ptr<U> session_ptr = g_MakeSharedIndexSession<U>(*this, args...);
 		if (session_ptr != nullptr) {
-g_errorfStream << "session_ptr1: " << std::flush;
 			auto inputPair = std::pair<IndexID, std::weak_ptr<TopIndex>>(U::indexID, session_ptr);
 			if (inputPair.second.lock() != nullptr) {
 				auto resPair = openSessions_.emplace(inputPair);
@@ -1381,9 +1376,6 @@ g_errorfStream << "session_ptr1: " << std::flush;
 				} else if (resPair.second == false) {
 					errorf("indexID already registered");
 				} else {
-g_errorfStream << "session_ptr: " << session_ptr << std::flush;
-g_errorfStream << "registered indexID: " << ((IndexID) U::indexID).str_ << std::flush;
-g_errorfStream << "openSessions size: " << openSessions_.size() << std::flush;
 					return session_ptr;
 				}
 			} else {

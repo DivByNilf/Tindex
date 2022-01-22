@@ -12,14 +12,11 @@ lib/
 *.o
 
 # cmake files
-/CMakeFiles/
+CMakeFiles/
 /CMakeCache.txt
 /_deps/
 /Makefile
-# */CMakeFiles/
-CMakeFiles/
 *.cmake
-*/Makefile
 
 # other
 

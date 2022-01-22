@@ -28,7 +28,7 @@ public:
 		return !this->hasNothing();
 	}
 	
-	operator =(const int32_t &other) {
+	operator=(const int32_t &other) {
 		*this = ErrorObject(other);
 	}
 };

@@ -195,15 +195,8 @@ bool reverseRenameOpList(std::list<FileRenameOp> opList) {
 
 IndexID::IndexID(std::string str) : str_{str} {} // class init
 
-auto IndexID::operator<=>(const IndexID& rhs) const {
+std::strong_ordering IndexID::operator<=>(const IndexID& rhs) const {
 	return( (this->str_) <=> (rhs.str_) );
-}
-
-bool IndexID::operator==(const IndexID& rhs) const {
-	this->str_ == rhs.str_;
-}
-bool IndexID::operator<(const IndexID& rhs) const {
-	this->str_ < rhs.str_;
 }
 	
 IndexSessionHandler &IndexSession::getHandler(void) {
@@ -399,14 +392,10 @@ MainIndexIndex::MainIndexIndex(IndexSessionHandler &handler) :
 bool TopIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *session_ptr) {
 	auto findIt = openSessions_.find(indexID);
 	if (findIt == openSessions_.end()) {
-		g_errorfStream << "(TopIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::flush; //
-		//errorf("(TopIndexSessionHandler::removeRefs) couldn't find indexID entry");
-		g_errorfStream << "openSessions size: " << openSessions_.size() << std::flush; //
+		g_errorfStream << "(TopIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::flush;
 	} else {
 		if ((IndexSession *) findIt->second.lock().get() == session_ptr || (IndexSession *) findIt->second.lock().get() == nullptr) {
-			g_errorfStream << "(TopIndexSessionHandler::removeRefs) erased indexID entry (indexID: " << indexID.str_ << ")" << std::flush; //
 			openSessions_.erase(findIt);
-			g_errorfStream << "openSessions size: " << openSessions_.size() << std::flush; //
 			return true;
 		}
 	}
