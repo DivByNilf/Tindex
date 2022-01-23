@@ -1,13 +1,24 @@
 #pragma once
 
+#include "errorobj.hpp"
+
+extern "C" {
+	#include "images.h"
+	#include "stringchains.h"
+}
+
 #include <windows.h>
+#include <stdlib.h>
 
 #include <memory>
 #include <map>
+#include <forward_list>
 
 #include <boost/dynamic_bitset.hpp>
-
-#include "errorobj.hpp"
+#include <filesystem>
+namespace std {
+	namespace fs = std::filesystem;
+}
 
 //{ Structs
 
@@ -160,6 +171,9 @@ public:
 protected:
 	//HWND defaultWindowInstancer(DWORD dwExStyle, LPCWSTR lpWindowName, DWORD dwStyle, int32_t X, int32_t Y, int32_t nWidth, int32_t nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 	//static HWND defaultWindowInstancer(DWORD dwExStyle, LPCWSTR lpWindowName, DWORD dwStyle, int32_t X, int32_t Y, int32_t nWidth, int32_t nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+
+	virtual LRESULT onCreate(WinProcArgs procArgs);
+
 private:
 	static std::map<HWND, std::shared_ptr<WindowClass>> winMemMap;
 };
@@ -230,8 +244,7 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
-	// TODO: set to overrride later
-	virtual LRESULT onCreate(WinProcArgs args);
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	
 	
@@ -252,6 +265,8 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+
 	HWND wHandle_[2];
 	HWND wHandle2_[1];
 	unsigned int ndirman_ = 2;
@@ -270,6 +285,7 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	HWND wHandle_[2];
 	HWND wHandle2_[1];
@@ -285,6 +301,8 @@ public:
 class ListManWindow : public WindowClass {
 public:
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+
+	//virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	virtual uint64_t getNumElems() = 0;
 	
@@ -307,6 +325,8 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	virtual uint64_t getNumElems() override;
 	
@@ -324,6 +344,8 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	virtual uint64_t getNumElems() override;
 	
@@ -343,6 +365,8 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+	
 	virtual uint64_t getNumElems() override;
 	
 	int32_t menuCreate(HWND hwnd);
@@ -357,6 +381,8 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	//virtual uint64_t getNumElems() override;
 	
@@ -378,6 +404,8 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	bool isPainting();
 	
@@ -408,6 +436,8 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 	static const int32_t kMinColWidth = 2;
 	// arbitrary pixel cap
@@ -466,6 +496,8 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+	
 	
 	
 	ImgF **thumbs_;
@@ -489,6 +521,8 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+	
 	HBITMAP hThumbListBitmap;
 	
 	ImgF *fullImage_;
@@ -508,6 +542,8 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+	
 	
 	
 	uint64_t dnum_;
@@ -524,6 +560,8 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+	
 	std::shared_ptr<FileTagEditWindow> parent_;
 	
 };
@@ -536,6 +574,8 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+	
 };
 
 class SearchBarWindow : public WindowClass {
@@ -544,6 +584,8 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
 	
 };
 
@@ -554,8 +596,14 @@ public:
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
+	virtual LRESULT onCreate(WinProcArgs procArgs) override;
+	
 	
 	
 	uint8_t clean_flag_;
 };
+
+/// util
+
+void DelRer(HWND, uint8_t, STRLISTV const*);
 

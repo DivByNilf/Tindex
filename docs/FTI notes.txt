@@ -112,6 +112,8 @@ OpenCL
 
 - - - little things
 
+remove '.c' files
+
 redraw after going out of maximize
 
 make list column headers not overlap

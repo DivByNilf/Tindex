@@ -221,3 +221,281 @@ uint64_t stringToUint(std::string str, ErrorObject *retError) {
 	
 	return ret_uint;	
 }
+
+/// cut-pasted from main.cpp
+
+// TODO: a lot of these should probably be methods of window classes instead
+
+#include "userinterface.hpp"
+
+extern "C" {
+	#include "stringchains.h"
+	#include "dupstr.h"
+	#include "arrayarithmetic.h"
+	#include "bytearithmetic.h"
+	#include "tfiles.h"
+}
+
+
+
+int CleanEditText(HWND hwnd) {
+	int32_t i, offset;
+	int64_t len;
+	wchar_t *buf;
+	DWORD selStart, selend;
+
+	len = GetWindowTextLengthW(hwnd);
+	if (!len) {
+		return 0;
+	} len++;
+	SendMessage(hwnd, EM_GETSEL, (WPARAM) &selStart, (LPARAM) &selend);
+	if (!(buf = (wchar_t *) malloc(len*2))) {
+		errorf("malloc failed");
+		return 1;
+	}
+	GetWindowTextW(hwnd, buf, len);
+
+	for (i = 0, offset = 0; buf[i] != '\0'; i++) {
+		if (buf[i] == '\n' || buf[i] == '\t' || buf[i] == '\r') {
+			if (i+offset < selStart) {
+				selStart--;
+			} if (i+offset < selend) {
+				selend--;
+			}
+			offset++;
+		} else {
+			buf[i-offset] = buf[i];
+		}
+	}
+
+	buf[i-offset] = buf[i];
+	if (offset == 0) {
+		free(buf);
+		return 0;
+	}
+	SetWindowTextW(hwnd, buf);
+	free(buf);
+	SendMessage(hwnd, EM_SETSEL, selStart, selend);
+	return 0;
+}
+
+char parsefiletagstr(char *input, oneslnk **parsedchn) {
+	oneslnk *flink, *link;
+	char buf[10000];
+	uint64_t ull1, ull2;
+	uint8_t quoted;
+
+	if (!parsedchn) {
+		errorf("no parsedchn");
+		return 1;
+	}
+	*parsedchn = 0;
+	if (!input) {
+		errorf("no input string in parsefiletagstr");
+		return 1;
+	}
+	link = flink = (oneslnk *) malloc(sizeof(oneslnk)), flink->str = 0;
+
+	ull1 = ull2 = quoted = 0;
+	while (1) {
+		if (ull2 >= 10000) {
+			errorf("parsed tag too long");
+			link->next = 0;
+			killoneschn(flink, 0);
+			return 1;
+		}
+		if (input[ull1] == '\0') {
+			if (ull2 != 0) {
+				buf[ull2] = '\0';
+				link = link->next = (oneslnk *) malloc(sizeof(oneslnk));
+				link->str = (unsigned char *) dupstr(buf, 10000, 0);
+			}
+			break;
+		} else if (input[ull1] == '"') {
+			if (quoted) {
+				if (ull2 != 0) {
+					buf[ull2] = '\0';
+					link = link->next = (oneslnk *) malloc(sizeof(oneslnk));
+					link->str = (unsigned char *) dupstr(buf, 10000, 0);
+					ull2 = 0;
+				}
+			}
+			quoted = !quoted;
+			ull1++;
+		} else if (input[ull1] == ' ' && !quoted) {
+			if (ull2 != 0) {
+				buf[ull2] = '\0';
+				link = link->next = (oneslnk *) malloc(sizeof(oneslnk));
+				link->str = (unsigned char *) dupstr(buf, 10000, 0);
+				ull2 = 0;
+			}
+			ull1++;
+		} else {
+			if (input[ull1] == '\\') {
+				ull1++;
+				if (input[ull1] == '\0') {
+					continue;
+				}
+			}
+			if (input[ull1] != '\t' && input[ull1] != '\n' && input[ull1] != '\r') {
+				buf[ull2++] = input[ull1];
+			} ull1++;
+		}
+	}
+
+	link->next = 0;
+	*parsedchn = flink->next;
+	free(flink);
+	return 0;
+}
+
+char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, oneslnk **remaliaschn, uint8_t presort) {		// if presorted for origchn
+	oneslnk *parsedchn, *link1, *link2, *link3, *link4;
+
+	if (!addaliaschn || !remaliaschn) {
+		errorf("no addaliaschn or no remaliaschn");
+		return 1;
+	}
+	*addaliaschn = *remaliaschn = 0;
+	if (!buf) {
+		parsedchn = 0;
+	} else {
+		parsefiletagstr(buf, &parsedchn);
+	}
+
+	if (parsedchn) {
+		if (sortoneschn(parsedchn, (int(*)(void*,void*)) strcmp, 0)) {
+			errorf("sortoneschn failed");
+			killoneschn(parsedchn, 0);
+			return 1;
+		}
+		if (parsedchn->str == 0) {
+			errorf("parsed null string");
+		}
+		for (link1 = parsedchn; link1->next; link1 = link1->next) {
+			if (strcmp((char *) link1->next->str, (char *) link1->str) == 0) {
+				link2 = link1->next, link1 = link1->next->next;
+				free(link2->str), free(link2);
+			}
+		}
+	}
+
+////////
+if (!origchn) { errorf("remadd no origchn"); } else { errorf("remadd with origchn"); } //!
+////////
+
+	if (!presort && origchn) {
+		 origchn = copyoneschn(origchn, 0);
+		if (sortoneschn(origchn, (int(*)(void*,void*)) strcmp, 0)) {
+			errorf("sortoneschn failed");
+			killoneschn(parsedchn, 0), killoneschn(origchn, 0);
+			return 1;
+		}
+	} if (origchn && origchn->str == 0) {
+		errorf("origchn null string");
+	}
+////////
+link1 = origchn;
+while (link1) {
+	g_errorfStream << "origchn: " << link1->str << std::flush;
+	link1 = link1->next;
+}
+link1 = parsedchn;
+while (link1) {
+	g_errorfStream << "parsedchn: " << link1->str << std::flush;
+	link1 = link1->next;
+}
+///////
+
+	link1 = parsedchn, link2 = origchn;
+	if (!presort) {
+		while (link1 && link2) {
+			int32_t i = strcmp((char *) link1->str, (char *) link2->str);
+			if (i == 0) {
+				if (link1 == parsedchn) {
+					parsedchn = parsedchn->next;
+					if (link1->str) free(link1->str);
+					free(link1);
+					link1 = parsedchn;
+				} else {
+					link3->next = link1->next;
+					if (link1->str) free(link1->str);
+					free(link1);
+					link1 = link3->next;
+				}
+
+				if (link2 == origchn) {
+					origchn = origchn->next;
+					if (link2->str) free(link2->str);
+					free(link2);
+					link2 = origchn;
+				} else {
+					link4->next = link2->next;
+					if (link2->str) free(link2->str);
+					link2 = link4->next;
+				}
+			} else if (i > 0) {
+				link4 = link2;
+				link2 = link2->next;
+			} else {
+				link3 = link1;
+				link1 = link1->next;
+			}
+		}
+		*remaliaschn = origchn;
+	} else {
+		*remaliaschn = link4 = (tagoneslink *) malloc(sizeof(oneslnk));
+
+		while (link1 && link2) {
+			int32_t i = strcmp((char *) link1->str, (char *) link2->str);
+			if (i == 0) {
+				if (link1 == parsedchn) {
+					parsedchn = parsedchn->next;
+					if (link1->str) free(link1->str);
+					free(link1);
+					link1 = parsedchn;
+				} else {
+					link3->next = link1->next;
+					if (link1->str) free(link1->str);
+					link1 = link3->next;
+				}
+
+				link2 = link2->next;
+			} else if (i > 0) {
+				link4 = link4->next = (tagoneslink *) malloc(sizeof(oneslnk));
+				link4->str = (unsigned char *) dupstr((char *) link2->str, 10000, 0);
+
+				link2 = link2->next;
+			} else {
+				link3 = link1;
+				link1 = link1->next;
+			}
+		}
+		while (link2) {
+			link4 = link4->next = (tagoneslink *) malloc(sizeof(oneslnk));
+			link4->str = (unsigned char *) dupstr((char *) link2->str, 10000, 0);
+
+			link2 = link2->next;
+		}
+		link4->next = 0, link4 = *remaliaschn, *remaliaschn = (*remaliaschn)->next;
+		free(link4);
+	}
+
+	*addaliaschn = parsedchn;
+
+	return 0;
+}
+
+void dialogf(HWND hwnd, char *str, ...) {
+	char buf[1001];
+	va_list args;
+
+	va_start(args, str);
+	std::shared_ptr<wchar_t[]> wbuf = std::shared_ptr<wchar_t[]> (new wchar_t[(vsprintf(buf, str, args)+1)]);
+	va_end(args);
+
+	if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf.get(), 1001)) == 0) {
+		errorf("MultiByteToWideChar Failed");
+	}
+	MessageBoxW(hwnd, wbuf.get(), 0, 0);
+}
