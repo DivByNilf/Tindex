@@ -114,12 +114,34 @@ typedef struct ThumbManArgs {
 	HWND parent;
 	uint64_t dnum;
 } THMBMANARGS;
+
+struct SharedWindowVariables {
+	HINSTANCE ghInstance;
+	DWORD color;
+	HFONT hFont, hFont2, hFontUnderlined;
+	HPEN bgPen1, bgPen2, bgPen3, bgPen4, bgPen5, selPen, selPen2, hPen1;
+	HBRUSH bgBrush1, bgBrush2, bgBrush3, bgBrush4, bgBrush5, selBrush;
+	HBITMAP hListSliceBM, hThumbListBM;
+	WNDPROC g_OldEditProc;
+	struct wMemEntry **wMemArray;
+	uint64_t wMemArrLen, nwMemWnds;
+
+	HCURSOR hDefCrs, hCrsSideWE, hCrsHand;
+};
+
+struct WinProcArgs {
+	HWND hwnd;
+	UINT msg;
+	WPARAM wParam;
+	LPARAM lParam;
+};
+
 //}
 
 class WinCreateArgs;
 
-class PageListClass;
-class StrListClass;
+class PageListWindow;
+class StrListWindow;
 
 class WindowClass {
 public:
@@ -145,7 +167,7 @@ private:
 class WinCreateArgs {
 public:
 	WindowClass *(&constructor)(void);
-	LPVOID lpParam;
+	LPVOID lpParam_;
 	
 	WinCreateArgs(WindowClass *(*constructor_)(void));
 	
@@ -156,17 +178,17 @@ public:
 	WinInstancer() = delete;
 	WinInstancer(DWORD dwExStyle, LPCWSTR lpWindowName, DWORD dwStyle, int32_t X, int32_t Y, int32_t nWidth, int32_t nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 	
-	const DWORD dwExStyle;
-	const LPCWSTR lpWindowName;
-	const DWORD dwStyle;
-	const int32_t X;
-	const int32_t Y;
-	const int32_t nWidth;
-	const int32_t nHeight;
-	const HWND hWndParent;
-	const HMENU hMenu;
-	const HINSTANCE hInstance;
-	const LPVOID lpParam;
+	const DWORD dwExStyle_;
+	const LPCWSTR lpWindowName_;
+	const DWORD dwStyle_;
+	const int32_t x_;
+	const int32_t y_;
+	const int32_t nWidth_;
+	const int32_t nHeight_;
+	const HWND hWndParent_;
+	const HMENU hMenu_;
+	const HINSTANCE hInstance_;
+	const LPVOID lpParam_;
 	
 	HWND create(std::shared_ptr<WinCreateArgs> winArgs_, const std::wstring &winClassName_);
 };
@@ -207,17 +229,38 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+
+	// TODO: set to overrride later
+	virtual LRESULT onCreate(WinProcArgs args);
 	
 	
 	
-	HWND wHandle[2];
-	HWND wHandle2[1];
-	uint32_t ndirman = 2;
-	uint32_t nthmbman = 1;
-	int32_t lastoption, lastdnum;
+	HWND wHandle_[2];
+	HWND wHandle2_[1];
+	uint32_t ndirman_ = 2;
+	uint32_t nthmbman_ = 1;
+	int32_t lastOption_, lastDirNum_;
 	
-	std::shared_ptr<void> hMapFile;
+	std::shared_ptr<void> hMapFile_;
 	//HANDLE hMapFile;
+};
+
+class TabContainerWindow : public WindowClass {
+public:
+	static const WindowHelper helper;
+	static HWND createWindowInstance(WinInstancer);
+	
+	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+
+	HWND wHandle_[2];
+	HWND wHandle2_[1];
+	unsigned int ndirman_ = 2;
+	unsigned int nthmbman_ = 1;
+
+	int lastOption_, lastDirNum_;
+
+	HWND dispWindow_;
+	
 };
 
 class TabWindow : public WindowClass {
@@ -226,41 +269,39 @@ public:
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+
 	
+	HWND wHandle_[2];
+	HWND wHandle2_[1];
+	unsigned int ndirman_ = 2;
+	unsigned int nthmbman_ = 1;
+	int lastOption_, lastDirNum_;
+	
+	
+	
+	HWND dispWindow_;
 };
 
-class TabClass : public WindowClass {
-public:
-	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
-	
-	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
-	
-	
-	
-	HWND dispWindow;
-};
-
-class ListManClass : public WindowClass {
+class ListManWindow : public WindowClass {
 public:
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
 	virtual uint64_t getNumElems() = 0;
 	
-	//int32_t menuCreate(HWND hwnd);
-	//int32_t menuUse(HWND hwnd, int32_t menu_id);
+	HWND parent_;
 	
-	HWND parent;
+	//int32_t menuCreate(HWND hwnd);
+	//int32_t menuUse(HWND hwnd, int32_t menuID);
 	
 	virtual uint64_t getSingleSelID(void) const;
 	
 protected:
-	std::shared_ptr<PageListClass> plv;
-	std::shared_ptr<StrListClass> slv;
-	uint8_t option;
+	std::shared_ptr<PageListWindow> pageListWin_;
+	std::shared_ptr<StrListWindow> strListWin_;
+	uint8_t winOptions_;
 };
 
-class DmanClass : public ListManClass {
+class DirManWindow : public ListManWindow {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -270,14 +311,14 @@ public:
 	virtual uint64_t getNumElems() override;
 	
 	int32_t menuCreate(HWND hwnd);
-	int32_t menuUse(HWND hwnd, int32_t menu_id);
+	int32_t menuUse(HWND hwnd, int32_t menuID);
 	
 protected:
 	
-	uint64_t inum;
+	uint64_t inum_;
 };
 
-class SDmanClass : public ListManClass {
+class SubDirManWindow : public ListManWindow {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -287,15 +328,15 @@ public:
 	virtual uint64_t getNumElems() override;
 	
 	int32_t menuCreate(HWND hwnd);
-	int32_t menuUse(HWND hwnd, int32_t menu_id);
+	int32_t menuUse(HWND hwnd, int32_t menuID);
 	
 protected:
 	
 	
-	uint64_t inum;
+	uint64_t inum_;
 };
 
-class MainIndexManClass : public ListManClass {
+class MainIndexManWindow : public ListManWindow {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -305,12 +346,12 @@ public:
 	virtual uint64_t getNumElems() override;
 	
 	int32_t menuCreate(HWND hwnd);
-	int32_t menuUse(HWND hwnd, int32_t menu_id);
+	int32_t menuUse(HWND hwnd, int32_t menuID);
 	
 	
 };
 
-class ThumbManClass : public WindowClass {
+class ThumbManWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -321,17 +362,17 @@ public:
 	
 	
 	
-	PAGELISTV plv;
-	THMBLISTV tlv;
-	IMGVIEWV ivv;
-	int8_t *dname, *tfstr;
-	uint64_t dnum;
-	uint8_t option;
-	uint64_t nitems;
-	HWND parent;
+	PAGELISTV pageListWin_;
+	THMBLISTV tlv_;
+	IMGVIEWV ivv_;
+	int8_t *dname_, *tfstr_;
+	uint64_t dnum_;
+	uint8_t winOptions_;
+	uint64_t nitems_;
+	HWND parent_;
 };
 
-class PageListClass : public WindowClass {
+class PageListWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -344,40 +385,40 @@ public:
 	
 	void pausePaint();
 	
-	uint64_t curPage, lastPage;
-	int32_t hovered;
+	uint64_t curPage_, lastPage_;
+	int32_t hovered_;
 	
 protected:
-	std::shared_ptr<std::vector<struct ListPage>> pageListPtr;
-	bool doPaint = false;
+	std::shared_ptr<std::vector<struct ListPage>> pageListPtr_;
+	bool doPaint_ = false;
 	
 	void getPages(int32_t edge);
 };
 
 class BoolSelectionList {
 public:
-	std::vector<uint8_t> sel_vec_;
+	std::vector<uint8_t> selVec_;
 	uint64_t len_ = 0;
 
 };
 
-class StrListClass : public WindowClass {
+class StrListWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
-	static const int32_t minColWidth = 2;
+	static const int32_t kMinColWidth = 2;
 	// arbitrary pixel cap
-	static const int32_t maxColWidth = 20000;
+	static const int32_t kMaxColWidth = 20000;
 	
-	uint32_t lastSel;
-	int32_t xspos, yspos;
-	uint8_t option;
-	int16_t LastKey, drgpos;
-	char hvrd, drag, timed;
-	POINT point;
+	uint32_t lastSel_;
+	int32_t xspos_, yspos_;
+	uint8_t winOptions_;
+	int16_t lastKey_, drgpos_;
+	char hvrd_, isDragged_, isTimed_;
+	POINT point_;
 	
 	inline int64_t getSingleSelPos(void) const;
 	
@@ -406,19 +447,19 @@ public:
 	bool clearSelections(void);
 	
 protected:
-	int32_t nColumns;
-	int64_t nRows;
+	int32_t nColumns_;
+	int64_t nRows_;
 
-	BoolSelectionList bool_sel_list_;
+	BoolSelectionList boolSelList_;
 	
-	std::shared_ptr<std::vector<std::string>> sectionHeadersPtr;
-	std::shared_ptr<std::vector<int16_t>> columnWidthsPtr;
-	std::shared_ptr<std::vector<std::vector<std::string>>> rowsPtr;
-	std::shared_ptr<boost::dynamic_bitset<>> rowSelsPtr;
+	std::shared_ptr<std::vector<std::string>> sectionHeadersPtr_;
+	std::shared_ptr<std::vector<int16_t>> columnWidthsPtr_;
+	std::shared_ptr<std::vector<std::vector<std::string>>> rowsPtr_;
+	std::shared_ptr<boost::dynamic_bitset<>> rowSelsPtr_;
 	
 };
 
-class ThumbListClass : public WindowClass {
+class ThumbListWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -427,19 +468,40 @@ public:
 	
 	
 	
-	ImgF **thumb;
-	oneslnk **strchn;
-	uint8_t *ThumbSel;
-	int32_t nThumbs, nColumns;
-	uint32_t width, height;
-	int32_t yspos;
-	unsigned lastSel;
-	int16_t LastKey;
-	char hvrd, timed;
-	POINT point;
+	ImgF **thumbs_;
+	oneslnk **strchn_;
+	uint8_t *thumbSel_;
+
+	int32_t nThumbs_, nColumns_;
+	uint32_t width_, height_;
+	int32_t yspos_;
+	unsigned lastSel_;
+	int16_t lastKey_;
+	char hvrd_, isTimed_;
+	POINT point_;
 };
 
-class ViewImageClass : public WindowClass {
+class ViewImageWindow : public WindowClass {
+public:
+	ViewImageWindow(void);
+	static const WindowHelper helper;
+	static HWND createWindowInstance(WinInstancer);
+	
+	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	
+	HBITMAP hThumbListBitmap;
+	
+	ImgF *fullImage_;
+	ImgF *dispImage_;
+	char *imagePath_;
+	uint64_t firstNum_;
+	int32_t zoomPercent_, xPos_, yPos_, xDragPos_, yDragPos_, displayFramePos_;
+	int64_t displayXLength, displayYLength_, dragStartXPos_, dragStartYPos;
+	long double midX_, midY_;
+	uint8_t fitOption_, winOptions_, isDragged_, isTimed_;	// fit: 1 image is being shrunk to window, 2 means the display image is the original image (whole image fits), 4 means zoomed image fits horizontally and 8 vertically, 16: image is stretched and shrunk to window
+};
+
+class FileTagEditWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -448,44 +510,25 @@ public:
 	
 	
 	
-	ImgF *FullImage;
-	ImgF *DispImage;
-	char *imgpath;
-	uint64_t fnum;
-	int32_t zoomp, xpos, ypos, xdrgpos, ydrgpos, dispframe;
-	int64_t xdisp, ydisp, xdrgstart, ydrgstart;
-	long double midX, midY;
-	uint8_t fit, option, drag, timed;	// fit: 1 image is being shrunk to window, 2 means the display image is the original image (whole image fits), 4 means zoomed image fits horizontally and 8 vertically, 16: image is stretched and shrunk to window
+	uint64_t dnum_;
+	oneslnk *fnumchn_;
+	oneslnk *tagnumchn_, *aliaschn_;	// original tags and their aliases
+	oneslnk *rmnaliaschn_, *regaliaschn_, *remtagnumchn_, *addtagnumchn_;
+	uint8_t clean_flag_;
 };
 
-class FileTagEditClass : public WindowClass {
+class CreateAliasWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 	
-	
-	
-	uint64_t dnum;
-	oneslnk *fnumchn;
-	oneslnk *tagnumchn, *aliaschn;	// original tags and their aliases
-	oneslnk *rmnaliaschn, *regaliaschn, *remtagnumchn, *addtagnumchn;
-	uint8_t clean_flag;
-};
-
-class CreateAliasClass : public WindowClass {
-public:
-	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
-	
-	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
-	
-	std::shared_ptr<FileTagEditClass> parent;
+	std::shared_ptr<FileTagEditWindow> parent_;
 	
 };
 
-class EditSuperClass : public WindowClass {
+class EditWindowSuperClass : public WindowClass {
 public:
 //! TODO: make the helper a reference in each windowclass
 	static DeferredRegWindowHelper helper;
@@ -495,7 +538,7 @@ public:
 	
 };
 
-class SearchBarClass : public WindowClass {
+class SearchBarWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -504,7 +547,7 @@ public:
 	
 };
 
-class TextEditDialogClass : public WindowClass {
+class TextEditDialogWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
 	static HWND createWindowInstance(WinInstancer);
@@ -513,6 +556,6 @@ public:
 	
 	
 	
-	uint8_t clean_flag;
+	uint8_t clean_flag_;
 };
 

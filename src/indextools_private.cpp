@@ -224,8 +224,8 @@ TopIndex::~TopIndex(void) {
 
 /// SubIndex
 
-const std::filesystem::path SubIndex::getDirPathFor(uint64_t minum) {
-	return g_fsPrgDir / "i" / ( std::to_string(minum) );
+const std::filesystem::path SubIndex::getDirPathFor(uint64_t miNum) {
+	return g_fsPrgDir / "i" / ( std::to_string(miNum) );
 }
 
 const std::filesystem::path SubIndex::getDirPath(void) const {
@@ -389,12 +389,12 @@ MainIndexIndex::MainIndexIndex(IndexSessionHandler &handler) :
 	StandardAutoKeyIndex<uint64_t, std::string>()
 {}
 
-bool TopIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *session_ptr) {
+bool TopIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) {
 	auto findIt = openSessions_.find(indexID);
 	if (findIt == openSessions_.end()) {
 		g_errorfStream << "(TopIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::flush;
 	} else {
-		if ((IndexSession *) findIt->second.lock().get() == session_ptr || (IndexSession *) findIt->second.lock().get() == nullptr) {
+		if ((IndexSession *) findIt->second.lock().get() == sessionPtr || (IndexSession *) findIt->second.lock().get() == nullptr) {
 			openSessions_.erase(findIt);
 			return true;
 		}
@@ -413,7 +413,7 @@ const std::filesystem::path MainIndexIndex::getDirPath(void) const {
 bool MainIndexIndex::isValidInputEntry(const std::string &entryString) const {
 	if (entryString == "") {
 		return false;
-	} else if (entryString.size() >= this->maxEntryLen) {
+	} else if (entryString.size() >= this->k_MaxEntryLen) {
 		return false;
 	}
 	
@@ -429,8 +429,8 @@ std::pair<bool, std::list<FileRenameOp>> MainIndexIndex::reverseAddEntries(std::
 
 const IndexID MainIndexIndex::indexID = IndexID("1"); // static init
 
-void HandlerAccessor::removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr) {
-	handler.removeRefs(indexID, session_ptr);
+void HandlerAccessor::removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *sessionPtr) {
+	handler.removeRefs(indexID, sessionPtr);
 }
 
 void IndexSession::removeHandlerRefs(void) {
@@ -444,12 +444,12 @@ TopIndexSessionHandler::TopIndexSessionHandler() :
 	subHandlers_{}
 {}
 
-bool TopIndexSessionHandler::removeSubHandlerRefs(const uint64_t &minum, const SubIndexSessionHandler *handler_ptr) {
-	auto findIt = subHandlers_.find(minum);
+bool TopIndexSessionHandler::removeSubHandlerRefs(const uint64_t &miNum, const SubIndexSessionHandler *handlerPtr) {
+	auto findIt = subHandlers_.find(miNum);
 	if (findIt == subHandlers_.end()) {
-		errorf("(removeSubHandlerRefs) couldn't find minum entry");
+		errorf("(removeSubHandlerRefs) couldn't find miNum entry");
 	} else {
-		if ((SubIndexSessionHandler *) findIt->second.lock().get() == handler_ptr || (SubIndexSessionHandler *) findIt->second.lock().get() == nullptr) {
+		if ((SubIndexSessionHandler *) findIt->second.lock().get() == handlerPtr || (SubIndexSessionHandler *) findIt->second.lock().get() == nullptr) {
 			
 			subHandlers_.erase(findIt);
 			return true;
@@ -460,17 +460,17 @@ bool TopIndexSessionHandler::removeSubHandlerRefs(const uint64_t &minum, const S
 
 /// SubIndexSessionHandler
 	
-SubIndexSessionHandler::SubIndexSessionHandler(TopIndexSessionHandler &parent, const uint64_t &minum) :
+SubIndexSessionHandler::SubIndexSessionHandler(TopIndexSessionHandler &parent, const uint64_t &miNum) :
 	parent_{parent},
-	minum_{minum},
+	miNum_{miNum},
 	openSessions_{}
 {
-	if (minum_ == 0) {
-		errorf("SubIndexSessionHandler minum was 0");
-	} else if (!existsMainIndex(minum)) {
-		g_errorfStream << "existsmainindex returned false for: " << minum << std::flush;
+	if (miNum_ == 0) {
+		errorf("SubIndexSessionHandler miNum was 0");
+	} else if (!existsMainIndex(miNum)) {
+		g_errorfStream << "existsmainindex returned false for: " << miNum << std::flush;
 	} else {
-		std::fs::path miPath = SubIndex::getDirPathFor(minum);
+		std::fs::path miPath = SubIndex::getDirPathFor(miNum);
 		std::error_code error;
 		bool success = std::fs::create_directory(miPath, error);
 		if (error) {
@@ -480,20 +480,20 @@ SubIndexSessionHandler::SubIndexSessionHandler(TopIndexSessionHandler &parent, c
 }
 
 uint64_t SubIndexSessionHandler::getMINum(void) {
-	return this->minum_;
+	return this->miNum_;
 }
 
 SubIndexSessionHandler::~SubIndexSessionHandler(void) {
 	this->parent_.removeSubHandlerRefs(this->getMINum(), this);
 }
 
-bool SubIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *session_ptr) {
+bool SubIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) {
 	auto findIt = openSessions_.find(indexID);
 	if (findIt == openSessions_.end()) {
 		g_errorfStream << "(SubIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::flush; 
 		//errorf("(removeRefs) couldn't find indexID entry");
 	} else {
-		if ((IndexSession *) findIt->second.lock().get() == session_ptr || (IndexSession *) findIt->second.lock().get() == nullptr) {
+		if ((IndexSession *) findIt->second.lock().get() == sessionPtr || (IndexSession *) findIt->second.lock().get() == nullptr) {
 			
 			openSessions_.erase(findIt);
 			
@@ -514,7 +514,7 @@ SubIndex::SubIndex(std::shared_ptr<SubIndexSessionHandler> &handler, const Index
 
 /// independent function
 
-bool existsMainIndex(const uint64_t &minum) {
+bool existsMainIndex(const uint64_t &miNum) {
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 	
 	if (indexSession == nullptr) {
@@ -522,7 +522,7 @@ bool existsMainIndex(const uint64_t &minum) {
 		return false;
 	}
 	
-	return indexSession->hasUndeletedEntry(minum);
+	return indexSession->hasUndeletedEntry(miNum);
 }
 
 /// MainIndexReverse
@@ -577,7 +577,7 @@ const std::filesystem::path DirIndex::getDirPath(void) const {
 bool DirIndex::isValidInputEntry(const std::fs::path &entryPath) const {
 	if (entryPath.empty()) {
 		return false;
-	} else if (entryPath.generic_u8string().size() >= this->maxEntryLen) {
+	} else if (entryPath.generic_u8string().size() >= this->k_MaxEntryLen) {
 		return false;
 	} else if (entryPath.is_relative() && (entryPath.begin() == entryPath.end() || *entryPath.begin() != "." )) {
 		return false;
@@ -597,9 +597,9 @@ const IndexID DirIndex::indexID = IndexID("DirIndex"); // static assignment
 
 /// SubDirEntry
 
-SubDirEntry::SubDirEntry(uint64_t &parent_inum, std::fs::path &sub_path) :
-	parent_inum_{parent_inum},
-	sub_path_{sub_path}
+SubDirEntry::SubDirEntry(uint64_t &parentInum, std::fs::path &subPath) :
+	parentInum_{parentInum},
+	subPath_{subPath}
 {}
 
 bool SubDirEntry::isValid(void) const {
@@ -650,9 +650,9 @@ const IndexID SubDirIndex::indexID = IndexID("SubDirIndex"); // static assignmen
 
 /// FileIndexEntry
 	
-FileIndexEntry::FileIndexEntry(std::fs::path &file_path, std::list<uint64_t> tag_list) :
-	file_path_{file_path},
-	tag_list_{tag_list}
+FileIndexEntry::FileIndexEntry(std::fs::path &filePath, std::list<uint64_t> tagList) :
+	filePath_{filePath},
+	tagList_{tagList}
 {}
 
 /// FileIndex

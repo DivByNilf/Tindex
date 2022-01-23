@@ -4,90 +4,90 @@
 
 // Demonstrate some basic assertions.
 TEST(IndexToolsPrivateTest, IdMapTests) {
-	IndexID index_id_1 = MainIndexIndex::indexID;
+	IndexID indexID_1 = MainIndexIndex::indexID;
 
-	std::map<IndexID, uint64_t> id_map;
+	std::map<IndexID, uint64_t> idMap;
 
-	uint64_t uint_1 = 44;
-	uint64_t uint_2 = 45;
-	uint64_t uint_3 = 46;
+	uint64_t uint1 = 44;
+	uint64_t uint2 = 45;
+	uint64_t uint3 = 46;
 
-	ASSERT_EQ(id_map.size(), 0) << "map size was not 0";
+	ASSERT_EQ(idMap.size(), 0) << "map size was not 0";
 
-	auto res_pair = id_map.emplace(index_id_1, uint_1);
+	auto resPair = idMap.emplace(indexID_1, uint1);
 
-	ASSERT_NE(res_pair.first, id_map.end());
+	ASSERT_NE(resPair.first, idMap.end());
 
-	EXPECT_EQ(res_pair.second, true);
+	EXPECT_EQ(resPair.second, true);
 
-	ASSERT_EQ(id_map.size(), 1);
+	ASSERT_EQ(idMap.size(), 1);
 
 	//
 
-	EXPECT_EQ(std::less<IndexID>()(index_id_1, index_id_1), false);
+	EXPECT_EQ(std::less<IndexID>()(indexID_1, indexID_1), false);
 
 	// it should be a iterator to the pre-existing entry instead
-	//EXPECT_NE(res_pair.first, id_map.end());
+	//EXPECT_NE(resPair.first, ID_Map.end());
 
-	//EXPECT_EQ(res_pair.second, false);
+	//EXPECT_EQ(resPair.second, false);
 
-	//EXPECT_EQ(id_map.size(), 1);
+	//EXPECT_EQ(ID_Map.size(), 1);
 
 	//
 
-	auto res_id_pair_it = id_map.find(index_id_1);
+	auto resID_PairIt = idMap.find(indexID_1);
 
-	ASSERT_NE(res_id_pair_it, id_map.end());
+	ASSERT_NE(resID_PairIt, idMap.end());
 
-	EXPECT_EQ(res_id_pair_it->second, uint_1);
+	EXPECT_EQ(resID_PairIt->second, uint1);
 
 	// a second id
 
-	IndexID index_id_2 = DirIndex::indexID;
+	IndexID indexID_2 = DirIndex::indexID;
 
-	res_id_pair_it = id_map.find(index_id_2);
+	resID_PairIt = idMap.find(indexID_2);
 
-	EXPECT_EQ(res_id_pair_it, id_map.end());
+	EXPECT_EQ(resID_PairIt, idMap.end());
 
-	res_pair = id_map.emplace(index_id_2, uint_2);
+	resPair = idMap.emplace(indexID_2, uint2);
 
-	ASSERT_EQ(id_map.size(), 2);
-
-	//
-
-	res_id_pair_it = id_map.find(index_id_2);
-
-	ASSERT_NE(res_id_pair_it, id_map.end());
-
-	EXPECT_EQ(res_id_pair_it->second, uint_2);
+	ASSERT_EQ(idMap.size(), 2);
 
 	//
 
-	res_id_pair_it = id_map.find(index_id_2);
+	resID_PairIt = idMap.find(indexID_2);
 
-	ASSERT_NE(res_id_pair_it, id_map.end());
+	ASSERT_NE(resID_PairIt, idMap.end());
 
-	EXPECT_EQ(res_id_pair_it->second, uint_2);
+	EXPECT_EQ(resID_PairIt->second, uint2);
+
+	//
+
+	resID_PairIt = idMap.find(indexID_2);
+
+	ASSERT_NE(resID_PairIt, idMap.end());
+
+	EXPECT_EQ(resID_PairIt->second, uint2);
 
 	// a third id (with a blank string)
 	// there's no rule against a blank string currently
 
-	IndexID index_id_3 = IndexID("");
+	IndexID indexID_3 = IndexID("");
 
-	res_id_pair_it = id_map.find(index_id_3);
+	resID_PairIt = idMap.find(indexID_3);
 
-	EXPECT_EQ(res_id_pair_it, id_map.end());
+	EXPECT_EQ(resID_PairIt, idMap.end());
 
-	res_pair = id_map.emplace(index_id_3, uint_3);
+	resPair = idMap.emplace(indexID_3, uint3);
 
-	ASSERT_EQ(id_map.size(), 3);
+	ASSERT_EQ(idMap.size(), 3);
 
 	//
 
-	res_id_pair_it = id_map.find(index_id_3);
+	resID_PairIt = idMap.find(indexID_3);
 
-	ASSERT_NE(res_id_pair_it, id_map.end());
+	ASSERT_NE(resID_PairIt, idMap.end());
 
-	EXPECT_EQ(res_id_pair_it->second, uint_3);
+	EXPECT_EQ(resID_PairIt->second, uint3);
 
 }

@@ -6,39 +6,40 @@
 
 class ErrorObject {
 public:
-	std::string msg;
-	int32_t error_code = 0;
+	std::string msg_;
+	int32_t errorCode_ = 0;
 	
-	ErrorObject(int32_t error_code_ = 0, const std::string &msg_ = std::string()) : error_code{error_code_}, msg{msg_} {}
-	ErrorObject(const std::string &msg_) : error_code{1}, msg{msg_} {}
+	ErrorObject(int32_t errorCode__ = 0, const std::string &msg = std::string());
+	ErrorObject(const std::string &msg);
 
 	inline bool hasError(void) const {
-		error_code > 0;
+		errorCode_ > 0;
 	}
 	
 	inline bool hasNote(void) const {
-		error_code < 0;
+		errorCode_ < 0;
 	}
 	
 	inline bool hasNothing(void) const {
-		error_code == 0;
+		errorCode_ == 0;
 	}
 	
 	explicit operator bool() {
 		return !this->hasNothing();
 	}
 	
-	operator=(const int32_t &other) {
+	ErrorObject operator=(const ErrorObject &other) {
 		*this = ErrorObject(other);
+		return *this;
 	}
 };
 
 template <class CharT, class Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const ErrorObject& x) {
-	if (x.msg != std::string()) {
-		return os << "ErrorObject(" << x.error_code << ")";
+	if (x.msg_ != std::string()) {
+		return os << "ErrorObject(" << x.errorCode_ << ")";
 	} else {
-		return os << "ErrorObject(" << x.error_code << ", \"" << x.msg << "\")";
+		return os << "ErrorObject(" << x.errorCode_ << ", \"" << x.msg_ << "\")";
 	}
 }
 

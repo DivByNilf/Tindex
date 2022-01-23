@@ -23,43 +23,43 @@ namespace std {
 
 // #include "prgdir.hpp"
 
-typedef struct searchexpr {
-	unsigned short exprtype;
+typedef struct SearchExpr {
+	unsigned short exprType;
 	struct {
-		struct searchexpr *expr1;
+		struct SearchExpr *expr1;
 		union {
-			struct searchexpr *expr2;
-			uint64_t refnum;
+			struct SearchExpr *expr2;
+			uint64_t refNum;
 		};
 	};
 } SREXP;
 
-typedef struct srexplist {
+typedef struct SearchExpList {
 	SREXP *expr;
-	struct srexplist *next;
+	struct SearchExpList *next;
 } SREXPLIST;
 
-typedef struct superexpstack {
+typedef struct SuperExpStack {
 	SREXP *expr;
-	uint64_t subexp_layers;
-	struct superexpstack *next;
+	uint64_t subExpLayers;
+	struct SuperExpStack *next;
 } SUPEXPSTACK;
 
-typedef struct tagnumstruct {
-	uint64_t tagnum;
+typedef struct TagNumStruct {
+	uint64_t tagNum;
 	unsigned char state;
 } TAGNUMNODE;
 
-typedef struct sstruct {
-	TAGNUMNODE *tagnumarray;
-	unsigned long ntagnums;
-	struct searchexpr *rootexpr;
-	uint64_t dnum;
+typedef struct SearchStruct {
+	TAGNUMNODE *tagNumArray;
+	unsigned long nTagNums;
+	struct SearchExpr *rootExpr;
+	uint64_t dNum;
 } SEARCHSTRUCT;
 
-struct subdirentry {
-	char *subdirstr;
-};
+//struct SubDirEntry {
+//	char *subDirStr;
+//};
 
 /// classes
 
@@ -136,7 +136,7 @@ class SubIndexSessionHandler;
 class TopIndex;
 class SubIndex;
 
-bool existsMainIndex(const uint64_t &minum);
+bool existsMainIndex(const uint64_t &miNum);
 
 // should be tested that it works as a key in a map (find and remove)
 
@@ -152,7 +152,7 @@ public:
 class HandlerAccessor {
 	friend class IndexSession;
 private:
-	static void removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *session_ptr);
+	static void removeHandlerRefs(IndexSessionHandler &handler, const IndexID &indexID, const IndexSession *sessionPtr);
 };
 
 //! TODO: make reference to parent (handler?) atomic
@@ -199,7 +199,7 @@ public:
 
 	SubIndex(std::shared_ptr<SubIndexSessionHandler> &handler, const IndexID &indexID);
 	
-	static const std::filesystem::path getDirPathFor(uint64_t minum);
+	static const std::filesystem::path getDirPathFor(uint64_t miNum);
 	
 	virtual const std::filesystem::path getDirPath(void) const;
 	
@@ -276,11 +276,11 @@ public:
 	
 	EntryT makeNullKey(void);
 	
-	std::shared_ptr<std::forward_list<EntryT>> readIntervalEntries(const KeyT &start, const uint64_t intrvl);
+	std::shared_ptr<std::forward_list<EntryT>> readIntervalEntries(const KeyT &start, const uint64_t interval);
 	
-	EntryT readEntry(const KeyT &entrykey);
+	EntryT readEntry(const KeyT &entryKey);
 	
-	bool hasUndeletedEntry(const KeyT &entrykey);
+	bool hasUndeletedEntry(const KeyT &entryKey);
 	
 	bool removeEntry(KeyT);
 
@@ -363,7 +363,7 @@ protected:
 	// get around mutual dependency and privacy
 	friend class HandlerAccessor;
 	
-	virtual bool removeRefs(const IndexID &indexID, const IndexSession *session_ptr) = 0;
+	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) = 0;
 	
 };
 
@@ -379,11 +379,11 @@ protected:
 	std::map<IndexID, std::weak_ptr<TopIndex>> openSessions_;
 	std::map<uint64_t, std::weak_ptr<SubIndexSessionHandler>> subHandlers_;
 	
-	virtual bool removeRefs(const IndexID &indexID, const IndexSession *session_ptr);
+	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr);
 	
 	friend class SubIndexSessionHandler;
 	
-	bool removeSubHandlerRefs(const uint64_t &minum, const SubIndexSessionHandler *handler_ptr);
+	bool removeSubHandlerRefs(const uint64_t &miNum, const SubIndexSessionHandler *handlerPtr);
 	
 private:
 	
@@ -391,7 +391,7 @@ private:
 	std::shared_ptr<U> openTopIndexSession(Ts&& ... args);
 	
 	template <class U, class ... Ts>
-	std::shared_ptr<U> openSubIndexSession(uint64_t minum, Ts&& ... args);
+	std::shared_ptr<U> openSubIndexSession(uint64_t miNum, Ts&& ... args);
 	
 	
 };
@@ -400,7 +400,7 @@ class SubIndexSessionHandler : public IndexSessionHandler {
 public:
 	SubIndexSessionHandler() = delete;
 	
-	SubIndexSessionHandler(TopIndexSessionHandler &parent, const uint64_t &minum);
+	SubIndexSessionHandler(TopIndexSessionHandler &parent, const uint64_t &miNum);
 
 	template <class U, class ... Ts>
 	std::shared_ptr<U> openSession(std::shared_ptr<SubIndexSessionHandler> &shared_this, Ts&& ... args);
@@ -411,22 +411,22 @@ public:
 	
 protected:
 	std::map<IndexID, std::weak_ptr<SubIndex>> openSessions_;
-	const uint64_t minum_;
+	const uint64_t miNum_;
 	TopIndexSessionHandler &parent_;
 	
-	virtual bool removeRefs(const IndexID &indexID, const IndexSession *session_ptr);
+	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr);
 
 };
 
 /// independent function
 // TODO: figure the placement of this or the need for its existence
-bool existsMainIndex(const uint64_t &minum);
+bool existsMainIndex(const uint64_t &miNum);
 
 class MainIndexIndex : public TopIndex, public StandardAutoKeyIndex<uint64_t, std::string> {
 public:
 	static const IndexID indexID;
 	
-	static constexpr uint64_t maxEntryLen = 500*4;
+	static constexpr uint64_t k_MaxEntryLen = 500*4;
 
 	//
 	
@@ -448,7 +448,7 @@ class MainIndexReverse : public TopIndex, public StandardManualKeyIndex<std::str
 public:
 	static const IndexID indexID;
 	
-	static constexpr uint64_t MaxKeyLen = MainIndexIndex::maxEntryLen;
+	static constexpr uint64_t k_MaxKeyLen = MainIndexIndex::k_MaxEntryLen;
 
 	//
 	
@@ -474,7 +474,7 @@ class DirIndex : public SubIndex, public StandardAutoKeyIndex<uint64_t, std::fs:
 public:
 	static const IndexID indexID;
 	
-	static constexpr uint64_t maxEntryLen = 260*4;
+	static constexpr uint64_t k_MaxEntryLen = 260*4;
 
 	//
 	
@@ -494,18 +494,18 @@ public:
 
 class SubDirEntry {
 public:
-	uint64_t parent_inum_;
-	std::fs::path sub_path_;
+	uint64_t parentInum_;
+	std::fs::path subPath_;
 	
-	int64_t start_depth_ = -1;
-	int64_t end_depth_ = -1;
+	int64_t startDepth_ = -1;
+	int64_t endDepth_ = -1;
 	
-	std::list<std::string> exclude_dirs_;
-	std::list<std::string> exclude_sub_paths_;
+	std::list<std::string> excludeDirs_;
+	std::list<std::string> excludeSubPaths_;
 
 	SubDirEntry() = delete;
 	
-	SubDirEntry(uint64_t &parent_inum, std::fs::path &sub_path);
+	SubDirEntry(uint64_t &parentInum, std::fs::path &subPath);
 	
 	bool isValid(void) const;
 	
@@ -540,12 +540,12 @@ public:
 };
 
 class FileIndexEntry {
-	std::fs::path file_path_;
-	std::list<uint64_t> tag_list_;
+	std::fs::path filePath_;
+	std::list<uint64_t> tagList_;
 
 	FileIndexEntry() = delete;
 	
-	FileIndexEntry(std::fs::path &file_path, std::list<uint64_t> tag_list);
+	FileIndexEntry(std::fs::path &filePath, std::list<uint64_t> tagList);
 	
 };
 
@@ -578,7 +578,7 @@ public:
 
 /// function declarations for use in indextools.cpp
 
-unsigned char raddtolastminum(long long num);
+unsigned char raddtolastmiNum(long long num);
 
 uint64_t rmiinitpos(char *idir);
 
@@ -586,27 +586,27 @@ char rmiinit();
 
 char rmireg(char *entrystr, uint64_t inum);
 
-unsigned char addtolastminum(long long num, uint64_t spot);
+unsigned char addtolastmiNum(long long num, uint64_t spot);
 
 uint64_t miinitpos(uint64_t iinum);
 
-unsigned char raddtolastdnum(uint64_t minum, long long num);
+unsigned char raddtolastdnum(uint64_t miNum, long long num);
 
-uint64_t rdinitpos(uint64_t minum, char *idir);
+uint64_t rdinitpos(uint64_t miNum, char *idir);
 
-char rdinit(uint64_t minum);
+char rdinit(uint64_t miNum);
 
-// // char setdlastchecked(uint64_t minum, uint64_t dnum, uint64_t ulltime);
+// // char setdlastchecked(uint64_t miNum, uint64_t dnum, uint64_t ulltime);
 
-// // uint64_t getdlastchecked(uint64_t minum, uint64_t dnum);
+// // uint64_t getdlastchecked(uint64_t miNum, uint64_t dnum);
 
-unsigned char addtolastdnum(uint64_t minum, long long num, uint64_t spot);
+unsigned char addtolastdnum(uint64_t miNum, long long num, uint64_t spot);
 
-uint64_t dinitpos(uint64_t minum, uint64_t idnum);
+uint64_t dinitpos(uint64_t miNum, uint64_t idnum);
 
-unsigned char addtolastsdnum(uint64_t minum, long long num, uint64_t spot);
+unsigned char addtolastsdnum(uint64_t miNum, long long num, uint64_t spot);
 
-uint64_t sdinitpos(uint64_t minum, uint64_t idnum);
+uint64_t sdinitpos(uint64_t miNum, uint64_t idnum);
 
 int cfireg(uint64_t dnum, oneslnk *fnamechn); //!
 
@@ -749,8 +749,8 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 }
 
 template <class KeyT, class EntryT>
-EntryT StandardIndex<KeyT, EntryT>::readEntry(const KeyT &entrykey) {
-	auto retListPtr = readIntervalEntries(entrykey, 1);
+EntryT StandardIndex<KeyT, EntryT>::readEntry(const KeyT &entryKey) {
+	auto retListPtr = readIntervalEntries(entryKey, 1);
 	if (retListPtr == nullptr) {
 		return makeNullEntry();
 	}
@@ -764,8 +764,8 @@ EntryT StandardIndex<KeyT, EntryT>::readEntry(const KeyT &entrykey) {
 }
 
 template <class KeyT, class EntryT>
-bool StandardIndex<KeyT, EntryT>::hasUndeletedEntry(const KeyT &entrykey) {
-	if (this->readEntry(entrykey) != this->makeNullEntry()) {
+bool StandardIndex<KeyT, EntryT>::hasUndeletedEntry(const KeyT &entryKey) {
+	if (this->readEntry(entryKey) != this->makeNullEntry()) {
 		return true;
 	} else {
 		return false;
@@ -1366,9 +1366,9 @@ std::shared_ptr<U> TopIndexSessionHandler::openTopIndexSession(Ts&& ... args) {
 		return std::static_pointer_cast<U>(findIt->second.lock());
 	} else {
 		//! probably could just construct to shared without the assistant function
-		std::shared_ptr<U> session_ptr = g_MakeSharedIndexSession<U>(*this, args...);
-		if (session_ptr != nullptr) {
-			auto inputPair = std::pair<IndexID, std::weak_ptr<TopIndex>>(U::indexID, session_ptr);
+		std::shared_ptr<U> sessionPtr = g_MakeSharedIndexSession<U>(*this, args...);
+		if (sessionPtr != nullptr) {
+			auto inputPair = std::pair<IndexID, std::weak_ptr<TopIndex>>(U::indexID, sessionPtr);
 			if (inputPair.second.lock() != nullptr) {
 				auto resPair = openSessions_.emplace(inputPair);
 				if (resPair.first == openSessions_.end()) {
@@ -1376,13 +1376,13 @@ std::shared_ptr<U> TopIndexSessionHandler::openTopIndexSession(Ts&& ... args) {
 				} else if (resPair.second == false) {
 					errorf("indexID already registered");
 				} else {
-					return session_ptr;
+					return sessionPtr;
 				}
 			} else {
 				errorf("(IndexSessionHandler) failed to create weak_ptr in pair");
 			}
 		} else {
-			errorf("(IndexSessionHandler) failed to create session_ptr");
+			errorf("(IndexSessionHandler) failed to create sessionPtr");
 		}
 	}
 	
@@ -1410,9 +1410,9 @@ std::shared_ptr<U> SubIndexSessionHandler::openSession(std::shared_ptr<SubIndexS
 			return std::static_pointer_cast<U>(findIt->second.lock());
 		} else {
 			//! probably could just construct to shared without the assistant function
-			std::shared_ptr<U> session_ptr = g_MakeSharedIndexSession<U>(shared_this, args...);
-			if (session_ptr != nullptr) {
-				auto inputPair = std::pair<IndexID, std::weak_ptr<SubIndex>>(U::indexID, session_ptr);
+			std::shared_ptr<U> sessionPtr = g_MakeSharedIndexSession<U>(shared_this, args...);
+			if (sessionPtr != nullptr) {
+				auto inputPair = std::pair<IndexID, std::weak_ptr<SubIndex>>(U::indexID, sessionPtr);
 				if (inputPair.second.lock() != nullptr) {
 					auto resPair = openSessions_.emplace(inputPair);
 					if (resPair.first == openSessions_.end()) {
@@ -1420,13 +1420,13 @@ std::shared_ptr<U> SubIndexSessionHandler::openSession(std::shared_ptr<SubIndexS
 					} else if (resPair.second == false) {
 						errorf("indexID already registered");
 					} else {
-						return session_ptr;
+						return sessionPtr;
 					}
 				} else {
 					errorf("(IndexSessionHandler) failed to create weak_ptr in pair");
 				}
 			} else {
-				errorf("(IndexSessionHandler) failed to create session_ptr");
+				errorf("(IndexSessionHandler) failed to create sessionPtr");
 			}
 		}
 	}
@@ -1436,21 +1436,21 @@ std::shared_ptr<U> SubIndexSessionHandler::openSession(std::shared_ptr<SubIndexS
 /// TopIndexSessionHandler
 
 template <class U, class ... Ts>
-std::shared_ptr<U> TopIndexSessionHandler::openSubIndexSession(uint64_t minum, Ts&& ... args) {
+std::shared_ptr<U> TopIndexSessionHandler::openSubIndexSession(uint64_t miNum, Ts&& ... args) {
 	static_assert(std::is_base_of<SubIndex, U>::value == true);
 	
-	if (minum > 0) {
-		auto findIt = subHandlers_.find(minum);
+	if (miNum > 0) {
+		auto findIt = subHandlers_.find(miNum);
 		if (findIt != subHandlers_.end()) {
 			// downcast guaranteed by indexID of entry
-			std::shared_ptr<SubIndexSessionHandler> handler_ptr(findIt->second.lock());
-			if (handler_ptr != nullptr) {
-				return handler_ptr->openSession<U>(handler_ptr, args...);
+			std::shared_ptr<SubIndexSessionHandler> handlerPtr(findIt->second.lock());
+			if (handlerPtr != nullptr) {
+				return handlerPtr->openSession<U>(handlerPtr, args...);
 			}
 		} else {
-			std::shared_ptr<SubIndexSessionHandler> handler_ptr(new SubIndexSessionHandler(*this, minum));
-			if (handler_ptr != nullptr && handler_ptr->getMINum() > 0) {
-				auto inputPair = std::pair<uint64_t, std::weak_ptr<SubIndexSessionHandler>>(minum, handler_ptr);
+			std::shared_ptr<SubIndexSessionHandler> handlerPtr(new SubIndexSessionHandler(*this, miNum));
+			if (handlerPtr != nullptr && handlerPtr->getMINum() > 0) {
+				auto inputPair = std::pair<uint64_t, std::weak_ptr<SubIndexSessionHandler>>(miNum, handlerPtr);
 				if (inputPair.second.lock() != nullptr) {
 					auto resPair = subHandlers_.emplace(inputPair);
 					if (resPair.first == subHandlers_.end()) {
@@ -1458,13 +1458,13 @@ std::shared_ptr<U> TopIndexSessionHandler::openSubIndexSession(uint64_t minum, T
 					} else if (resPair.second == false) {
 						errorf("indexID already registered");
 					} else {
-						return handler_ptr->openSession<U>(handler_ptr, args...);
+						return handlerPtr->openSession<U>(handlerPtr, args...);
 					}
 				} else {
 					errorf("(IndexSessionHandler) failed to create weak_ptr in pair");
 				}
 			} else {
-				errorf("(IndexSessionHandler) failed to create handler_ptr");
+				errorf("(IndexSessionHandler) failed to create handlerPtr");
 			}
 		}
 	}

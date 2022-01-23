@@ -37,68 +37,72 @@ extern "C" {
 
 extern char *g_prgDir;
 
-#define RD_MAX_CLEN 1000
-#define RF_MAX_CLEN 1000
-#define DIRFREG_MAX_CLEN 1000
-#define MAX_ALIAS 100
-#define ALLOW_TAGGING_NOTHING 0
-#define SRCH_IMPLICIT_AND 1
-#define SRCH_IMPLICIT_OR 0
-#define TOLERATE_UNCLOSED 0
+enum : int32_t {
+	RD_MAX_CLEN = 1000,
+	RF_MAX_CLEN = 1000,
+	DIRFREG_MAX_CLEN = 1000,
 
-#define SREXP_TYPE_BLANK 0
-#define SREXP_TYPE_AND 1
-#define SREXP_TYPE_OR 2
-#define SREXP_TYPE_TBD 3
-#define SREXP_TYPE_NEG 4
-#define SREXP_TYPE_ROOT 5
-#define SREXP_TYPE_SUBEXP_MARKER 6
-#define SREXP_TYPE_NULL 7
-#define SREXP_TYPE_TAGNUM 8
+	kOptionMaxAlias = 100,
+	kOptionAllowTaggingNothing = 0,
+	kOptionSearchImplicitAnd = 1,
+	kOptionSearchImplicitOr = 0,
+	kOptionTolerateUnclosed = 0,
 
-#define SRPAR_TYPE_AND 1
-#define SRPAR_TYPE_OR 2
-#define SRPAR_TYPE_NEG 3
-#define SRPAR_TYPE_SUBEXPR_START 4
-#define SRPAR_TYPE_SUBEXPR_END 5
-#define SRPAR_TYPE_ALIAS 6
-#define SRPAR_NO_EXPR 7
+	kSrExpTypeBlank = 0,
+	kSrExpTypeAnd = 1,
+	kSrExpTypeOr = 2,
+	kSrExpTypeTBD = 3,
+	kSrExpTypeNeg = 4,
+	kSrExpTypeRoot = 5,
+	kSrExpTypeSubExprMarker = 6,
+	kSrExpTypeNull = 7,
+	kSrExpTypeTagNum = 8,
+
+	kSearchParseTypeAnd = 1,
+	kSearchParseTypeOr = 2,
+	kSearchParseTypeNeg = 3,
+	kSearchParseTypeSubExprStart = 4,
+	kSearchParseTypeSubExprEnd = 5,
+	kSearchParseTypeAlias = 6,
+	kSearchParseTypeNoExpr = 7
+
+};
 
 //! TODO: make references to sessionhandler atomic and thread safe
 TopIndexSessionHandler g_indexSessionHandler = TopIndexSessionHandler();
 
 //{ main index
 
-uint64_t getlastminum(void) {
-errorf("getlastminum before openSession");
+uint64_t getLastMINum(void) {
+errorf("getLastMINum before openSession");
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
-errorf("getlastminum after openSession");
+errorf("getLastMINum after openSession");
 
 	if (indexSession == nullptr) {
-		errorf("getlastminum could not open session");
+		errorf("getLastMINum could not open session");
 		return 0;
 	}
 
 	int32_t error = 0;
-errorf("getlastminum before getNofVirtualEntries");
+errorf("getLastMINum before getNofVirtualEntries");
 	return indexSession->getNofVirtualEntries(error);
-errorf("getlastminum after getNofVirtualEntries");
+errorf("getLastMINum after getNofVirtualEntries");
 }
 
-uint64_t mireg(char *miname) {
-	if (miname == NULL) {
-		errorf("miname was NULL");
+uint64_t miReg(char *miName) {
+	if (miName == NULL) {
+		errorf("miName was NULL");
 		return 0;
 	}
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 	if (indexSession == nullptr) {
-		errorf("(mireg) could not open session");
+		errorf("(miReg) could not open session");
 		return 0;
 	}
-	std::string str = std::string(miname);
+	std::string str = std::string(miName);
 	uint64_t res = indexSession->addEntry(str);
 	if (!res) {
-		errorf("failed to register miname");
+		errorf("failed to register miName");
 		return 0;
 	} else {
 		return res;
@@ -107,46 +111,46 @@ uint64_t mireg(char *miname) {
 	return 0;
 }
 
-int cmireg(oneslnk *minamechn) {
+int chainMiReg(oneslnk *miNameChain) {
 
 	errorf("cmireg unimplemented");
 
 	return 0;
 }
 
-char *miread_old(uint64_t minum) {	// returns malloc memory
+char *miRead_old(uint64_t miNum) {	// returns malloc memory
 	return 0;
 }
 
-char mirmv(uint64_t dnum) {
+char miRemove(uint64_t dNum) {
 
 }
 
-oneslnk *cmiread(oneslnk *minumchn) {		//! not done
+oneslnk *chainMiRead(oneslnk *miNumChain) {		//! not done
 
 	return NULL; //!
 }
 
-int cmirmv(oneslnk *dnumchn) {
+int chainMiRmv(oneslnk *dNumChain) {
 
 }
 
 
-int cmirer(twoslnk *rerchn) {		//! untested
+int chainMiReroute(twoslnk *rerouteChain) {		//! untested
 
 }
 
 /*
-oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *intervalMiRead(uint64_t start, uint64_t interval) {	// returns malloc memory (the whole chain)
 
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 
 	if (indexSession == nullptr) {
-		errorf("imiread could not open session");
+		errorf("intervalMiRead could not open session");
 		return 0;
 	}
 
-	std::forward_list<std::string> retList = indexSession->readIntervalEntries(start, intrvl);
+	std::forward_list<std::string> retList = indexSession->readIntervalEntries(start, interval);
 
 	oneslnk *flnk, *lastlnk;
 	if ((flnk = malloc(sizeof(oneslnk))) == 0) {
@@ -179,8 +183,8 @@ oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (th
 		i++;
 	}
 
-	if (i > intrvl) {
-		errorf("imiread got more than intrvl entries");
+	if (i > interval) {
+		errorf("intervalMiRead got more than interval entries");
 		killoneschn(flnk, 0);
 		return 0;
 	}
@@ -191,16 +195,16 @@ oneslnk *imiread(uint64_t start, uint64_t intrvl) {	// returns malloc memory (th
 }
 */
 
-std::shared_ptr<std::forward_list<std::string>> imiread(uint64_t start, uint64_t intrvl) {
+std::shared_ptr<std::forward_list<std::string>> intervalMiRead(uint64_t start, uint64_t interval) {
 
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 
 	if (indexSession == nullptr) {
-		errorf("imiread could not open session");
+		errorf("intervalMiRead could not open session");
 		return {};
 	}
 
-	std::shared_ptr<std::forward_list<std::string>> retListPtr = indexSession->readIntervalEntries(start, intrvl);
+	std::shared_ptr<std::forward_list<std::string>> retListPtr = indexSession->readIntervalEntries(start, interval);
 
 	if (retListPtr == nullptr) {
 		return {};
@@ -213,8 +217,8 @@ std::shared_ptr<std::forward_list<std::string>> imiread(uint64_t start, uint64_t
 		i++;
 	}
 
-	if (i > intrvl) {
-		errorf("imiread got more than intrvl entries");
+	if (i > interval) {
+		errorf("intervalMiRead got more than interval entries");
 		return 0;
 	}
 
@@ -225,32 +229,32 @@ void verDI(void) { // check for order, duplicates, gaps, 0 character strings
 
 }
 
-bool existsmi(const uint64_t &minum, int32_t &error) {
+bool existsMI(const uint64_t &miNum, int32_t &error) {
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
 
 	if (indexSession == nullptr) {
-		errorf("imiread could not open session");
+		errorf("intervalMiRead could not open session");
 		error = 1;
 		return false;
 	}
 
-	return indexSession->hasUndeletedEntry(minum);
+	return indexSession->hasUndeletedEntry(miNum);
 }
 
-bool existsmi(const uint64_t &minum) {
+bool existsMI(const uint64_t &miNum) {
 	int32_t error = 0;
-	return existsmi(minum, error);
+	return existsMI(miNum, error);
 }
 
 //}
 
 //{ directory
 
-uint64_t getlastdnum(uint64_t minum) {
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+uint64_t getLastDNum(uint64_t miNum) {
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("getlastdnum could not open session");
+		errorf("getLastDNum could not open session");
 		return 0;
 	}
 
@@ -259,20 +263,20 @@ uint64_t getlastdnum(uint64_t minum) {
 }
 
 /*
-uint64_t dreg(uint64_t minum, char *dpath) {
-	if (dpath == NULL) {
-		errorf("dpath was NULL");
+uint64_t dReg(uint64_t miNum, char *dPath) {
+	if (dPath == NULL) {
+		errorf("dPath was NULL");
 		return 0;
 	}
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
 	if (indexSession == nullptr) {
-		errorf("(dreg) could not open session");
+		errorf("(dReg) could not open session");
 		return 0;
 	}
-	std::string str = std::string(dpath);
+	std::string str = std::string(dPath);
 	uint64_t res = indexSession->addEntry(str);
 	if (!res) {
-		errorf("failed to register dpath");
+		errorf("failed to register dPath");
 		return 0;
 	} else {
 		return res;
@@ -280,92 +284,92 @@ uint64_t dreg(uint64_t minum, char *dpath) {
 }
 */
 
-uint64_t dreg(const uint64_t &minum, const std::fs::path &dpath) {
-	if (dpath.empty()) {
-		errorf("dpath was empty");
+uint64_t dReg(const uint64_t &miNum, const std::fs::path &dPath) {
+	if (dPath.empty()) {
+		errorf("dPath was empty");
 		return 0;
 	}
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
 	if (indexSession == nullptr) {
-		errorf("(dreg) could not open session");
+		errorf("(dReg) could not open session");
 		return 0;
 	}
-	uint64_t res = indexSession->addEntry(dpath);
+	uint64_t res = indexSession->addEntry(dPath);
 	if (!res) {
-		errorf("failed to register dpath");
+		errorf("failed to register dPath");
 		return 0;
 	} else {
 		return res;
 	}
 }
 
-std::fs::path dread(const uint64_t &minum, const uint64_t &dnum) {	// returns malloc memory
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+std::fs::path dRead(const uint64_t &miNum, const uint64_t &dNum) {	// returns malloc memory
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("getlastminum could not open session");
+		errorf("getLastMINum could not open session");
 		return {};
 	}
 
-	std::fs::path dir = indexSession->readEntry(dnum);
+	std::fs::path dir = indexSession->readEntry(dNum);
 
 	return dir;
 }
 
-char drmv(uint64_t minum, uint64_t dnum) {
+char dRemove(uint64_t miNum, uint64_t dNum) {
 	//! TODO:
 }
 
-char drer(uint64_t minum, uint64_t dnum, char *dpath) {		// reroute
+char dReroute(uint64_t miNum, uint64_t dNum, char *dPath) {		// reroute
 	//! TODO:
 }
 
-int cdreg(uint64_t minum, oneslnk *dpathchn) {
-	errorf("cdreg unimplemented");
+int cDReg(uint64_t miNum, oneslnk *dPathChain) {
+	errorf("cDReg unimplemented");
 	return 0;
 }
 
-int cdreg(const uint64_t &minum, const std::forward_list<std::fs::path> inputList) { //! untested
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+int cDReg(const uint64_t &miNum, const std::forward_list<std::fs::path> inputList) { //! untested
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("getlastminum could not open session");
+		errorf("getLastMINum could not open session");
 		return 1;
 	}
 
 	auto retlist = indexSession->addEntries(inputList);
 
 	if (retlist.empty()) {
-		errorf("cdreg addEntries failed");
+		errorf("cDReg addEntries failed");
 		return 1;
 	} else {
 		return 0;
 	}
 }
 
-oneslnk *cdread(uint64_t minum, oneslnk *dnumchn) {
+oneslnk *chainDRead(uint64_t miNum, oneslnk *dNumChain) {
 	//! TODO:
 }
 
-int cdrmv(uint64_t minum, oneslnk *dnumchn) {
+int chainDRemove(uint64_t miNum, oneslnk *dNumChain) {
 	//! TODO:
 }
 
-int cdrer(uint64_t minum, twoslnk *rerchn) {		//! untested
+int chainDReroute(uint64_t miNum, twoslnk *rerouteChain) {		//! untested
 	//! TODO:
 }
 
 /*
-oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *intervalDRead(uint64_t miNum, uint64_t start, uint64_t interval) {	// returns malloc memory (the whole chain)
 
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("imiread could not open session");
+		errorf("intervalMiRead could not open session");
 		return 0;
 	}
 
-	std::forward_list<std::fs::path> retList = indexSession->readIntervalEntries(start, intrvl);
+	std::forward_list<std::fs::path> retList = indexSession->readIntervalEntries(start, interval);
 
 	oneslnk *flnk, *lastlnk;
 	if ((flnk = malloc(sizeof(oneslnk))) == 0) {
@@ -398,8 +402,8 @@ oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns ma
 		i++;
 	}
 
-	if (i > intrvl) {
-		errorf("imiread got more than intrvl entries");
+	if (i > interval) {
+		errorf("intervalMiRead got more than interval entries");
 		killoneschn(flnk, 0);
 		return 0;
 	}
@@ -411,16 +415,16 @@ oneslnk *idread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns ma
 }
 */
 
-std::shared_ptr<std::forward_list<std::fs::path>> idread(uint64_t minum, uint64_t start, uint64_t intrvl) {
+std::shared_ptr<std::forward_list<std::fs::path>> intervalDRead(uint64_t miNum, uint64_t start, uint64_t interval) {
 
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(minum);
+	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("idread could not open session");
+		errorf("intervalDRead could not open session");
 		return {};
 	}
 
-	std::shared_ptr<std::forward_list<std::fs::path>> retListPtr = indexSession->readIntervalEntries(start, intrvl);
+	std::shared_ptr<std::forward_list<std::fs::path>> retListPtr = indexSession->readIntervalEntries(start, interval);
 
 	if (retListPtr == nullptr) {
 		return {};
@@ -433,15 +437,15 @@ std::shared_ptr<std::forward_list<std::fs::path>> idread(uint64_t minum, uint64_
 		i++;
 	}
 
-	if (i > intrvl) {
-		errorf("idread got more than intrvl entries");
+	if (i > interval) {
+		errorf("intervalDRead got more than interval entries");
 		return 0;
 	}
 
 	return retListPtr;
 }
 
-void verDI(const uint64_t &minum) { // check for order, duplicates, gaps, 0 character strings
+void verDI(const uint64_t &miNum) { // check for order, duplicates, gaps, 0 character strings
 
 }
 
@@ -449,15 +453,15 @@ void verDI(const uint64_t &minum) { // check for order, duplicates, gaps, 0 char
 
 //{	subdir
 
-int readSubdirEntryTo(FILE *sourcef, struct subdirentry *dest) {
+int readSubdirEntryTo(FILE *sourceFile, struct SubDirEntry *dest) {
 
 }
 
-uint64_t getlastsdnum(uint64_t minum) {
-	std::shared_ptr<SubDirIndex> indexSession = g_indexSessionHandler.openSession<SubDirIndex>(minum);
+uint64_t getLastSubDirNum(uint64_t miNum) {
+	std::shared_ptr<SubDirIndex> indexSession = g_indexSessionHandler.openSession<SubDirIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("getlastsdnum could not open session");
+		errorf("getLastSubDirNum could not open session");
 		return 0;
 	}
 
@@ -465,7 +469,7 @@ uint64_t getlastsdnum(uint64_t minum) {
 	return indexSession->getNofVirtualEntries(error);
 }
 
-oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *intervalSubDirRead(uint64_t miNum, uint64_t start, uint64_t interval) {	// returns malloc memory (the whole chain)
 	return nullptr;
 }
 
@@ -475,11 +479,11 @@ oneslnk *isdread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns m
 
 /*
 
-uint64_t getlastfnum(uint64_t minum) {
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(minum);
+uint64_t getlastfnum(uint64_t miNum) {
+	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("getlastminum could not open session");
+		errorf("getLastMINum could not open session");
 		return 0;
 	}
 
@@ -490,20 +494,20 @@ uint64_t getlastfnum(uint64_t minum) {
 
 /*
 
-uint64_t fireg(uint64_t dnum, char *fname) {
+uint64_t fileReg(uint64_t dNum, char *fname) {
 	if (fname == NULL) {
 		errorf("fname was NULL");
 		return 0;
 	}
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(minum);
+	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(miNum);
 	if (indexSession == nullptr) {
-		errorf("(dreg) could not open session");
+		errorf("(dReg) could not open session");
 		return 0;
 	}
-	std::string str = std::string(dpath);
+	std::string str = std::string(dPath);
 	uint64_t res = indexSession->addEntry(str);
 	if (!res) {
-		errorf("failed to register dpath");
+		errorf("failed to register dPath");
 		return 0;
 	} else {
 		return res;
@@ -512,16 +516,16 @@ uint64_t fireg(uint64_t dnum, char *fname) {
 
 */
 
-uint64_t fireg(const uint64_t &minum, const std::string &fname) {
+uint64_t fileReg(const uint64_t &miNum, const std::string &fname) {
 	/*
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(minum);
+	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(miNum);
 	if (indexSession == nullptr) {
-		errorf("(dreg) could not open session");
+		errorf("(dReg) could not open session");
 		return 0;
 	}
 	uint64_t res = indexSession->addEntry(fname);
 	if (!res) {
-		errorf("failed to register dpath");
+		errorf("failed to register dPath");
 		return 0;
 	} else {
 		return res;
@@ -529,7 +533,7 @@ uint64_t fireg(const uint64_t &minum, const std::string &fname) {
 	*/
 }
 
-char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **rettags, unsigned char presort) {	//! untested
+char chainFileReadTag(uint64_t dNum, oneslnk *fileNums, oneslnk **retFileName, oneslnk **retTags, unsigned char presort) {	//! untested
 /*
 	FILE *fIndex;
 	unsigned char buf[MAX_PATH*4], *p;
@@ -537,53 +541,53 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 	uint64_t tnum;
 	oneslnk *tlink, *link1, *link2, *link3, *link4, *link5;
 
-	if (retfname)
-		*retfname = 0;
-	if (rettags)
-		*rettags = 0;
-	if (dnum == 0) {
-		errorf("dnum is 0");
+	if (retFileName)
+		*retFileName = 0;
+	if (retTags)
+		*retTags = 0;
+	if (dNum == 0) {
+		errorf("dNum is 0");
 		return 1;
-	} if (fnums == 0) {
-		errorf("fnums is 0");
+	} if (fileNums == 0) {
+		errorf("fileNums is 0");
 		return 1;
 	}
-	if (!(retfname || rettags)) {
+	if (!(retFileName || retTags)) {
 		errorf("no address to return file names or tags");
 		return 1;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dNum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
-		errorf("fIndex file not found (firead)");
+		errorf("fIndex file not found (fileRead)");
 		return 1;
 	}
 
 	if (!presort) {
-		if (!(fnums = copyoneschn(fnums, 1))) {
+		if (!(fileNums = copyoneschn(fileNums, 1))) {
 			errorf("copyoneschn failed");
 			return 1;
 		}
-		if (sortoneschnull(fnums, 0)) {
+		if (sortoneschnull(fileNums, 0)) {
 			errorf("sortoneschnull failed");
 			return 1;
 		}
 	}
-	if (fnums->ull == 0) {
-		errorf("passed 0 fnum to cfireadtag");
-		fclose(fIndex), presort? 0:killoneschn(fnums, 1);
+	if (fileNums->ull == 0) {
+		errorf("passed 0 fNum to chainFileReadTag");
+		fclose(fIndex), presort? 0:killoneschn(fileNums, 1);
 		return 1;
 	}
-	link1 = fnums;
-	if (retfname) {
+	link1 = fileNums;
+	if (retFileName) {
 		link2 = link3 = malloc(sizeof(oneslnk));
 		link2->str = 0;
-	} if (rettags) {
+	} if (retTags) {
 		link4 = link5 = malloc(sizeof(oneslnk));
 		link4->vp = 0;
 	}
 
-	fseek64(fIndex, finitpos(dnum, fnums->ull), SEEK_SET);	//! also add fseeking if the distance to next entry is larger than fnum/(sqrt(lastfnum)+fnum%sqrt(lastfnum)
+	fseek64(fIndex, finitpos(dNum, fileNums->ull), SEEK_SET);	//! also add fseeking if the distance to next entry is larger than fNum/(sqrt(lastfnum)+fNum%sqrt(lastfnum)
 
 	while (link1) {
 		tnum = fgetull_pref(fIndex, &c);
@@ -591,48 +595,48 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 			if (c == 1)
 				break;
 			errorf_old("fIndex num read failed: %d", c);
-			fclose(fIndex), presort? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+			fclose(fIndex), presort? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 			return 1;
 		}
 		if (link1->ull > tnum) {
 			if ((c = null_fgets(0, MAX_PATH*4, fIndex)) != 0) {
 				errorf_old("fIndex read error: %d", c);
-				fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+				fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
 			while ((c = getc(fIndex)) != 0) {
 				if (c == EOF) {
 					errorf("EOF before end of tags in fIndex");
-					fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 				if (fseek(fIndex, c, SEEK_CUR)) {
 					errorf("fseek failed");
-					fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 			}
 		} else if (link1->ull == tnum) {
 			if ((c = null_fgets(buf, MAX_PATH*4, fIndex)) != 0) {
 				errorf_old("fIndex read error: %d", c);
-				fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+				fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
-			if (retfname) {
+			if (retFileName) {
 				link3 = link3->next = malloc(sizeof(oneslnk));
 				if (!(link3->str = dupstr(buf, MAX_PATH*4, 0))) {
 					errorf_old("failed to duplicate buf: %s", buf);
 				}
 			}
-			if (rettags) {
+			if (retTags) {
 				if ((link5 = link5->next = malloc(sizeof(oneslnk))) == 0) {
 					errorf("malloc failed for link5");
-					fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 				if ((tlink = link5->vp = malloc(sizeof(oneslnk))) == 0) {
 					errorf("malloc failed for link5->vp");
-					fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 				while (1) {
@@ -642,7 +646,7 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 							break;
 						}
 						errorf_old("fIndex tag read failed: %d", c);
-						tlink->next = 0, fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0, tlink->next = 0;
+						tlink->next = 0, fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0, tlink->next = 0;
 						return 1;
 					} tlink = tlink->next = malloc(sizeof(oneslnk));
 					tlink->ull = tnum;
@@ -652,12 +656,12 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 				while ((c = getc(fIndex)) != 0) {
 					if (c == EOF) {
 						errorf("EOF before end of tags in fIndex");
-						fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+						fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 						return 1;
 					}
 					if (fseek(fIndex, c, SEEK_CUR)) {
 						errorf("fseek failed");
-						fclose(fIndex), presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+						fclose(fIndex), presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 						return 1;
 					}
 				}
@@ -670,19 +674,19 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 	fclose(fIndex);
 
 	if (link1) {
-		errorf_old("tried to read non-existent fnum: %d -- last read %d", link1->ull, tnum);
-		presort ? 0:killoneschn(fnums, 1), retfname? (link3->next = 0, killoneschn(link2, 0)):0, rettags? (link5->next = 0, killoneschnchn(link4, 1)):0;
+		errorf_old("tried to read non-existent fNum: %d -- last read %d", link1->ull, tnum);
+		presort ? 0:killoneschn(fileNums, 1), retFileName? (link3->next = 0, killoneschn(link2, 0)):0, retTags? (link5->next = 0, killoneschnchn(link4, 1)):0;
 		return 1;
 	}
-	presort ? 0:killoneschn(fnums, 1);
+	presort ? 0:killoneschn(fileNums, 1);
 
-	if (retfname) {
+	if (retFileName) {
 		link3->next = 0;
-		*retfname = link2->next;
+		*retFileName = link2->next;
 		free(link2);
-	} if (rettags) {
+	} if (retTags) {
 		link5->next = 0;
-		*rettags = link4->next;
+		*retTags = link4->next;
 		free(link4);
 	}
 
@@ -692,17 +696,17 @@ char cfireadtag(uint64_t dnum, oneslnk *fnums, oneslnk **retfname, oneslnk **ret
 
 }
 
-char *firead(uint64_t dnum, uint64_t fnum) {	//! untested // returns malloc memory
+char *fileRead(uint64_t dNum, uint64_t fNum) {	//! untested // returns malloc memory
 
 }
 
-oneslnk *cfiread(uint64_t dnum, oneslnk *fnumchn) {
+oneslnk *chainFileRead(uint64_t dNum, oneslnk *fileNumChain) {
 	/*
 	int c;
 	oneslnk *retlnk;
 
 	retlnk = 0;
-	c = cfireadtag(dnum, fnumchn, &retlnk, NULL, 0);
+	c = chainFileReadTag(dNum, fileNumChain, &retlnk, NULL, 0);
 
 	if (!c) {
 		return retlnk;
@@ -713,26 +717,26 @@ oneslnk *cfiread(uint64_t dnum, oneslnk *fnumchn) {
 	return NULL;
 }
 
-unsigned char firmv(uint64_t dnum, uint64_t fnum) {		//! not done
+unsigned char fileRemove(uint64_t dNum, uint64_t fNum) {		//! not done
 
 	return 0; //!
 }
 
-int cfireg(uint64_t dnum, oneslnk *fnamechn) {
+int cfireg(uint64_t dNum, oneslnk *fileNameChain) {
 	return 1;
 }
 
 /*
-oneslnk *ifiread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns malloc memory (the whole chain)
+oneslnk *ifiread(uint64_t miNum, uint64_t start, uint64_t interval) {	// returns malloc memory (the whole chain)
 
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(minum);
+	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(miNum);
 
 	if (indexSession == nullptr) {
-		errorf("imiread could not open session");
+		errorf("intervalMiRead could not open session");
 		return 0;
 	}
 
-	std::shared_ptr<std::forward_list<std::string>> retList = indexSession->readIntervalEntries(start, intrvl);
+	std::shared_ptr<std::forward_list<std::string>> retList = indexSession->readIntervalEntries(start, interval);
 
 	oneslnk *flnk, *lastlnk;
 	if ((flnk = malloc(sizeof(oneslnk))) == 0) {
@@ -765,8 +769,8 @@ oneslnk *ifiread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns m
 		i++;
 	}
 
-	if (i > intrvl) {
-		errorf("imiread got more than intrvl entries");
+	if (i > interval) {
+		errorf("intervalMiRead got more than interval entries");
 		killoneschn(flnk, 0);
 		return 0;
 	}
@@ -778,7 +782,7 @@ oneslnk *ifiread(uint64_t minum, uint64_t start, uint64_t intrvl) {	// returns m
 }
 */
 
-unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *remtagnums) {		//! untested
+unsigned char addRemoveFileNumTagChain(uint64_t dNum, oneslnk *fileNums, oneslnk *addTagNums, oneslnk *remTagNums) {		//! untested
 /*
 	FILE *fIndex, *tfIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], done;
@@ -786,28 +790,28 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 	oneslnk *flink, *link1, *link2;
 	uint64_t tnum;
 
-	if (dnum == 0) {
-		errorf("dnum is 0");
+	if (dNum == 0) {
+		errorf("dNum is 0");
 		return 1;
 	}
-	if (!fnums || !(addtagnums || remtagnums)) {
-		errorf("no fnums or no tagnums in addfnumtagc");
+	if (!fileNums || !(addTagNums || remTagNums)) {
+		errorf("no fileNums or no tagNums in addfnumtagc");
 		return 1;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dNum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
-		errorf("fIndex file not found (firead)");
+		errorf("fIndex file not found (fileRead)");
 		return 1;
 	}
-	sprintf(baf, "%s\\i\\%llu\\fIndex.tmp", g_prgDir, dnum);
+	sprintf(baf, "%s\\i\\%llu\\fIndex.tmp", g_prgDir, dNum);
 	if ((tfIndex = MBfopen(baf, "wb")) == NULL) {
-		errorf_old("couldn't create i\\%llu\\fIndex.tmp", dnum);
+		errorf_old("couldn't create i\\%llu\\fIndex.tmp", dNum);
 		fclose(fIndex);
 		return 2;
 	}
 
-	if (!(flink = fnums = copyoneschn(fnums, 1))) {
+	if (!(flink = fileNums = copyoneschn(fileNums, 1))) {
 		errorf("copyoneschn failed");
 		fclose(fIndex), fclose(tfIndex), MBremove(baf);
 		return 2;
@@ -817,50 +821,50 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 		fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1);
 		return 2;
 	}
-	if (fnums->ull == 0) {
-		errorf("passed 0 tag num to add in addremfnumctagc");
+	if (fileNums->ull == 0) {
+		errorf("passed 0 tag num to add in addRemoveFileNumTagChain");
 		fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1);
 		return 2;
 	}
 
-	if (addtagnums) {
-		if (!(addtagnums = copyoneschn(addtagnums, 1))) {
+	if (addTagNums) {
+		if (!(addTagNums = copyoneschn(addTagNums, 1))) {
 			errorf("copyoneschn failed");
 			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1);
 			return 2;
 		}
-		if (sortoneschnull(addtagnums, 0)) {
+		if (sortoneschnull(addTagNums, 0)) {
 			errorf("sortoneschnull failed");
-			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), killoneschn(addtagnums, 1);
+			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), killoneschn(addTagNums, 1);
 			return 2;
 		}
-		if (addtagnums->ull == 0) {
-			errorf("passed 0 tag num to remove in addremfnumctagc");
-			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), killoneschn(addtagnums, 1);
+		if (addTagNums->ull == 0) {
+			errorf("passed 0 tag num to remove in addRemoveFileNumTagChain");
+			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), killoneschn(addTagNums, 1);
 			return 2;
 		}
 	}
 
-	if (remtagnums) {
-		if (!(remtagnums = copyoneschn(remtagnums, 1))) {
+	if (remTagNums) {
+		if (!(remTagNums = copyoneschn(remTagNums, 1))) {
 			errorf("copyoneschn failed");
-			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0;
+			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0;
 			return 2;
 		}
-		if (sortoneschnull(remtagnums, 0)) {
+		if (sortoneschnull(remTagNums, 0)) {
 			errorf("sortoneschnull failed");
-			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, killoneschn(remtagnums, 1);
+			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0, killoneschn(remTagNums, 1);
 			return 2;
 		}
-		if (remtagnums->ull == 0) {
-			errorf("passed 0 dnum to cdrmv");
-			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, killoneschn(remtagnums, 1);
+		if (remTagNums->ull == 0) {
+			errorf("passed 0 dNum to chainDRemove");
+			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0, killoneschn(remTagNums, 1);
 			return 2;
 		}
 	}
 
 	while (1) {
-		if (!fnums) {
+		if (!fileNums) {
 			while ((c = getc(fIndex)) != EOF) {
 				putc(c, tfIndex);
 			}
@@ -873,14 +877,14 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 				break;
 			}
 			errorf_old("fIndex num read failed: %d", c);
-			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
+			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0, remTagNums ? killoneschn(remTagNums, 1) : 0;
 			return 2;
 		} putull_pref(tnum, tfIndex);
 
 		for (i = 0; (c = getc(fIndex)) != '\0' && i < MAX_PATH*4; i++) {
 			if (c == EOF) {
 				errorf("EOF before null terminator in fIndex");
-				fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
+				fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0, remTagNums ? killoneschn(remTagNums, 1) : 0;
 				return 2;
 			} else
 				putc(c, tfIndex);
@@ -888,10 +892,10 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 		putc(c, tfIndex);
 		if (i == MAX_PATH*4) {
 			errorf("too long string in fIndex");
-			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
+			fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0, remTagNums ? killoneschn(remTagNums, 1) : 0;
 			return 2;
 		}
-		if (tnum < fnums->ull) {
+		if (tnum < fileNums->ull) {
 			while (1) {
 				tnum = fgetull_pref(fIndex, &c);
 				if (c != 0) {
@@ -899,13 +903,13 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 						break;
 					}
 					errorf_old("fIndex tag read failed: %d", c);
-					fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
+					fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0, remTagNums ? killoneschn(remTagNums, 1) : 0;
 					return 1;
 				}
 				putull_pref(tnum, tfIndex);
 			} putc('\0', tfIndex);
-		} else if (tnum == fnums->ull) {
-			link1 = addtagnums, link2 = remtagnums;
+		} else if (tnum == fileNums->ull) {
+			link1 = addTagNums, link2 = remTagNums;
 			while (1) {
 				tnum = fgetull_pref(fIndex, &c);
 				if (c != 0) {
@@ -913,7 +917,7 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 						break;
 					}
 					errorf_old("fIndex tag read failed: %d", c);
-					fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
+					fclose(fIndex), fclose(tfIndex), MBremove(baf), killoneschn(flink, 1), addTagNums ? killoneschn(addTagNums, 1) : 0, remTagNums ? killoneschn(remTagNums, 1) : 0;
 					return 1;
 				}
 				while (link1 && link1->ull <= tnum) {
@@ -938,20 +942,20 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 				link1 = link1->next;
 			}
 			putc('\0', tfIndex);
-			fnums = fnums->next;
+			fileNums = fileNums->next;
 		} else {
 			break;
 		}
 	}
-	fclose(fIndex); fclose(tfIndex), addtagnums ? killoneschn(addtagnums, 1) : 0, remtagnums ? killoneschn(remtagnums, 1) : 0;
+	fclose(fIndex); fclose(tfIndex), addTagNums ? killoneschn(addTagNums, 1) : 0, remTagNums ? killoneschn(remTagNums, 1) : 0;
 
-	if (fnums != 0 || c != EOF) {
-		errorf("addremfnumctagc broke early");
+	if (fileNums != 0 || c != EOF) {
+		errorf("addRemoveFileNumTagChain broke early");
 		MBremove(baf), killoneschn(flink, 1);
 		return 1;
 	}
 	char bif[MAX_PATH*4];
-	sprintf(bif, "%s\\i\\%llu\\fIndex.bak", g_prgDir, dnum);
+	sprintf(bif, "%s\\i\\%llu\\fIndex.bak", g_prgDir, dNum);
 	MBremove(bif);
 	if (MBrename(buf, bif)) {
 		errorf("rename1 failed");
@@ -965,7 +969,7 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 		return 3;
 	}
 
-	addtolastfnum(dnum, 0, flink->ull);
+	addtolastfnum(dNum, 0, flink->ull);
 	killoneschn(flink, 1);
 	MBremove(bif);
 
@@ -975,20 +979,20 @@ unsigned char addremfnumctagc(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums
 return 1;
 }
 
-unsigned char addfnumctag(uint64_t dnum, oneslnk *fnums, uint64_t tagnum) {	//!untested
+unsigned char addFileNumChainTag(uint64_t dNum, oneslnk *fileNums, uint64_t tagNum) {	//!untested
 /*
 	int c;
 	oneslnk *link;
 
-	if (dnum == 0) {
-		errorf("dnum is 0");
+	if (dNum == 0) {
+		errorf("dNum is 0");
 		return 1;
 	}
 
 	link = malloc(sizeof(oneslnk));
-	link->next = 0, link->ull = tagnum;
+	link->next = 0, link->ull = tagNum;
 
-	c = addremfnumctagc(dnum, fnums, link, 0);
+	c = addRemoveFileNumTagChain(dNum, fileNums, link, 0);
 	free(link);
 	return c;
 */
@@ -997,12 +1001,12 @@ unsigned char addfnumctag(uint64_t dnum, oneslnk *fnums, uint64_t tagnum) {	//!u
 /*
 uint64_t pfireg(char *fpath, unsigned char flag) {	// Registers file from path --  bit 1 of flag: register directory if not registered, 2: check whether file is already registered first, 3: return 0 if already registered
 	char buf1[MAX_PATH*4], buf2[MAX_PATH*4];
-	uint64_t dnum, fnum;
+	uint64_t dNum, fNum;
 
 	breakpathdf(fpath, buf1, buf2);
-	if ((dnum = rdread(buf1)) == 0) {
+	if ((dNum = rdread(buf1)) == 0) {
 		if (flag & 1) {
-			if ((dnum = dreg(buf1)) == 0) {
+			if ((dNum = dReg(buf1)) == 0) {
 				return 0;
 			}
 		} else {
@@ -1011,18 +1015,18 @@ uint64_t pfireg(char *fpath, unsigned char flag) {	// Registers file from path -
 	}
 
 	if (flag & 2) {
-		if ((fnum = rfiread(dnum, buf2)) != 0) {
+		if ((fNum = rfiread(dNum, buf2)) != 0) {
 			if (flag & 4)
 				return 0;
-			return fnum;
+			return fNum;
 		}
 	}
-	return fireg(dnum, buf2);
+	return fileReg(dNum, buf2);
 }
 */
 /*
 unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register directory if not registered, 2: remove files that only exist in index (maybe only if they have no tags or associated things), 3: register subdirectories, 4: reinitialize rfIndex, 5: set dir checked date, 6: don't mark missing files as missing, 7: register files from directories recursively
-	uint64_t dnum;
+	uint64_t dNum;
 	char *s, *s2, buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], firecfin = 0, keep = 0, empty = 0, skipdirs = 1, recdirs = 0;
 	FILE *tfile, *tfile2, *rfIndex;
 	int c, i;
@@ -1033,9 +1037,9 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 
 	uint64_t ulltime = time(0);
 
-	if ((dnum = rdread(path)) == 0) {
+	if ((dNum = rdread(path)) == 0) {
 		if (flag & 1) {
-			if ((dnum = dreg(path)) == 0) {
+			if ((dNum = dReg(path)) == 0) {
 				return 1;
 			}
 		} else {
@@ -1043,10 +1047,10 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 		}
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\rfIndex.bin", g_prgDir, dNum);
 
 	if ((flag & 8) || !(rfIndex = MBfopen(buf, "rb"))) {
-		if (rfinit(dnum) == 1) {
+		if (rfinit(dNum) == 1) {
 			empty = firecfin = 1;
 		} else if (!(rfIndex = MBfopen(buf, "rb"))) {
 			return 3;
@@ -1105,7 +1109,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 		} else {
 			if (c == 1) {
 				if (flag & 2) {
-					firmv(dnum, rfiread(dnum, buf2));
+					fileRemove(dNum, rfiread(dNum, buf2));
 				}
 			}
 			keep = 0;
@@ -1148,7 +1152,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 		i++;
 		if (i >= DIRFREG_MAX_CLEN) {
 			link->next = 0, link = flink->next, free(flink);
-			cfireg(dnum, link);
+			cfireg(dNum, link);
 			killoneschn(link, 0);
 			link = flink = malloc(sizeof(oneslnk)), flink->str = 0;
 			i = 0;
@@ -1158,57 +1162,57 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 
 	if (i > 0) {
 		link = flink->next, free(flink);
-		cfireg(dnum, link);
+		cfireg(dNum, link);
 	}
 	killoneschn(link, 0);
 	if (flag & 16) {
-		setdlastchecked(dnum, ulltime);
+		setdlastchecked(dNum, ulltime);
 	}
 	return 0;
 }
 */
-int freesrexp(SREXP *sexp) {
-	if (sexp == NULL) return 0;
+int freeSearchExpr(SREXP *searchExpr) {
+	if (searchExpr == NULL) return 0;
 
 	SREXP *next;
 
-	if (sexp->exprtype == SREXP_TYPE_ROOT || sexp->exprtype == SREXP_TYPE_SUBEXP_MARKER) {
-		next = sexp->expr1;
-		free(sexp);
-		freesrexp(next);
-	} else if (sexp->exprtype == SREXP_TYPE_AND || sexp->exprtype == SREXP_TYPE_OR) {
-		freesrexp(sexp->expr1);
-		next = sexp->expr2;
-		free(sexp);
-		freesrexp(next);
+	if (searchExpr->exprType == kSrExpTypeRoot || searchExpr->exprType == kSrExpTypeSubExprMarker) {
+		next = searchExpr->expr1;
+		free(searchExpr);
+		freeSearchExpr(next);
+	} else if (searchExpr->exprType == kSrExpTypeAnd || searchExpr->exprType == kSrExpTypeOr) {
+		freeSearchExpr(searchExpr->expr1);
+		next = searchExpr->expr2;
+		free(searchExpr);
+		freeSearchExpr(next);
 	} else {
-		free(sexp);
+		free(searchExpr);
 	}
 
 	return 0;
 }
 
-unsigned char parse_srexp(char **s) {
+unsigned char parseSearchExpr(char **s) {
 	while (**s == ' ') (*s)++;
 
 	if (**s != '\0') {
 		if (**s == '&' || **s == '+') {
 			(*s)++;
-			return SRPAR_TYPE_AND;
+			return kSearchParseTypeAnd;
 		} else if (**s == '|') {
 			(*s)++;
-			return SRPAR_TYPE_OR;
+			return kSearchParseTypeOr;
 		} else if (**s == '-' || **s == '!') {
 			(*s)++;
-			return SRPAR_TYPE_NEG;
+			return kSearchParseTypeNeg;
 		} else if (**s == '(') {
 			(*s)++;
-			return SRPAR_TYPE_SUBEXPR_START;
+			return kSearchParseTypeSubExprStart;
 		} else if (**s == ')') {
 			(*s)++;
-			return SRPAR_TYPE_SUBEXPR_END;
+			return kSearchParseTypeSubExprEnd;
 		} else {
-			return SRPAR_TYPE_ALIAS;
+			return kSearchParseTypeAlias;
 		}
 	} else {
 		return 0;
@@ -1216,7 +1220,7 @@ unsigned char parse_srexp(char **s) {
 }
 
 
-int stack_srch_alias(char **sp, twoslnk **aliasstack, SREXP *sexp) {
+int stackSearchAlias(char **sp, twoslnk **aliasStack, SREXP *searchExpr) {
 /*
 	long long i, j, innerpar;
 	signed char quotes, outerpar, innerquotes;
@@ -1327,60 +1331,60 @@ errorf_old("s: %s", s);
 errorf_old("buf: %s", buf);
 
 	twoslnk *astack = malloc(sizeof(twoslnk));
-	astack->next = *aliasstack;
-	astack->u[0].vp = sexp;
+	astack->next = *aliasStack;
+	astack->u[0].vp = searchExpr;
 	astack->u[1].str = buf;
-	*aliasstack = astack;
+	*aliasStack = astack;
 */
 
 	return 0;
 }
 
-SEARCHSTRUCT *initftagsearch(char *searchstr, unsigned char *retarg, uint64_t dnum) { //! implement
+SEARCHSTRUCT *initFileTagSearch(char *searchStr, unsigned char *retArg, uint64_t dNum) { //! implement
 /*
 
-	retarg? *retarg = 0:0;
-	if (!searchstr) {
+	retArg? *retArg = 0:0;
+	if (!searchStr) {
 		return NULL;
 	}
 	long long i;
-	uint64_t subexp_layers;
+	uint64_t subExpLayers;
 	unsigned char uc, do_implicit, saved_expr, neg, anyneg;
-	twoslnk *numstack, *aliasstack, *nextlnk;	// one for the pointer back, one for the number
+	twoslnk *numstack, *aliasStack, *nextlnk;	// one for the pointer back, one for the number
 	SREXP *sexp1, *sexp2, *rootexp;
 	SREXPLIST *buildstack, *nextonbstack;
 	SUPEXPSTACK *superexp, *nextsuperexp;
 
-	aliasstack = numstack = NULL;
+	aliasStack = numstack = NULL;
 	buildstack = NULL;
 	sexp1 = sexp2 = NULL;
 	superexp = nextsuperexp = NULL;
-	subexp_layers = 0;
+	subExpLayers = 0;
 	do_implicit = 0;
 	neg = 0;
 	anyneg = 0;
-	uc = saved_expr = SRPAR_NO_EXPR;
+	uc = saved_expr = kSearchParseTypeNoExpr;
 
 
 	rootexp = malloc(sizeof(SREXP));
-	rootexp->exprtype = SREXP_TYPE_ROOT;
+	rootexp->exprType = kSrExpTypeRoot;
 	sexp1 = rootexp->expr1 = malloc(sizeof(SREXP));
-	sexp1->exprtype = SREXP_TYPE_BLANK;
+	sexp1->exprType = kSrExpTypeBlank;
 
 	while (1) {
 errorf("loop");
 		if (!do_implicit) { // if an operand is found without an operator, fill in implicit operator
-			uc = parse_srexp(&searchstr);
+			uc = parseSearchExpr(&searchStr);
 			if (uc == 0) {
 				break;
 			}
 		} else if (do_implicit == 1) {
-			if (SRCH_IMPLICIT_AND) {
-				uc = SRPAR_TYPE_AND;
-			} else if (SRCH_IMPLICIT_OR) {
-				uc = SRPAR_TYPE_OR;
+			if (kOptionSearchImplicitAnd) {
+				uc = kSearchParseTypeAnd;
+			} else if (kOptionSearchImplicitOr) {
+				uc = kSearchParseTypeOr;
 			} else {
-				errorf("do_implicit is 1 without SRCH_IMPLICIT_AND or SRCH_IMPLICIT_OR");
+				errorf("do_implicit is 1 without kOptionSearchImplicitAnd or kOptionSearchImplicitOr");
 				goto search_cleanup1;
 			}
 			do_implicit = 2;
@@ -1392,37 +1396,37 @@ errorf("loop");
 			goto search_cleanup1;
 		}
 		switch (uc) {
-		case SRPAR_TYPE_ALIAS:
-		case SRPAR_TYPE_NEG: // negation
-		case SRPAR_TYPE_SUBEXPR_START: // left parenthesis
-			if (sexp1->exprtype != SREXP_TYPE_BLANK) {	// the selected search expression isn't blank
-				if (SRCH_IMPLICIT_AND || SRCH_IMPLICIT_OR) {
+		case kSearchParseTypeAlias:
+		case kSearchParseTypeNeg: // negation
+		case kSearchParseTypeSubExprStart: // left parenthesis
+			if (sexp1->exprType != kSrExpTypeBlank) {	// the selected search expression isn't blank
+				if (kOptionSearchImplicitAnd || kOptionSearchImplicitOr) {
 					do_implicit = 1;
 					saved_expr = uc;
 					continue;
 				} else {
 					errorf("syntax error: operand without operator and no implicit operator specified");
-					retarg? *retarg = 1:0;
-					goto search_cleanup1;	// buildstack needs to be climbed and erased, aliasstack erased and all expressions erased
+					retArg? *retArg = 1:0;
+					goto search_cleanup1;	// buildstack needs to be climbed and erased, aliasStack erased and all expressions erased
 				}
 			} else {
-				if (uc == SRPAR_TYPE_NEG) {
+				if (uc == kSearchParseTypeNeg) {
 errorf("neg2");
 					neg = !neg;
 				} else {
 					if (neg) {
-						sexp1->exprtype = SREXP_TYPE_NEG;
+						sexp1->exprType = kSrExpTypeNeg;
 						sexp1 = sexp1->expr1 = malloc(sizeof(SREXP));
-						sexp1->exprtype = SREXP_TYPE_BLANK;
+						sexp1->exprType = kSrExpTypeBlank;
 					}
-					if (uc == SRPAR_TYPE_ALIAS) {
+					if (uc == kSearchParseTypeAlias) {
 errorf("srpar alias");
-						sexp1->exprtype = SREXP_TYPE_TBD;
-						if (stack_srch_alias(&searchstr, &aliasstack, sexp1)) {
+						sexp1->exprType = kSrExpTypeTBD;
+						if (stackSearchAlias(&searchStr, &aliasStack, sexp1)) {
 							errorf("alias syntax error");
 							goto search_cleanup1;
 						};
-					} else if (uc == SRPAR_TYPE_SUBEXPR_START) {
+					} else if (uc == kSearchParseTypeSubExprStart) {
 						if (neg) {
 							nextonbstack = buildstack;
 							buildstack = malloc(sizeof(SREXPLIST));
@@ -1430,8 +1434,8 @@ errorf("srpar alias");
 							buildstack->expr = sexp1;
 						}
 
-						if (!(buildstack == NULL || buildstack->expr->exprtype == SREXP_TYPE_SUBEXP_MARKER)) {
-							sexp1->exprtype = SREXP_TYPE_SUBEXP_MARKER;
+						if (!(buildstack == NULL || buildstack->expr->exprType == kSrExpTypeSubExprMarker)) {
+							sexp1->exprType = kSrExpTypeSubExprMarker;
 
 							nextonbstack = buildstack;
 							buildstack = malloc(sizeof(SREXPLIST));
@@ -1441,39 +1445,39 @@ errorf("srpar alias");
 							nextsuperexp = superexp;
 							superexp = malloc(sizeof(SUPEXPSTACK));
 							superexp->next = nextsuperexp;
-							superexp->subexp_layers = subexp_layers;
+							superexp->subExpLayers = subExpLayers;
 
-							subexp_layers = 0;
+							subExpLayers = 0;
 
 							sexp1 = sexp1->expr1 = malloc(sizeof(SREXP));
-							sexp1->exprtype = SREXP_TYPE_BLANK;
+							sexp1->exprType = kSrExpTypeBlank;
 						}
-						subexp_layers++;
+						subExpLayers++;
 					} else {
 						errorf("switch error 1");
-						retarg? *retarg = 1:0;
+						retArg? *retArg = 1:0;
 						goto search_cleanup1;
 					}
 					neg = 0;
 				}
 			}
 			break;
-		case SRPAR_TYPE_AND:	// and
-		case SRPAR_TYPE_OR:	// or
-			if (sexp1->exprtype == SREXP_TYPE_BLANK) {
+		case kSearchParseTypeAnd:	// and
+		case kSearchParseTypeOr:	// or
+			if (sexp1->exprType == kSrExpTypeBlank) {
 				errorf("AND or OR operator instead of operand");
-				retarg? *retarg = 1:0;
+				retArg? *retArg = 1:0;
 				goto search_cleanup1;
 			}
 
 			sexp2 = malloc(sizeof(SREXP));
-			if (uc == SRPAR_TYPE_AND) {
-				sexp2->exprtype = SREXP_TYPE_AND;
+			if (uc == kSearchParseTypeAnd) {
+				sexp2->exprType = kSrExpTypeAnd;
 			} else {
-				sexp2->exprtype = SREXP_TYPE_OR;
+				sexp2->exprType = kSrExpTypeOr;
 			}
-			if (uc == SRPAR_TYPE_OR) {	// climb out of "and" chain -- "or" has lesser priority
-				while (buildstack != NULL && buildstack->expr->exprtype == SREXP_TYPE_AND) {
+			if (uc == kSearchParseTypeOr) {	// climb out of "and" chain -- "or" has lesser priority
+				while (buildstack != NULL && buildstack->expr->exprType == kSrExpTypeAnd) {
 					nextonbstack = buildstack->next;
 					free(buildstack);
 					buildstack = nextonbstack;
@@ -1484,12 +1488,12 @@ errorf("srpar alias");
 				sexp2->expr1 = rootexp->expr1;
 				rootexp->expr1 = sexp2;
 				nextonbstack = buildstack;
-			} else if (buildstack->expr->exprtype == SREXP_TYPE_SUBEXP_MARKER) {
+			} else if (buildstack->expr->exprType == kSrExpTypeSubExprMarker) {
 				sexp2->expr1 = buildstack->expr->expr1;
 				buildstack->expr->expr1 = sexp2;
 				nextonbstack = buildstack;
-			} else if (buildstack->expr->exprtype == SREXP_TYPE_OR || buildstack->expr->exprtype == SREXP_TYPE_AND) {
-				if (buildstack->expr->exprtype == SREXP_TYPE_OR && uc == SRPAR_TYPE_AND) {
+			} else if (buildstack->expr->exprType == kSrExpTypeOr || buildstack->expr->exprType == kSrExpTypeAnd) {
+				if (buildstack->expr->exprType == kSrExpTypeOr && uc == kSearchParseTypeAnd) {
 					sexp2->expr1 = buildstack->expr->expr2;
 					buildstack->expr->expr2 = sexp2;
 					nextonbstack = buildstack;
@@ -1502,36 +1506,36 @@ errorf("srpar alias");
 			} else {
 				free(sexp2);
 				errorf("unknown parent expression");
-				retarg? *retarg = 1:0;
+				retArg? *retArg = 1:0;
 				goto search_cleanup1;
 			}
 
 			sexp2->expr2 = sexp1 = malloc(sizeof(SREXP));
-			sexp1->exprtype = SREXP_TYPE_BLANK;
+			sexp1->exprType = kSrExpTypeBlank;
 			buildstack = malloc(sizeof(SREXPLIST));
 			buildstack->next = nextonbstack;
 			buildstack->expr = sexp2;
 
 			break;
-		case SRPAR_TYPE_SUBEXPR_END: // right parenthesis
-			if (sexp1->exprtype == SREXP_TYPE_BLANK) {
+		case kSearchParseTypeSubExprEnd: // right parenthesis
+			if (sexp1->exprType == kSrExpTypeBlank) {
 				errorf("right parenthesis instead of operand");
-				retarg? *retarg = 1:0;
+				retArg? *retArg = 1:0;
 				goto search_cleanup1;
 			}
-			if (subexp_layers < 1) {
+			if (subExpLayers < 1) {
 				errorf("right parenthesis without left one");
-				retarg? *retarg = 1:0;
+				retArg? *retArg = 1:0;
 				goto search_cleanup1;
 			}
-			subexp_layers--;
-			while (buildstack != NULL && buildstack->expr->exprtype != SREXP_TYPE_SUBEXP_MARKER) {
+			subExpLayers--;
+			while (buildstack != NULL && buildstack->expr->exprType != kSrExpTypeSubExprMarker) {
 				nextonbstack = buildstack->next;
 				free(buildstack);
 				buildstack = nextonbstack;
 			}
-			if (subexp_layers == 0 && buildstack != NULL) { // if buildstack is null the following operator will just continue from root
-				subexp_layers = superexp->subexp_layers;
+			if (subExpLayers == 0 && buildstack != NULL) { // if buildstack is null the following operator will just continue from root
+				subExpLayers = superexp->subExpLayers;
 				sexp1 = buildstack->expr->expr1;
 				free(buildstack->expr);
 
@@ -1540,14 +1544,14 @@ errorf("srpar alias");
 				free(nextonbstack);
 
 				// impossible for the next expression to be SUBEXP_MARKER as well because otherwise _layers would just be incremented and other operands stack
-				if (buildstack->expr->exprtype == SREXP_TYPE_OR || buildstack->expr->exprtype == SREXP_TYPE_AND) {
+				if (buildstack->expr->exprType == kSrExpTypeOr || buildstack->expr->exprType == kSrExpTypeAnd) {
 					buildstack->expr->expr2 = sexp1;
-				} else if (buildstack->expr->exprtype == SREXP_TYPE_NEG) {
+				} else if (buildstack->expr->exprType == kSrExpTypeNeg) {
 					buildstack->expr->expr1 = sexp1;
 				} else { //! probably segfault or memory leak
 					errorf("unknown parent expression (2)");
 					free(sexp1);
-					retarg? *retarg = 1:0;
+					retArg? *retArg = 1:0;
 					goto search_cleanup1;
 				}
 			}
@@ -1555,19 +1559,19 @@ errorf("srpar alias");
 			break;
 		default:
 			errorf("unknown search expression");
-			retarg? *retarg = 1:0;
+			retArg? *retArg = 1:0;
 			goto search_cleanup1;
 		}
 
 		if (do_implicit > 2) {
 			do_implicit = 0;
-			saved_expr = SRPAR_NO_EXPR;
+			saved_expr = kSearchParseTypeNoExpr;
 		}
 	}
 
 errorf("initftag2");
-if (aliasstack) {
-	errorf_old("alias: %s", aliasstack->u[1].str);
+if (aliasStack) {
+	errorf_old("alias: %s", aliasStack->u[1].str);
 }
 
 	while (buildstack != NULL) {
@@ -1582,39 +1586,39 @@ if (aliasstack) {
 		superexp = nextsuperexp;
 	}
 
-	if (rootexp->expr1->exprtype == SREXP_TYPE_BLANK) {
+	if (rootexp->expr1->exprType == kSrExpTypeBlank) {
 		// no expressions at all
-		while (aliasstack != NULL) {
-			nextlnk = aliasstack->next;
+		while (aliasStack != NULL) {
+			nextlnk = aliasStack->next;
 
-			if (aliasstack->u[1].str != NULL)
-				free(aliasstack->u[1].str);
+			if (aliasStack->u[1].str != NULL)
+				free(aliasStack->u[1].str);
 
-			free(aliasstack);
-			aliasstack = nextlnk;
+			free(aliasStack);
+			aliasStack = nextlnk;
 		}
-		freesrexp(rootexp);
+		freeSearchExpr(rootexp);
 
 		return NULL;
 
-	} else if (sexp1->exprtype == SREXP_TYPE_BLANK) {
+	} else if (sexp1->exprType == kSrExpTypeBlank) {
 		errorf("unfilled blank expression");
-		retarg? *retarg = 1:0;
+		retArg? *retArg = 1:0;
 		goto search_cleanup1;
 	}
 
-	if (!TOLERATE_UNCLOSED && subexp_layers > 0) {
+	if (!TOLERATE_UNCLOSED && subExpLayers > 0) {
 		errorf("unclosed subexpression");
-		retarg? *retarg = 1:0;
+		retArg? *retArg = 1:0;
 		goto search_cleanup1;
 	}
 
 	{
-		tnumfromalias2(dnum, &aliasstack);
+		tnumfromalias2(dNum, &aliasStack);
 
 		twoslnk *lnk;
 
-		lnk = aliasstack;
+		lnk = aliasStack;
 		i = 0;
 		uint64_t prev = 0;
 
@@ -1623,16 +1627,16 @@ if (aliasstack) {
 			sexp1 = lnk->u[0].vp;
 
 			if (lnk->u[1].ull == 0) {
-				sexp1->exprtype = SREXP_TYPE_NULL;
+				sexp1->exprType = kSrExpTypeNull;
 			} else {
-				sexp1->exprtype = SREXP_TYPE_TAGNUM;
+				sexp1->exprType = kSrExpTypeTagNum;
 				if (prev == 0) {
 					prev = lnk->u[1].ull;
 				} else if (prev != lnk->u[1].ull) {
 					i++;
 					prev = lnk->u[1].ull;
 				}
-				sexp1->refnum = i;
+				sexp1->refNum = i;
 			}
 
 			lnk = nextlnk;
@@ -1642,7 +1646,7 @@ if (aliasstack) {
 
 		TAGNUMNODE *tagnumarray = malloc(sizeof(TAGNUMNODE)*(ntagnums));
 
-		lnk = aliasstack;
+		lnk = aliasStack;
 		i = 0;
 		prev = 0;
 
@@ -1652,24 +1656,24 @@ if (aliasstack) {
 			if (lnk->u[1].ull == 0) {
 			} else {
 				if (prev == 0) {
-					prev = tagnumarray[i].tagnum = lnk->u[1].ull;
+					prev = tagnumarray[i].tagNum = lnk->u[1].ull;
 				} else if (prev != lnk->u[1].ull) {
 					i++;
-					prev = tagnumarray[i].tagnum = lnk->u[1].ull;
+					prev = tagnumarray[i].tagNum = lnk->u[1].ull;
 				}
 			}
 
 			lnk = nextlnk;
 		}
 
-		killtwoschn(aliasstack, 3);
+		killtwoschn(aliasStack, 3);
 
 		SEARCHSTRUCT *retstruct = malloc(sizeof(SEARCHSTRUCT));
 
 		retstruct->tagnumarray = tagnumarray;
 		retstruct->ntagnums = ntagnums;
 		retstruct->rootexpr = rootexp->expr1;
-		retstruct->dnum = dnum;
+		retstruct->dNum = dNum;
 		free(rootexp);
 
 		return retstruct;
@@ -1681,7 +1685,7 @@ if (aliasstack) {
 	}
 
 	search_cleanup1: {
-		retarg && *retarg == 0? *retarg = 1:0;
+		retArg && *retArg == 0? *retArg = 1:0;
 
 		while (buildstack != NULL) {
 			nextonbstack = buildstack->next;
@@ -1695,14 +1699,14 @@ if (aliasstack) {
 			superexp = nextsuperexp;
 		}
 
-		while (aliasstack != NULL) {
-			nextlnk = aliasstack->next;
+		while (aliasStack != NULL) {
+			nextlnk = aliasStack->next;
 
-			if (aliasstack->u[1].str != NULL)
-				free(aliasstack->u[1].str);
+			if (aliasStack->u[1].str != NULL)
+				free(aliasStack->u[1].str);
 
-			free(aliasstack);
-			aliasstack = nextlnk;
+			free(aliasStack);
+			aliasStack = nextlnk;
 		}
 
 		//while (numstack != NULL) {
@@ -1711,53 +1715,53 @@ if (aliasstack) {
 		//	numstack = nextlnk;
 		//}
 
-		freesrexp(rootexp);
+		freeSearchExpr(rootexp);
 
 		return NULL;
 	}
 	*/
 }
 
-void killsearchexpr(struct searchexpr *sexp) {
-	// if tagnum just free self, otherwise free non-null child expressions, error if first child is null but second one isn't
+void killSearchExpr(struct SearchExpr *searchExpr) {
+	// if tagNum just free self, otherwise free non-null child expressions, error if first child is null but second one isn't
 }
 
-int srexpvalue(SREXP *sexp, SEARCHSTRUCT *sstruct) {
-	uint16_t exprtype = sexp->exprtype;
-	if (exprtype == SREXP_TYPE_TAGNUM) {
-		return sstruct->tagnumarray[sexp->refnum].state;
-	} else if (exprtype == SREXP_TYPE_AND) {
-		if (srexpvalue(sexp->expr1, sstruct) == 0)
+int searchExprValue(SREXP *searchExpr, SEARCHSTRUCT *searchStruct) {
+	uint16_t exprType = searchExpr->exprType;
+	if (exprType == kSrExpTypeTagNum) {
+		return searchStruct->tagNumArray[searchExpr->refNum].state;
+	} else if (exprType == kSrExpTypeAnd) {
+		if (searchExprValue(searchExpr->expr1, searchStruct) == 0)
 			return 0;
 		else
-			return srexpvalue(sexp->expr2, sstruct);
-	} else if (exprtype == SREXP_TYPE_OR) {
-		if (srexpvalue(sexp->expr1, sstruct) == 1)
+			return searchExprValue(searchExpr->expr2, searchStruct);
+	} else if (exprType == kSrExpTypeOr) {
+		if (searchExprValue(searchExpr->expr1, searchStruct) == 1)
 			return 1;
 		else
-			return srexpvalue(sexp->expr2, sstruct);
-	} else if (exprtype == SREXP_TYPE_NEG) {
-		return !srexpvalue(sexp->expr1, sstruct);
-	} else if (exprtype == SREXP_TYPE_NULL) {
+			return searchExprValue(searchExpr->expr2, searchStruct);
+	} else if (exprType == kSrExpTypeNeg) {
+		return !searchExprValue(searchExpr->expr1, searchStruct);
+	} else if (exprType == kSrExpTypeNull) {
 		return 0;
 	} else {
-		errorf_old("unknown srexp (%d) (srexpvalue)", exprtype);
+		errorf_old("unknown srexp (%d) (searchExprValue)", exprType);
 		return 0;
 	}
 }
 
-unsigned char ftagcheck(FILE *file, uint64_t fnum, SEARCHSTRUCT *sstruct) {
+unsigned char fileTagCheck(FILE *file, uint64_t fNum, SEARCHSTRUCT *searchStruct) {
 	long long i;
-	uint64_t tagnum;
+	uint64_t tagNum;
 	int c;
 
-	if (sstruct->ntagnums <= 0) {
+	if (searchStruct->nTagNums <= 0) {
 		return 1;
 	}
 
 	i = 0;
 	while (1) {
-	tagnum = fgetull_pref(file, &c);
+	tagNum = fgetull_pref(file, &c);
 		if (c != 0) {
 			if (c == 1 || c == 4)
 				break;
@@ -1766,22 +1770,22 @@ unsigned char ftagcheck(FILE *file, uint64_t fnum, SEARCHSTRUCT *sstruct) {
 		}
 		c = 0;
 
-		while (i < sstruct->ntagnums && sstruct->tagnumarray[i].tagnum <= tagnum) {
-			if (sstruct->tagnumarray[i].tagnum == tagnum) {
-				sstruct->tagnumarray[i].state = 1;
+		while (i < searchStruct->nTagNums && searchStruct->tagNumArray[i].tagNum <= tagNum) {
+			if (searchStruct->tagNumArray[i].tagNum == tagNum) {
+				searchStruct->tagNumArray[i].state = 1;
 			} else {
-				sstruct->tagnumarray[i].state = 0;
+				searchStruct->tagNumArray[i].state = 0;
 			}
 			i++;
 		}
 	}
 
-	while (i < sstruct->ntagnums) {
-		sstruct->tagnumarray[i].state = 0;
+	while (i < searchStruct->nTagNums) {
+		searchStruct->tagNumArray[i].state = 0;
 		i++;
 	}
 
-	c = srexpvalue(sstruct->rootexpr, sstruct);
+	c = searchExprValue(searchStruct->rootExpr, searchStruct);
 
 	if (c == 0)
 		return 1;
@@ -1791,29 +1795,29 @@ unsigned char ftagcheck(FILE *file, uint64_t fnum, SEARCHSTRUCT *sstruct) {
 		return 2;
 }
 
-void endsearch(SEARCHSTRUCT *sstruct) {
-	if (!sstruct) {
-//		errorf("endsearch with sstruct null");
+void endSearch(SEARCHSTRUCT *searchStruct) {
+	if (!searchStruct) {
+//		errorf("endSearch with searchStruct null");
 		return;
 	}
-	if (sstruct->tagnumarray)
-		free(sstruct->tagnumarray);
-	if (sstruct->rootexpr)
-		freesrexp(sstruct->rootexpr);
-	free(sstruct);
+	if (searchStruct->tagNumArray)
+		free(searchStruct->tagNumArray);
+	if (searchStruct->rootExpr)
+		freeSearchExpr(searchStruct->rootExpr);
+	free(searchStruct);
 }
 
-char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfile
+char *ffiReadTagExt(uint64_t dNum, char *searchStr, char *exts) {	// returns tfile
 /*
 	FILE *fIndex, *tfile, *tfilerec;
 	unsigned char buf[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], *p, *p2, *p3, ascending = 0, uc;
 	int c, i, flag;
 	uint64_t tnum, nPut = 0, gap, nPos, fPos;
 	char *tfstr;
-	SEARCHSTRUCT *sstruct;
+	SEARCHSTRUCT *searchStruct;
 
-	if (dnum == 0) {
-		errorf("dnum is 0");
+	if (dNum == 0) {
+		errorf("dNum is 0");
 		return 0;
 	}
 	if (exts != 0) {
@@ -1841,20 +1845,20 @@ char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfi
 	}
 	uc = 1;
 
-	if (!(sstruct = initftagsearch(searchstr, &uc, dnum)) && uc != 0) {
-		errorf("initftagsearch failed from searchstr");
+	if (!(searchStruct = initFileTagSearch(searchStr, &uc, dNum)) && uc != 0) {
+		errorf("initFileTagSearch failed from searchStr");
 		return 0;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dNum);
 	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
-		errorf("fIndex file not found (ffireadtagext)");
-		endsearch(sstruct);
+		errorf("fIndex file not found (ffiReadTagExt)");
+		endSearch(searchStruct);
 		return 0;
 	}
 	if ((tfstr = reservetfile()) == 0) {
 		errorf("reservetfile failed");
-		fclose(fIndex), endsearch(sstruct);
+		fclose(fIndex), endSearch(searchStruct);
 		return 0;
 	} if ((tfile = opentfile(tfstr, 0, "wb")) == 0) {
 		errorf("opentfile failed");
@@ -1867,12 +1871,12 @@ char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfi
 			if (c == 1)
 				break;
 			errorf_old("fIndex num read failed: %d", c);
-			fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endsearch(sstruct);
+			fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endSearch(searchStruct);
 			return 0;
 		}
 		if ((c = null_fgets(buf, MAX_PATH*4, fIndex)) != 0) {
 			errorf_old("fIndex read error: %d", c);
-			fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endsearch(sstruct);
+			fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endSearch(searchStruct);
 			return 0;
 		}
 		c = 0;
@@ -1891,21 +1895,21 @@ char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfi
 		} else {
 			flag = 0;
 		}
-		if (flag || !sstruct) {
+		if (flag || !searchStruct) {
 			while ((c = getc(fIndex)) != 0) {
 				if (c == EOF) {
 					errorf("EOF before end of tags in fIndex");
-					fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endsearch(sstruct);
+					fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endSearch(searchStruct);
 					return 0;
 				}
 				if (fseek(fIndex, c, SEEK_CUR)) {
 					errorf("fseek failed");
-					fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endsearch(sstruct);
+					fclose(fIndex), fclose(tfile), releasetfile(tfstr, 1), endSearch(searchStruct);
 					return 0;
 				}
 			}
 		} else {
-			flag = ftagcheck(fIndex, tnum, sstruct);
+			flag = fileTagCheck(fIndex, tnum, searchStruct);
 		}
 		if (!flag) {
 			putull_pref(tnum, tfile);
@@ -1913,7 +1917,7 @@ char *ffireadtagext(uint64_t dnum, char *searchstr, char *exts) {	// returns tfi
 		}
 	}
 
-	fclose(fIndex), fclose(tfile), endsearch(sstruct);
+	fclose(fIndex), fclose(tfile), endSearch(searchStruct);
 	if (nPut != 0) {
 		if (!(tfile = opentfile(tfstr, 0, "rb"))) {
 			errorf("opening tfile failed");
@@ -2029,7 +2033,7 @@ uint64_t frinitpos(char *tfstr, uint64_t inpos, uint64_t *retnpos) {
 */
 }
 
-oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
+oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t interval) {
 /*
 	FILE *tfile;
 	unsigned char buf[MAX_PATH*4];
@@ -2041,8 +2045,8 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
 		errorf("tfstr is NULL");
 		return 0;
 	}
-	if (!intrvl) {
-		errorf("ifrread without intrvl");
+	if (!interval) {
+		errorf("ifrread without interval");
 		return 0;
 	}
 
@@ -2077,14 +2081,14 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
 			} lastlnk = flnk;
 			flnk->str = 0;
 
-			while (intrvl > 0) {
+			while (interval > 0) {
 				if ((lastlnk = lastlnk->next = malloc(sizeof(oneslnk))) == 0) {
 					errorf("malloc failed");
 					lastlnk->next = 0, fclose(tfile), killoneschn(flnk, 1);
 					return 0;
 				}
 				lastlnk->ull = tnum;
-				intrvl--;
+				interval--;
 
 				tnum = fgetull_pref(tfile, &c);
 				if (c != 0) {
@@ -2110,39 +2114,39 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t intrvl) {
 //}
 //{ tag 2nd layer
 
-char reftaliasrec(uint64_t dnum) {	//ref for refresh		//! not done
-	if (dnum == 0) {
-		errorf("dnum is zero in refaliasrec");
+char refreshTagAliasRecord(uint64_t dNum) {	//ref for refresh		//! not done
+	if (dNum == 0) {
+		errorf("dNum is zero in refaliasrec");
 		return 1;
 	}
 	return 0;
 }
 
-uint64_t tainitpos(uint64_t dnum, char *aliasstr) {
+uint64_t tagAliasInitPos(uint64_t dNum, char *aliasstr) {
 	return 0;
 }
 
-char aliasentryto(FILE *fromfile, FILE *tofile, uint64_t aliascode) {	// doesn't write aliascode		//! untested
+char aliasEntryFileToFile(FILE *fromfile, FILE *tofile, uint64_t aliasCode) {	// doesn't write aliasCode		//! untested
 	uint64_t tnum;
 	int c;
 
-	switch (aliascode) {
+	switch (aliasCode) {
 	case 0: case 1:		// 0 for tag name, 1 for alternative tag name
 		tnum = fgetull_pref(fromfile, &c);
 		if (c) {
-			errorf_old("aliasentryto fgetull_pref: %d", c);
+			errorf_old("aliasEntryFileToFile fgetull_pref: %d", c);
 			return 1;
 		} putull_pref(tnum, tofile);
 		break;
 	default:
-		errorf("unknown aliascode");
+		errorf("unknown aliasCode");
 		return 1;
 		break;
 	}
 	return 0;
 }
 
-char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
+char crtreg(uint64_t dNum, oneslnk *tagNames, oneslnk *tagNums) { //! untested
 /*
 	FILE *tAlias, *ttAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
@@ -2151,37 +2155,37 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 	oneslnk *link1, *link2;
 	twoslnk *ftwolink, *twolink, twolink2;
 
-	if (dnum == 0) {
-		errorf("dnum is zero in rtreg");
+	if (dNum == 0) {
+		errorf("dNum is zero in reverseTagReg");
 		return 1;
 	}
-	if (tagnames) {
-		for (i = 0, link1 = tagnames; link1; i++, link1 = link1->next) {
+	if (tagNames) {
+		for (i = 0, link1 = tagNames; link1; i++, link1 = link1->next) {
 			if (!link1->str || link1->str[0] == '\0') {
 				errorf("tried to register blank alias");
 				return 1;
 			}
 		}
 	} else {
-		errorf("no tagnames in crtreg");
+		errorf("no tagNames in crtreg");
 		return 1;
 	}
-	if (tagnums) {
-		for (j = 0, link1 = tagnums; link1; link1 = link1->next, j++) {
+	if (tagNums) {
+		for (j = 0, link1 = tagNums; link1; link1 = link1->next, j++) {
 			if (!link1->ull) {
-				errorf("tried to register alias to tagnum 0");
+				errorf("tried to register alias to tagNum 0");
 				return 1;
 			}
 		}
 	} else {
-		errorf("no tagnums in crtreg");
+		errorf("no tagNums in crtreg");
 		return 1;
 	}
 	if (i != j) {
-		errorf("amount of tagnums differs from amount of tagnames in crtreg");
+		errorf("amount of tagNums differs from amount of tagNames in crtreg");
 	}
 	twolink = ftwolink = malloc(sizeof(twoslnk));	// must be freed as if both unions were ull since the strings are borrowed
-	for (link1 = tagnames, link2 = tagnums; link1 && link2; twolink = twolink->next = malloc(sizeof(twoslnk)), twolink->u[0].str = link1->str, twolink->u[1].ull = link2->ull, link1 = link1->next, link2 = link2->next);
+	for (link1 = tagNames, link2 = tagNums; link1 && link2; twolink = twolink->next = malloc(sizeof(twoslnk)), twolink->u[0].str = link1->str, twolink->u[1].ull = link2->ull, link1 = link1->next, link2 = link2->next);
 	twolink->next = 0, twolink = ftwolink, ftwolink = ftwolink->next, free(twolink);
 
 	sorttwoschn(&ftwolink, (int(*)(void*,void*)) strcmp, 0, 0);
@@ -2196,7 +2200,7 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 		}
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dNum);
 
 	tAlias = MBfopen(buf, "rb");
 	sprintf(baf, "%s\\ttAlias.bin", g_prgDir);
@@ -2239,8 +2243,8 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 				return 6;
 			}
 			putull_pref(tnum, ttAlias);
-			if (c = aliasentryto(tAlias, ttAlias, tnum)) {	// doesn't write the alias code itself
-				errorf("aliasentryto failed");
+			if (c = aliasEntryFileToFile(tAlias, ttAlias, tnum)) {	// doesn't write the alias code itself
+				errorf("aliasEntryFileToFile failed");
 				fclose(tAlias), fclose(ttAlias), MBremove(baf), killtwoschn(ftwolink, 3);
 				return 7;
 			}
@@ -2260,10 +2264,10 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 	}
 	fclose(ttAlias), killtwoschn(ftwolink, 3);
 
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dNum);
 	char bif[MAX_PATH*4];
 	if (tAlias) {
-		sprintf(bif, "%s\\i\\%llu\\tAlias.bak", g_prgDir, dnum);
+		sprintf(bif, "%s\\i\\%llu\\tAlias.bak", g_prgDir, dNum);
 		MBremove(bif);
 		if (MBrename(buf, bif)) {
 			errorf("rename1 failed");
@@ -2275,7 +2279,7 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 		return 9;
 	}
 
-	reftaliasrec(dnum);
+	refreshTagAliasRecord(dNum);
 	if (tAlias) {
 		MBremove(bif);
 	}
@@ -2283,27 +2287,27 @@ char crtreg(uint64_t dnum, oneslnk *tagnames, oneslnk *tagnums) { //! untested
 	return 0;
 }
 
-char rtreg(uint64_t dnum, char *tname, uint64_t tagnum) { //! untested
+char reverseTagReg(uint64_t dNum, char *tagName, uint64_t tagNum) { //! untested
 /*
 	int i;
 	oneslnk *link1, *link2;
 
-	if (dnum == 0) {
-		errorf("dnum is zero in rtreg");
+	if (dNum == 0) {
+		errorf("dNum is zero in reverseTagReg");
 		return 1;
 	}
-	if (tagnum == 0) {
-		errorf("tagnum in rdreg is 0");
+	if (tagNum == 0) {
+		errorf("tagNum in rdreg is 0");
 		return 1;
 	}
 
-	if (tname) {
-		for (i = 0; tname[i] != '\0' && i != MAX_ALIAS*4; i++);
-		if (i >= MAX_ALIAS*4) {
+	if (tagName) {
+		for (i = 0; tagName[i] != '\0' && i != kOptionMaxAlias*4; i++);
+		if (i >= kOptionMaxAlias*4) {
 			errorf("alias too long");
 			return 1;
 		}
-	} if (i == 0 || tname == 0) {
+	} if (i == 0 || tagName == 0) {
 		errorf("empty string");
 		return 1;
 	}
@@ -2311,14 +2315,14 @@ char rtreg(uint64_t dnum, char *tname, uint64_t tagnum) { //! untested
 	link1 = malloc(sizeof(oneslnk));
 	link2 = malloc(sizeof(oneslnk));
 	link1->next = link2->next = 0;
-	link1->str = tname, link2->ull = tagnum;
-	crtreg(dnum, link1, link2);
+	link1->str = tagName, link2->ull = tagNum;
+	crtreg(dNum, link1, link2);
 	free(link1), free(link2);
 */
 	return 0;
 }
 
-oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { //! untested	//! in the future: resolve multiple tags from alias and alias from alias -- option to read only original tag aliases
+oneslnk *tagNumFromAlias(uint64_t dNum, oneslnk *aliasChain, oneslnk **retAlias) { //! untested	//! in the future: resolve multiple tags from alias and alias from alias -- option to read only original tag aliases
 /*
 	FILE *tAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], done = 0;
@@ -2326,22 +2330,22 @@ oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { /
 	uint64_t tnum;
 	oneslnk *retchn, *retlnk, *aretlnk, *flink;
 
-	if (retalias) {
-		*retalias = 0;
+	if (retAlias) {
+		*retAlias = 0;
 	}
-	if (dnum == 0) {
-		errorf("dnum is zero in tnumfromalias");
+	if (dNum == 0) {
+		errorf("dNum is zero in tagNumFromAlias");
 		return 0;
 	}
-	if (aliaschn == 0) {
-		errorf("aliaschn in tnumfromalias is 0");
+	if (aliasChain == 0) {
+		errorf("aliasChain in tagNumFromAlias is 0");
 		return 0;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dNum);
 	tAlias = MBfopen(buf, "rb");
 
-	if (!(flink = aliaschn = copyoneschn(aliaschn, 0))) {
+	if (!(flink = aliasChain = copyoneschn(aliasChain, 0))) {
 		errorf("copyoneschn failed");
 		tAlias?fclose(tAlias):0;
 		return 0;
@@ -2351,8 +2355,8 @@ oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { /
 		tAlias?fclose(tAlias):0, killoneschn(flink, 0);
 		return 0;
 	}
-	if (aliaschn->str == 0) {
-		errorf("passed 0 dnum to cfiread");
+	if (aliasChain->str == 0) {
+		errorf("passed 0 dNum to chainFileRead");
 		tAlias?fclose(tAlias):0, killoneschn(flink, 0);
 		return 0;
 	}
@@ -2360,16 +2364,16 @@ oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { /
 	retchn = retlnk = malloc(sizeof(oneslnk));
 	retlnk->ull = 0;
 
-	if (retalias) {		// unmatched aliases
-		*retalias = aretlnk = malloc(sizeof(oneslnk));
+	if (retAlias) {		// unmatched aliases
+		*retAlias = aretlnk = malloc(sizeof(oneslnk));
 		aretlnk->str = 0;
 	}
 
 	if (tAlias) {
-		fseek64(tAlias, tainitpos(dnum, aliaschn->str), SEEK_SET);
+		fseek64(tAlias, tagAliasInitPos(dNum, aliasChain->str), SEEK_SET);
 
-		while (aliaschn) {
-			if ((c = null_fgets(buf, MAX_ALIAS*4, tAlias)) != 0) {
+		while (aliasChain) {
+			if ((c = null_fgets(buf, kOptionMaxAlias*4, tAlias)) != 0) {
 				if (c == 1)
 					break;
 				errorf_old("null_fgets: %d", c);
@@ -2378,24 +2382,24 @@ oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { /
 			}
 			tnum = fgetull_pref(tAlias, &c);
 			if (c != 0) {
-				errorf_old("tnumfromalias - tAlias num read failed: %d", c);
+				errorf_old("tagNumFromAlias - tAlias num read failed: %d", c);
 				fclose(tAlias);
 				return 0;
 			}
 
-			while (aliaschn && (c = strcmp(aliaschn->str, buf)) < 0) {
-				if (retalias) {
+			while (aliasChain && (c = strcmp(aliasChain->str, buf)) < 0) {
+				if (retAlias) {
 					aretlnk = aretlnk->next = malloc(sizeof(oneslnk));
-					aretlnk->str = dupstr(aliaschn->str, MAX_ALIAS*4, 0);
+					aretlnk->str = dupstr(aliasChain->str, kOptionMaxAlias*4, 0);
 				}
-				aliaschn = aliaschn->next;
+				aliasChain = aliasChain->next;
 			}
-			if (!aliaschn)
+			if (!aliasChain)
 				break;
 
 			if (c != 0 || !(tnum == 0 || tnum == 1)) {
-				if (c = aliasentryto(tAlias, 0, tnum)) {
-					errorf("aliasentryto failed");
+				if (c = aliasEntryFileToFile(tAlias, 0, tnum)) {
+					errorf("aliasEntryFileToFile failed");
 					fclose(tAlias);
 					return 0;
 				}
@@ -2406,38 +2410,38 @@ oneslnk *tnumfromalias(uint64_t dnum, oneslnk *aliaschn, oneslnk **retalias) { /
 					fclose(tAlias);
 					return 0;
 				}
-				while (aliaschn && !strcmp(aliaschn->str, buf)) {
+				while (aliasChain && !strcmp(aliasChain->str, buf)) {
 					retlnk = retlnk->next = malloc(sizeof(oneslnk));
 					retlnk->ull = tnum;
-					aliaschn = aliaschn->next;
+					aliasChain = aliasChain->next;
 				}
 			}
 		}
 		fclose(tAlias);
 	}
 	retlnk->next = 0, retlnk = retchn->next, free(retchn);
-	if (retalias) {
-		while (aliaschn) {
+	if (retAlias) {
+		while (aliasChain) {
 			aretlnk = aretlnk->next = malloc(sizeof(oneslnk));
-			aretlnk->str = malloc(strlen(aliaschn->str)+1);
-			strncpy(aretlnk->str, aliaschn->str, strlen(aliaschn->str)+1);
-			aliaschn = aliaschn->next;
+			aretlnk->str = malloc(strlen(aliasChain->str)+1);
+			strncpy(aretlnk->str, aliasChain->str, strlen(aliasChain->str)+1);
+			aliasChain = aliasChain->next;
 		}
-		aretlnk->next = 0, aretlnk = *retalias, *retalias = (*retalias)->next, free(aretlnk);
+		aretlnk->next = 0, aretlnk = *retAlias, *retAlias = (*retAlias)->next, free(aretlnk);
 	}
 	killoneschn(flink, 0);
 	return retlnk;
 }
 
-int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
+int tnumfromalias2(uint64_t dNum, twoslnk **sourcelist) {
 	FILE *tAlias;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4], done = 0;
 	int i, c, d;
 	uint64_t tnum;
 	oneslnk *retchn, *retlnk, *aretlnk;
 
-	if (dnum == 0) {
-		errorf("dnum is zero in tnumfromalias");
+	if (dNum == 0) {
+		errorf("dNum is zero in tagNumFromAlias");
 		return 1;
 	}
 	if (sourcelist == 0) {
@@ -2445,7 +2449,7 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 		return 1;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dNum);
 	tAlias = MBfopen(buf, "rb");
 
 	if (sorttwoschn(sourcelist, (int(*)(void*,void*)) strcmp, 1, 0)) {
@@ -2453,20 +2457,20 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 		tAlias?fclose(tAlias):0;
 		return 1;
 	}
-	twoslnk *aliaschn = *sourcelist;
+	twoslnk *aliasChain = *sourcelist;
 
-	if (aliaschn->u[1].str == 0) {
-		errorf("passed 0 dnum to cfiread");
+	if (aliasChain->u[1].str == 0) {
+		errorf("passed 0 dNum to chainFileRead");
 		tAlias?fclose(tAlias):0;
 		return 1;
 	}
 
 	if (tAlias) {
-		if (aliaschn)
-			fseek64(tAlias, tainitpos(dnum, aliaschn->u[1].str), SEEK_SET);
+		if (aliasChain)
+			fseek64(tAlias, tagAliasInitPos(dNum, aliasChain->u[1].str), SEEK_SET);
 
-		while (aliaschn) {
-			if ((c = null_fgets(buf, MAX_ALIAS*4, tAlias)) != 0) {
+		while (aliasChain) {
+			if ((c = null_fgets(buf, kOptionMaxAlias*4, tAlias)) != 0) {
 				if (c == 1)
 					break;
 				errorf_old("null_fgets: %d", c);
@@ -2475,22 +2479,22 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 			}
 			tnum = fgetull_pref(tAlias, &c);
 			if (c != 0) {
-				errorf_old("tnumfromalias - tAlias num read failed: %d", c);
+				errorf_old("tagNumFromAlias - tAlias num read failed: %d", c);
 				fclose(tAlias);
 				return 1;
 			}
 
-			while (aliaschn && (c = strcmp(aliaschn->u[1].str, buf)) < 0) {
-				free(aliaschn->u[1].str);
-				aliaschn->u[1].ull = 0;
-				aliaschn = aliaschn->next;
+			while (aliasChain && (c = strcmp(aliasChain->u[1].str, buf)) < 0) {
+				free(aliasChain->u[1].str);
+				aliasChain->u[1].ull = 0;
+				aliasChain = aliasChain->next;
 			}
-			if (!aliaschn)
+			if (!aliasChain)
 				break;
 
 			if (c != 0 || !(tnum == 0 || tnum == 1)) {
-				if (c = aliasentryto(tAlias, 0, tnum)) {
-					errorf("aliasentryto failed");
+				if (c = aliasEntryFileToFile(tAlias, 0, tnum)) {
+					errorf("aliasEntryFileToFile failed");
 					fclose(tAlias);
 					return 1;
 				}
@@ -2501,10 +2505,10 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 					fclose(tAlias);
 					return 1;
 				}
-				while (aliaschn && !strcmp(aliaschn->u[1].str, buf)) {
-					free(aliaschn->u[1].str);
-					aliaschn->u[1].ull = tnum;
-					aliaschn = aliaschn->next;
+				while (aliasChain && !strcmp(aliasChain->u[1].str, buf)) {
+					free(aliasChain->u[1].str);
+					aliasChain->u[1].ull = tnum;
+					aliasChain = aliasChain->next;
 				}
 			}
 		}
@@ -2521,10 +2525,10 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist) {
 
 //}
 //{ tag
-uint64_t tinitpos(uint64_t dnum, uint64_t ifnum) { /*		//! not done
+uint64_t tagInitPos(uint64_t dNum, uint64_t ifnum) { /*		//! not done
 	char buf[MAX_PATH*4], ch;
 	int i, c;
-	uint64_t dnum, pos = 0;
+	uint64_t dNum, pos = 0;
 	FILE *direc;
 
 	sprintf(buf, "%s\\diRec.bin", g_prgDir);
@@ -2542,8 +2546,8 @@ uint64_t tinitpos(uint64_t dnum, uint64_t ifnum) { /*		//! not done
 	}
 	fseek(direc, i, SEEK_CUR);
 	while ((c = getc(direc)) != EOF) {
-		for (ch = c, i = 1, dnum = 0; i <= ch && (c = getc(direc)) != EOF; i++, dnum *= 256, dnum += c);
-		if (dnum > idnum)
+		for (ch = c, i = 1, dNum = 0; i <= ch && (c = getc(direc)) != EOF; i++, dNum *= 256, dNum += c);
+		if (dNum > idnum)
 			break;
 		for (ch = c = getc(direc), i = 1, pos = 0; i <= ch && (c = getc(direc)) != EOF; i++, pos *= 256, pos += c);
 		if (c == EOF) {
@@ -2559,12 +2563,12 @@ uint64_t tinitpos(uint64_t dnum, uint64_t ifnum) { /*		//! not done
 	return 0;
 }
 
-unsigned char addtolasttnum(uint64_t dnum, long long num, uint64_t spot) { // 0 as num to just refresh from spot		//! not done -- make sure it refreshes from beginning even when num is positive
+unsigned char addtolasttnum(uint64_t dNum, long long num, uint64_t spot) { // 0 as num to just refresh from spot		//! not done -- make sure it refreshes from beginning even when num is positive
 
 	return 0; //!
 }
 
-uint64_t getlasttnum(uint64_t dnum) {		//! not done
+uint64_t getlasttnum(uint64_t dNum) {		//! not done
 	return 0;
 	/*
 	char buf[MAX_PATH*4];
@@ -2599,7 +2603,7 @@ uint64_t getlasttnum(uint64_t dnum) {		//! not done
 	*/
 }
 
-char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk **newtagnums, oneslnk *remtagnums) {	//! untested
+char tcregaddrem(uint64_t dNum, oneslnk *fileNums, oneslnk *addTagNums, oneslnk *regTagNames, oneslnk **newTagNums, oneslnk *remTagNums) {	//! untested
 /*
 	FILE *tIndex, *ttIndex;
 	unsigned char buf[MAX_PATH*4], baf[MAX_PATH*4];
@@ -2607,91 +2611,91 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 	uint64_t j, tnum, lasttnum = 0;
 	oneslnk *link1, *link2, *faddtagnums, *fregtagnames, *fnewtagnums, *fremtagnums;
 
-	if (dnum == 0) {
-		errorf("dnum is zero in tcregaddrem");
+	if (dNum == 0) {
+		errorf("dNum is zero in tcregaddrem");
 		return 1;
 	}
-	if (!(addtagnums || remtagnums || regtagnames)) {
+	if (!(addTagNums || remTagNums || regTagNames)) {
 		errorf("no tags to add or remove from or to register");
 		return 1;
-	} if ((addtagnums || remtagnums) && !fnums) {
-		errorf("tags to add or remove from without fnums");
+	} if ((addTagNums || remTagNums) && !fileNums) {
+		errorf("tags to add or remove from without fileNums");
 		return 1;
 	}
-	if (newtagnums) {
-		*newtagnums = 0;
+	if (newTagNums) {
+		*newTagNums = 0;
 	}
-	if (fnums) {
-		if (!(fnums = copyoneschn(fnums, 1))) {
+	if (fileNums) {
+		if (!(fileNums = copyoneschn(fileNums, 1))) {
 			errorf("copyoneschn failed");
 			return 0;
 		}
-		if (sortoneschnull(fnums, 0)) {
+		if (sortoneschnull(fileNums, 0)) {
 			errorf("sortoneschnull failed");
-			killoneschn(fnums, 1);
+			killoneschn(fileNums, 1);
 			return 0;
 		}
-		if (fnums->ull == 0) {
-			errorf("passed 0 fnum to tcregadd");
-			killoneschn(fnums, 1);
+		if (fileNums->ull == 0) {
+			errorf("passed 0 fNum to tcregadd");
+			killoneschn(fileNums, 1);
 			return 0;
 		}
 	}
-	if (addtagnums) {
-		if (!(faddtagnums = addtagnums = copyoneschn(addtagnums, 1))) {
+	if (addTagNums) {
+		if (!(faddtagnums = addTagNums = copyoneschn(addTagNums, 1))) {
 			errorf("copyoneschn failed");
-			killoneschn(fnums, 1);
+			killoneschn(fileNums, 1);
 			return 0;
 		}
 		if (sortoneschnull(faddtagnums, 0)) {
 			errorf("sortoneschnull failed");
-			killoneschn(faddtagnums, 1), killoneschn(fnums, 1);
+			killoneschn(faddtagnums, 1), killoneschn(fileNums, 1);
 			return 0;
 		}
-		if (addtagnums->ull == 0) {
-			errorf("passed 0 tagnum to tcregadd");
-			killoneschn(faddtagnums, 1), killoneschn(fnums, 1);
+		if (addTagNums->ull == 0) {
+			errorf("passed 0 tagNum to tcregadd");
+			killoneschn(faddtagnums, 1), killoneschn(fileNums, 1);
 			return 0;
 		}
 	} else {
 		faddtagnums = 0;
 	}
-	if (remtagnums) {
-		if (!(fremtagnums = remtagnums = copyoneschn(remtagnums, 1))) {
+	if (remTagNums) {
+		if (!(fremtagnums = remTagNums = copyoneschn(remTagNums, 1))) {
 			errorf("copyoneschn failed");
-			killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0;
+			killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0;
 			return 0;
 		}
 		if (sortoneschnull(fremtagnums, 0)) {
 			errorf("sortoneschnull failed");
-			killoneschn(fremtagnums, 1), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0;
+			killoneschn(fremtagnums, 1), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0;
 			return 0;
 		}
-		if (remtagnums->ull == 0) {
-			errorf("passed 0 tagnum to tcregadd");
-			killoneschn(fremtagnums, 1), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0;
+		if (remTagNums->ull == 0) {
+			errorf("passed 0 tagNum to tcregadd");
+			killoneschn(fremtagnums, 1), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0;
 			return 0;
 		}
 	} else {
 		fremtagnums = 0;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dNum);
 	if ((tIndex = MBfopen(buf, "rb+")) == NULL) {
 		if ((tIndex = MBfopen(buf, "wb+")) == NULL) {
 			errorf("tIndex file not created");
-			killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+			killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 			return 1;
 		}
 	}
-	sprintf(baf, "%s\\i\\%llu\\tIndex.tmp", g_prgDir, dnum);
+	sprintf(baf, "%s\\i\\%llu\\tIndex.tmp", g_prgDir, dNum);
 	if ((ttIndex = MBfopen(baf, "wb+")) == NULL) {
 		errorf("tIndex file not created");
-		fclose(tIndex), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+		fclose(tIndex), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 		return 1;
 	}
 
-	if (!(addtagnums || remtagnums) && (lasttnum = getlasttnum(dnum))) {
+	if (!(addTagNums || remTagNums) && (lasttnum = getlasttnum(dNum))) {
 		while ((c = getc(tIndex)) != EOF) {
 			putc(c, ttIndex);
 		}
@@ -2704,7 +2708,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 					break;
 				}
 				errorf_old("tIndex num read failed: %d", c);
-				fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+				fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 				return 1;
 			} putull_pref(tnum, ttIndex);
 			lasttnum = tnum;
@@ -2712,17 +2716,17 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 			for (i = 0; (c = getc(tIndex)) != '\0' && i < MAX_PATH*4; i++) {
 				if (c == EOF) {
 					errorf("EOF before null terminator in tIndex");
-					fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+					fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 					return 1;
 				} else
 					putc(c, ttIndex);
 			} putc(c, ttIndex);
 			if (i == MAX_PATH*4) {
 				errorf("too long string in tIndex");
-				fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+				fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 				return 1;
 			}
-			if ((!addtagnums || tnum < addtagnums->ull) && (!remtagnums || tnum < remtagnums->ull)) {
+			if ((!addTagNums || tnum < addTagNums->ull) && (!remTagNums || tnum < remTagNums->ull)) {
 				while (1) {
 					tnum = fgetull_pref(tIndex, &c);
 					if (c != 0) {
@@ -2730,24 +2734,24 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 							break;
 						}
 						errorf_old("tIndex tag read failed: %d", c);
-						fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+						fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 						return 1;
 					}
 					putull_pref(tnum, ttIndex);
 				} putc('\0', ttIndex);
 			} else {
-				if (ALLOW_TAGGING_NOTHING) { // non-existent tagnums will be skipped
-					while (remtagnums && remtagnums->ull < tnum)
-						remtagnums = remtagnums->next;
-					while (addtagnums && addtagnums->ull < tnum)
-						addtagnums = remtagnums->next;
+				if (kOptionAllowTaggingNothing) { // non-existent tagNums will be skipped
+					while (remTagNums && remTagNums->ull < tnum)
+						remTagNums = remTagNums->next;
+					while (addTagNums && addTagNums->ull < tnum)
+						addTagNums = remTagNums->next;
 				}
-				if (remtagnums && remtagnums->ull < tnum || addtagnums && addtagnums->ull < tnum) {
+				if (remTagNums && remTagNums->ull < tnum || addTagNums && addTagNums->ull < tnum) {
 					break;
 				}
 
-				if (!(remtagnums && remtagnums->ull == tnum) && addtagnums && addtagnums->ull == tnum) {
-					link1 = fnums;
+				if (!(remTagNums && remTagNums->ull == tnum) && addTagNums && addTagNums->ull == tnum) {
+					link1 = fileNums;
 					while (1) {
 						tnum = fgetull_pref(tIndex, &c);
 						if (c != 0) {
@@ -2755,7 +2759,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 								break;
 							}
 							errorf_old("tIndex tag read failed: %d", c);
-							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 							return 1;
 						}
 						while (link1 && tnum <= link1->ull) {
@@ -2769,8 +2773,8 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 						link1 = link1->next;
 					}
 					putc('\0', ttIndex);
-				} else if (!(addtagnums && addtagnums->ull == tnum) && remtagnums && remtagnums->ull == tnum) {
-					link1 = fnums;
+				} else if (!(addTagNums && addTagNums->ull == tnum) && remTagNums && remTagNums->ull == tnum) {
+					link1 = fileNums;
 					while (1) {
 						tnum = fgetull_pref(tIndex, &c);
 						if (c != 0) {
@@ -2778,7 +2782,7 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 								break;
 							}
 							errorf_old("tIndex tag read failed: %d", c);
-							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 							return 1;
 						}
 						while (link1 && tnum < link1->ull) {
@@ -2797,51 +2801,51 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 								break;
 							}
 							errorf_old("tIndex tag read failed: %d", c);
-							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
+							fclose(tIndex), fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 							return 1;
 						}
 						putull_pref(tnum, ttIndex);
 					} putc('\0', ttIndex);
 				}
-				while (remtagnums && remtagnums->ull == lasttnum)
-					remtagnums = remtagnums->next;
-				while (addtagnums && addtagnums->ull == lasttnum) {
+				while (remTagNums && remTagNums->ull == lasttnum)
+					remTagNums = remTagNums->next;
+				while (addTagNums && addTagNums->ull == lasttnum) {
 					errorf_old("add matched: %llu", lasttnum);
-					addtagnums = addtagnums->next;
+					addTagNums = addTagNums->next;
 				}
 			}
 		}
-		if (!ALLOW_TAGGING_NOTHING && (addtagnums || remtagnums)) {
-			errorf("tried to add or remove fnums to non-existent tagnum");
-			if (addtagnums) errorf_old("addtagnums->ull: %llu", addtagnums->ull);
-			if (remtagnums) errorf_old("remtagnums->ull: %llu", remtagnums->ull);
+		if (!kOptionAllowTaggingNothing && (addTagNums || remTagNums)) {
+			errorf("tried to add or remove fileNums to non-existent tagNum");
+			if (addTagNums) errorf_old("addTagNums->ull: %llu", addTagNums->ull);
+			if (remTagNums) errorf_old("remTagNums->ull: %llu", remTagNums->ull);
 		}
 		faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
-		if (addtagnums || remtagnums) {
-			fclose(ttIndex), MBremove(baf), killoneschn(fnums, 1);
+		if (addTagNums || remTagNums) {
+			fclose(ttIndex), MBremove(baf), killoneschn(fileNums, 1);
 			return 1;
 		}
 	}
 	fclose(tIndex);
 
-	fregtagnames = regtagnames;
+	fregtagnames = regTagNames;
 	link1 = fnewtagnums = malloc(sizeof(oneslnk));
 	j = 0;
-	while (regtagnames) {
-		if (regtagnames->str) {
-			for (i = 0; regtagnames->str[i] != '\0' && i != MAX_ALIAS*4; i++);
-			if (i >= MAX_ALIAS*4) {
-				errorf_old("regtagnames->str too long -- max: %d", MAX_ALIAS*4);
-				fclose(ttIndex), MBremove(baf), link1->next = 0, killoneschn(fnewtagnums, 1), killoneschn(fnums, 1);
+	while (regTagNames) {
+		if (regTagNames->str) {
+			for (i = 0; regTagNames->str[i] != '\0' && i != kOptionMaxAlias*4; i++);
+			if (i >= kOptionMaxAlias*4) {
+				errorf_old("regTagNames->str too long -- max: %d", kOptionMaxAlias*4);
+				fclose(ttIndex), MBremove(baf), link1->next = 0, killoneschn(fnewtagnums, 1), killoneschn(fileNums, 1);
 				return 1;
 			}
 		}
 		link1 = link1->next = malloc(sizeof(oneslnk));
-		if (!(i == 0 || regtagnames->str == 0)) {
+		if (!(i == 0 || regTagNames->str == 0)) {
 			putull_pref(++lasttnum, ttIndex);
-			term_fputs(regtagnames->str, ttIndex);
-			if (fnums) {
-				link2 = fnums;
+			term_fputs(regTagNames->str, ttIndex);
+			if (fileNums) {
+				link2 = fileNums;
 				while (link2) {
 					putull_pref(link2->ull, ttIndex);
 					link2 = link2->next;
@@ -2853,16 +2857,16 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 		} else {
 //			link1->ull = 0;
 			errorf("tried to register blank tag string");
-			fclose(ttIndex), MBremove(baf), link1->next = 0, killoneschn(fnewtagnums, 1), killoneschn(fnums, 1);
+			fclose(ttIndex), MBremove(baf), link1->next = 0, killoneschn(fnewtagnums, 1), killoneschn(fileNums, 1);
 			return 1;
 		}
-		regtagnames = regtagnames->next;
+		regTagNames = regTagNames->next;
 	}
-	fclose(ttIndex), killoneschn(fnums, 1);
+	fclose(ttIndex), killoneschn(fileNums, 1);
 	link1->next = 0, link1 = fnewtagnums, fnewtagnums = fnewtagnums->next, free(link1);
 
 	char bif[MAX_PATH*4];
-	sprintf(bif, "%s\\i\\%llu\\tIndex.bak", g_prgDir, dnum);
+	sprintf(bif, "%s\\i\\%llu\\tIndex.bak", g_prgDir, dNum);
 	MBremove(bif);
 	if (MBrename(buf, bif)) {
 		errorf("rename1 failed");
@@ -2877,43 +2881,43 @@ char tcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *re
 	}
 
 	if (fregtagnames) {
-		if (c = crtreg(dnum, fregtagnames, fnewtagnums)) {
+		if (c = crtreg(dNum, fregtagnames, fnewtagnums)) {
 			errorf_old("crtreg failed: %d", c);
 			MBremove(buf), MBrename(bif, buf);
 			return 1;
 		}
 	}
-	if (newtagnums) {
-		*newtagnums = fnewtagnums;
+	if (newTagNums) {
+		*newTagNums = fnewtagnums;
 	} else if (fnewtagnums) {
 		killoneschn(fnewtagnums, 1);
 	}
-	addtolasttnum(dnum, j, 0);
+	addtolasttnum(dNum, j, 0);
 
 	MBremove(bif);
 */
 	return 0;
 }
 
-uint64_t treg(uint64_t dnum, char *tname, oneslnk *fnums) {
+uint64_t tagChainReg(uint64_t dNum, char *tagName, oneslnk *fileNums) {
 /*
 	int c, i;
 	uint64_t lasttnum = 0;
 	oneslnk *link, *rettagnum;
 
-	if (tname) {
-		for (i = 0; tname[i] != '\0' && i != MAX_ALIAS*4; i++);
-		if (i >= MAX_ALIAS*4) {
-			errorf("tname too long");
+	if (tagName) {
+		for (i = 0; tagName[i] != '\0' && i != kOptionMaxAlias*4; i++);
+		if (i >= kOptionMaxAlias*4) {
+			errorf("tagName too long");
 			return 0;
 		}
-	} if (i == 0 || tname == 0) {
-		errorf("empty tname string");
+	} if (i == 0 || tagName == 0) {
+		errorf("empty tagName string");
 		return 0;
 	}
 	link = malloc(sizeof(oneslnk));
-	link->next = 0; link->str = tname;
-	tcregaddrem(dnum, fnums, 0, link, &rettagnum, 0);
+	link->next = 0; link->str = tagName;
+	tcregaddrem(dNum, fileNums, 0, link, &rettagnum, 0);
 	free(link);
 	if (rettagnum) {
 		lasttnum = rettagnum->ull, killoneschn(rettagnum, 1);
@@ -2924,7 +2928,7 @@ uint64_t treg(uint64_t dnum, char *tname, oneslnk *fnums) {
 */
 }
 
-char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **retfnums, unsigned char presort) {	//! untested
+char chainTagRead(uint64_t dNum, oneslnk *tagNums, oneslnk **retTagName, oneslnk **retFileNums, unsigned char presort) {	//! untested
 /*
 	FILE *tIndex;
 	unsigned char buf[MAX_PATH*4];
@@ -2932,30 +2936,30 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 	uint64_t tnum;
 	oneslnk *link1, *link2, *link3, *link4, *link5, *tlink;
 
-	if (rettagname)
-		*rettagname = 0;
-	if (retfnums)
-		*retfnums = 0;
-	if (dnum == 0) {
-		errorf("dnum is 0 ctread");
+	if (retTagName)
+		*retTagName = 0;
+	if (retFileNums)
+		*retFileNums = 0;
+	if (dNum == 0) {
+		errorf("dNum is 0 chainTagRead");
 		return 1;
-	} if (tagnums == 0) {
-		errorf("tagnums is 0 ctread");
+	} if (tagNums == 0) {
+		errorf("tagNums is 0 chainTagRead");
 		return 1;
 	}
-	if (!(rettagname || retfnums)) {
-		errorf("no address to return tag names or fnums");
+	if (!(retTagName || retFileNums)) {
+		errorf("no address to return tag names or fileNums");
 		return 1;
 	}
 
-	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dnum);
+	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dNum);
 	if ((tIndex = MBfopen(buf, "rb")) == NULL) {
-		errorf("tIndex file not found (ctread)");
+		errorf("tIndex file not found (chainTagRead)");
 		return 1;
 	}
 
 	if (!presort) {
-		if (!(link1 = tagnums = copyoneschn(tagnums, 1))) {
+		if (!(link1 = tagNums = copyoneschn(tagNums, 1))) {
 			errorf("copyoneschn failed");
 			fclose(tIndex);
 			return 1;
@@ -2966,21 +2970,21 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 			return 1;
 		}
 	}
-	if (tagnums->ull == 0) {
-		errorf("passed 0 tagnum to ctread");
-		fclose(tIndex), presort? 0:killoneschn(tagnums, 1);
+	if (tagNums->ull == 0) {
+		errorf("passed 0 tagNum to chainTagRead");
+		fclose(tIndex), presort? 0:killoneschn(tagNums, 1);
 		return 1;
 	}
-	link1 = tagnums;
-	if (rettagname) {
+	link1 = tagNums;
+	if (retTagName) {
 		link2 = link3 = malloc(sizeof(oneslnk));
 		link2->str = 0;
-	} if (retfnums) {
+	} if (retFileNums) {
 		link4 = link5 = malloc(sizeof(oneslnk));
 		link4->vp = 0;
 	}
 
-	fseek64(tIndex, tinitpos(dnum, tagnums->ull), SEEK_SET);
+	fseek64(tIndex, tagInitPos(dNum, tagNums->ull), SEEK_SET);
 
 	while (link1) {
 		tnum = fgetull_pref(tIndex, &c);
@@ -2988,48 +2992,48 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 			if (c == 1)
 				break;
 			errorf_old("tIndex num read failed: %d", c);
-			fclose(tIndex), presort? 0:killoneschn(tagnums, 1), rettagname? killoneschn(link2, 0):0, retfnums? killoneschnchn(link4, 1):0;
+			fclose(tIndex), presort? 0:killoneschn(tagNums, 1), retTagName? killoneschn(link2, 0):0, retFileNums? killoneschnchn(link4, 1):0;
 			return 1;
 		}
 		if (link1->ull > tnum) {
-			if ((c = null_fgets(0, MAX_ALIAS*4, tIndex)) != 0) {
+			if ((c = null_fgets(0, kOptionMaxAlias*4, tIndex)) != 0) {
 				errorf_old("tIndex read error: %d", c);
-				fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+				fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
 			while ((c = getc(tIndex)) != 0) {
 				if (c == EOF) {
 					errorf("EOF before end of tags in tIndex");
-					fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 				if (fseek(tIndex, c, SEEK_CUR)) {
 					errorf("fseek failed");
-					fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 			}
 		} else if (link1->ull == tnum) {
-			if ((c = null_fgets(buf, MAX_ALIAS*4, tIndex)) != 0) {
+			if ((c = null_fgets(buf, kOptionMaxAlias*4, tIndex)) != 0) {
 				errorf_old("tIndex read error: %d", c);
-				fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+				fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 				return 1;
 			}
-			if (rettagname) {
+			if (retTagName) {
 				link3 = link3->next = malloc(sizeof(oneslnk));
-				if (!(link3->str = dupstr(buf, MAX_ALIAS*4, 0))) {
+				if (!(link3->str = dupstr(buf, kOptionMaxAlias*4, 0))) {
 					errorf_old("failed to duplicate buf: %s", buf);
 				}
 			}
-			if (retfnums) {
+			if (retFileNums) {
 				if ((link5 = link5->next = malloc(sizeof(oneslnk))) == 0) {
 					errorf("malloc failed for link5");
-					fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 				if ((tlink = link5->vp = malloc(sizeof(oneslnk))) == 0) {
 					errorf("malloc failed for link5->vp");
-					fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+					fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 					return 1;
 				}
 				while (1) {
@@ -3039,7 +3043,7 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 							break;
 						}
 						errorf_old("tIndex tag read failed: %d", c);
-						tlink->next = 0, fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0, tlink->next = 0;
+						tlink->next = 0, fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0, tlink->next = 0;
 						return 1;
 					} tlink = tlink->next = malloc(sizeof(oneslnk));
 					tlink->ull = tnum;
@@ -3049,12 +3053,12 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 				while ((c = getc(tIndex)) != 0) {
 					if (c == EOF) {
 						errorf("EOF before end of tags in tIndex");
-						fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+						fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 						return 1;
 					}
 					if (fseek(tIndex, c, SEEK_CUR)) {
 						errorf("fseek failed");
-						fclose(tIndex), presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+						fclose(tIndex), presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 						return 1;
 					}
 				}
@@ -3067,47 +3071,47 @@ char ctread(uint64_t dnum, oneslnk *tagnums, oneslnk **rettagname, oneslnk **ret
 	fclose(tIndex);
 
 	if (link1) {
-		errorf_old("tried to read non-existent tagnum: %d -- last read %d", link1->ull, tnum);
-		presort ? 0:killoneschn(tagnums, 1), rettagname? (link3->next = 0, killoneschn(link2, 0)):0, retfnums? (link5->next = 0, killoneschnchn(link4, 1)):0;
+		errorf_old("tried to read non-existent tagNum: %d -- last read %d", link1->ull, tnum);
+		presort ? 0:killoneschn(tagNums, 1), retTagName? (link3->next = 0, killoneschn(link2, 0)):0, retFileNums? (link5->next = 0, killoneschnchn(link4, 1)):0;
 		return 1;
 	}
-	presort ? 0:killoneschn(tagnums, 1);
+	presort ? 0:killoneschn(tagNums, 1);
 
-	if (rettagname) {
+	if (retTagName) {
 		link3->next = 0;
-		*rettagname = link2->next;
+		*retTagName = link2->next;
 		free(link2);
-	} if (retfnums) {
+	} if (retFileNums) {
 		link5->next = 0;
-		*retfnums = link4->next;
+		*retFileNums = link4->next;
 		free(link4);
 	}
 */
 	return 0;
 }
 
-char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, oneslnk *regtagnames, oneslnk *remtagnums, unsigned char presort) { // presort for 1: fnums, 2: addtagnums, 4: remtagnums	//! add presort functionality
+char twoWayTagChainRegAddRem(uint64_t dNum, oneslnk *fileNums, oneslnk *addTagNums, oneslnk *regTagNames, oneslnk *remTagNums, unsigned char presort) { // presort for 1: fileNums, 2: addTagNums, 4: remTagNums	//! add presort functionality
 /*
 	oneslnk *tnums, *link1, *link2;
 	char buf1[MAX_PATH*4], buf2[MAX_PATH*4], buf3[MAX_PATH*4], buf4[MAX_PATH*4];
 	int c;
 	FILE *file1, *file2;
 
-	if (dnum == 0) {
-		errorf("dnum is 0");
+	if (dNum == 0) {
+		errorf("dNum is 0");
 		return 1;
 	}
-	if (!fnums) {
-		errorf("no fnums");
+	if (!fileNums) {
+		errorf("no fileNums");
 		return 1;
 	}
-	if (!(addtagnums || regtagnames || remtagnums)) {
-		errorf("no addtagnums, remtagnums or regtagnames");
+	if (!(addTagNums || regTagNames || remTagNums)) {
+		errorf("no addTagNums, remTagNums or regTagNames");
 		return 1;
 	}
 
-	sprintf(buf1, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dnum);
-	sprintf(buf2, "%s\\i\\%llu\\tIndex.bak2", g_prgDir, dnum);
+	sprintf(buf1, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dNum);
+	sprintf(buf2, "%s\\i\\%llu\\tIndex.bak2", g_prgDir, dNum);
 
 
 	if (file1 = MBfopen(buf1, "rb")) {
@@ -3122,8 +3126,8 @@ char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, onesl
 		fclose(file1);
 	}
 
-	sprintf(buf3, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dnum);
-	sprintf(buf4, "%s\\i\\%llu\\tAlias.bak2", g_prgDir, dnum);
+	sprintf(buf3, "%s\\i\\%llu\\tAlias.bin", g_prgDir, dNum);
+	sprintf(buf4, "%s\\i\\%llu\\tAlias.bak2", g_prgDir, dNum);
 
 	if (file1 = MBfopen(buf3, "rb")) {
 		if (file2 = MBfopen(buf4, "wb")) {
@@ -3138,13 +3142,13 @@ char twowaytcregaddrem(uint64_t dnum, oneslnk *fnums, oneslnk *addtagnums, onesl
 	}
 
 errorf("twoway 1");
-	if (tcregaddrem(dnum, fnums, addtagnums, regtagnames, &link1, remtagnums)) {
+	if (tcregaddrem(dNum, fileNums, addTagNums, regTagNames, &link1, remTagNums)) {
 		errorf("tcregaddrem failed");
 		MBremove(buf2), MBremove(buf4);
 		return 1;
 	}
-	if (addtagnums) {
-		tnums = copyoneschn(addtagnums, 1);
+	if (addTagNums) {
+		tnums = copyoneschn(addTagNums, 1);
 	} else {
 		tnums = 0;
 	}
@@ -3161,8 +3165,8 @@ errorf("twoway 2");
 		}
 	}
 errorf("twoway 3");
-	if (addremfnumctagc(dnum, fnums, tnums, remtagnums)) {
-		errorf("addremfnumctagc failed");
+	if (addRemoveFileNumTagChain(dNum, fileNums, tnums, remTagNums)) {
+		errorf("addRemoveFileNumTagChain failed");
 		if (tnums) {
 			killoneschn(tnums, 1);
 		}
