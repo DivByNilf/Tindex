@@ -91,6 +91,7 @@ errorf("firstExecute success");
 			}
 		}
 	}
+	return false;
 }
 
 bool FileRenameOp::secondExecute(void) {
@@ -136,6 +137,7 @@ bool FileRenameOp::reverse(void) {
 			}
 		}
 	}
+	return false;
 }
 
 FileRenameOp::~FileRenameOp(void) {
@@ -178,7 +180,7 @@ errorf("executeRenameOpList success");
 	return true;
 }
 
-/// indepentent function
+/// independent function
 
 bool reverseRenameOpList(std::list<FileRenameOp> opList) {
 	bool notFailed = true;
@@ -189,7 +191,7 @@ bool reverseRenameOpList(std::list<FileRenameOp> opList) {
 		}
 	}
 	return notFailed;
-}
+} 
 
 /// IndexID
 
@@ -197,6 +199,13 @@ IndexID::IndexID(std::string str) : str_{str} {} // class init
 
 std::strong_ordering IndexID::operator<=>(const IndexID& rhs) const {
 	return( (this->str_) <=> (rhs.str_) );
+}
+
+bool IndexID::operator==(const IndexID& rhs) const {
+	return this->str_ == rhs.str_;
+}
+bool IndexID::operator<(const IndexID& rhs) const {
+	return this->str_ < rhs.str_;
 }
 	
 IndexSessionHandler &IndexSession::getHandler(void) {
@@ -224,6 +233,13 @@ TopIndex::~TopIndex(void) {
 
 /// SubIndex
 
+SubIndex::SubIndex(std::shared_ptr<SubIndexSessionHandler> &handlerPtr, const IndexID &indexID) :
+	handlerPtr_{handlerPtr},
+	// without cast, it segfaults on virtual method invocation
+	// actually it was because of using the pointer from member instead of constructor argument
+	IndexSession( *handlerPtr, indexID )
+{}
+
 const std::filesystem::path SubIndex::getDirPathFor(uint64_t miNum) {
 	return g_fsPrgDir / "i" / ( std::to_string(miNum) );
 }
@@ -233,7 +249,7 @@ const std::filesystem::path SubIndex::getDirPath(void) const {
 }
 	
 uint64_t SubIndex::getMINum(void) const {
-	return this->handler_->getMINum();
+	return this->handlerPtr_->getMINum();
 }
 
 SubIndex::~SubIndex() {
@@ -441,7 +457,8 @@ void IndexSession::removeHandlerRefs(void) {
 
 TopIndexSessionHandler::TopIndexSessionHandler() :
 	openSessions_{},
-	subHandlers_{}
+	subHandlers_{},
+	IndexSessionHandler()
 {}
 
 bool TopIndexSessionHandler::removeSubHandlerRefs(const uint64_t &miNum, const SubIndexSessionHandler *handlerPtr) {
@@ -463,7 +480,8 @@ bool TopIndexSessionHandler::removeSubHandlerRefs(const uint64_t &miNum, const S
 SubIndexSessionHandler::SubIndexSessionHandler(TopIndexSessionHandler &parent, const uint64_t &miNum) :
 	parent_{parent},
 	miNum_{miNum},
-	openSessions_{}
+	openSessions_{},
+	IndexSessionHandler()
 {
 	if (miNum_ == 0) {
 		errorf("SubIndexSessionHandler miNum was 0");
@@ -488,11 +506,15 @@ SubIndexSessionHandler::~SubIndexSessionHandler(void) {
 }
 
 bool SubIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) {
+/*
 	auto findIt = openSessions_.find(indexID);
+errorf("Sub::removeRefs spot 2");
 	if (findIt == openSessions_.end()) {
+errorf("Sub::removeRefs spot 3");
 		g_errorfStream << "(SubIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::flush; 
 		//errorf("(removeRefs) couldn't find indexID entry");
 	} else {
+errorf("Sub::removeRefs spot 4");
 		if ((IndexSession *) findIt->second.lock().get() == sessionPtr || (IndexSession *) findIt->second.lock().get() == nullptr) {
 			
 			openSessions_.erase(findIt);
@@ -500,15 +522,10 @@ bool SubIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSessi
 			return true;
 		}
 	}
+errorf("Sub::removeRefs spot 5");
+*/
 	return false;
 }
-
-///
-
-SubIndex::SubIndex(std::shared_ptr<SubIndexSessionHandler> &handler, const IndexID &indexID) :
-	handler_{handler},
-	IndexSession(*handler_.get(), indexID)
-{}
 
 /// TopIndexSessionHandler
 
@@ -614,6 +631,8 @@ void IOSpec<SubDirEntry>::write(std::ostream &ios, const SubDirEntry &entry) {
 
 SubDirEntry IOSpec<SubDirEntry>::read(std::istream &ios) {
 	ios.setstate(std::ios_base::failbit);
+
+	// TODO: figure out something to return if read fails
 }
 
 void IOSpec<SubDirEntry>::skip(std::istream &ios) {

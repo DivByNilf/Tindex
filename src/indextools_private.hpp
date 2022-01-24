@@ -147,6 +147,13 @@ public:
 	IndexID(std::string str);
 
 	std::strong_ordering operator<=>(const IndexID& rhs) const;
+
+	bool operator==(const IndexID& rhs) const;
+
+	bool operator<(const IndexID& rhs) const;
+
+
+
 };
 
 class HandlerAccessor {
@@ -208,7 +215,7 @@ public:
 	virtual ~SubIndex();
 	
 protected:
-	std::shared_ptr<SubIndexSessionHandler> handler_;
+	std::shared_ptr<SubIndexSessionHandler> handlerPtr_;
 	
 };
 
@@ -364,6 +371,7 @@ protected:
 	friend class HandlerAccessor;
 	
 	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) = 0;
+
 	
 };
 
@@ -371,6 +379,8 @@ class TopIndexSessionHandler : public IndexSessionHandler {
 public:
 
 	TopIndexSessionHandler();
+	TopIndexSessionHandler(const TopIndexSessionHandler &) = delete;
+	TopIndexSessionHandler &operator=(const TopIndexSessionHandler &other) = delete;
 
 	template <class U, class ... Ts>
 	std::shared_ptr<U> openSession(Ts&& ... args);
@@ -379,13 +389,11 @@ protected:
 	std::map<IndexID, std::weak_ptr<TopIndex>> openSessions_;
 	std::map<uint64_t, std::weak_ptr<SubIndexSessionHandler>> subHandlers_;
 	
-	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr);
+	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) override;
 	
 	friend class SubIndexSessionHandler;
 	
 	bool removeSubHandlerRefs(const uint64_t &miNum, const SubIndexSessionHandler *handlerPtr);
-	
-private:
 	
 	template <class U, class ... Ts>
 	std::shared_ptr<U> openTopIndexSession(Ts&& ... args);
@@ -393,12 +401,14 @@ private:
 	template <class U, class ... Ts>
 	std::shared_ptr<U> openSubIndexSession(uint64_t miNum, Ts&& ... args);
 	
-	
 };
 
 class SubIndexSessionHandler : public IndexSessionHandler {
 public:
+
 	SubIndexSessionHandler() = delete;
+	SubIndexSessionHandler(const SubIndexSessionHandler &) = delete;
+	SubIndexSessionHandler &operator=(const SubIndexSessionHandler &other) = delete;
 	
 	SubIndexSessionHandler(TopIndexSessionHandler &parent, const uint64_t &miNum);
 
@@ -413,8 +423,8 @@ protected:
 	std::map<IndexID, std::weak_ptr<SubIndex>> openSessions_;
 	const uint64_t miNum_;
 	TopIndexSessionHandler &parent_;
-	
-	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr);
+
+	virtual bool removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) override;
 
 };
 
@@ -1040,6 +1050,7 @@ uint64_t StandardAutoKeyIndex<KeyT, EntryT>::getNofVirtualEntries(int32_t &error
 	error = 0;
 	
 	std::filesystem::path indexRecPath = this->getDirPath() / (this->getFileStrBase() + ".rec.bin");
+
 	
 	if (!std::filesystem::exists(indexRecPath)) {
 		int32_t retError = 0;
@@ -1068,7 +1079,6 @@ uint64_t StandardAutoKeyIndex<KeyT, EntryT>::getNofVirtualEntries(int32_t &error
 			
 			return 0;
 		} else if (inputRecStream.eof()) {
-errorf("inputRecStream empty");
 			// could set this to -1
 			error = 0;
 			
@@ -1339,7 +1349,6 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 			insertPos = retList.emplace_after(insertPos, entryPair.first);
 		}
 	}
-errorf("returning retList");
 	
 	return retList;
 }
