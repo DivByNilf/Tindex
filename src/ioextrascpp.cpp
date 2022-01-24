@@ -103,6 +103,7 @@ uint64_t get_u64_stream_fixed(std::istream &ios) {
 		}
 		return uint;
 	}
+	return 0;
 }
 
 /*

@@ -317,6 +317,10 @@ protected:
 	std::shared_ptr<PageListWindow> pageListWin_;
 	std::shared_ptr<StrListWindow> strListWin_;
 	uint8_t winOptions_;
+
+	virtual int32_t menuCreate(HWND hwnd);
+	virtual int32_t menuUse(HWND hwnd, int32_t menuID);
+
 };
 
 class DirManWindow : public ListManWindow {
@@ -330,8 +334,8 @@ public:
 	
 	virtual uint64_t getNumElems() override;
 	
-	int32_t menuCreate(HWND hwnd);
-	int32_t menuUse(HWND hwnd, int32_t menuID);
+	virtual int32_t menuCreate(HWND hwnd) override;
+	virtual int32_t menuUse(HWND hwnd, int32_t menuID) override;
 	
 protected:
 	

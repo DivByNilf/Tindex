@@ -13,15 +13,15 @@ public:
 	ErrorObject(const std::string &msg);
 
 	inline bool hasError(void) const {
-		errorCode_ > 0;
+		return errorCode_ > 0;
 	}
 	
 	inline bool hasNote(void) const {
-		errorCode_ < 0;
+		return errorCode_ < 0;
 	}
 	
 	inline bool hasNothing(void) const {
-		errorCode_ == 0;
+		return errorCode_ == 0;
 	}
 	
 	explicit operator bool() {

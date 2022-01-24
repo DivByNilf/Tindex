@@ -56,7 +56,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set(CMAKE_CFLAGS "-ggdb -w")
+# set(CMAKE_CFLAGS "-ggdb -Wreturn-type -Wuninitialized")
+set(CMAKE_CFLAGS "-ggdb -Wall")
+#set(CMAKE_CFLAGS "-ggdb -w")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CFLAGS} -std=c++20 -fpermissive")
 set(CMAKE_CXX_FLAGS "${CMAKE_CFLAGS} -std=c++20")
 

@@ -259,6 +259,7 @@ uint64_t getLastDNum(uint64_t miNum) {
 	}
 
 	int32_t error = 0;
+errorf("getLastDNUm spot 5");
 	return indexSession->getNofVirtualEntries(error);
 }
 

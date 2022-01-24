@@ -421,3 +421,33 @@ Hall's marriage theorem ...
 
 A transversal (combinatorics)?
 	system of distinct representatives (SDR)
+
+--- Fixed bugs
+
+Segfault on destruction of DirIndex
+	SubIndex used unitialized member instead of constructor argument
+		IndexSession( *handlerPtr_, indexID ) instead of IndexSession( *handlerPtr, indexID )
+
+	Caused segfault when virtual method was used
+		regular methods worked (I tried a dummy function)
+			the base instance of a virtual function worked IndexSessionHandler::vDummy()
+				as well as IndexSessionHandler::removeRefs() // when made non-pure virtual
+
+			probably would have crashed on member access as well, however IndexSessionHandler has no member variables
+
+	Would probably have been prevented by using '-Wuninitialized' gcc flag or '-Wall' also includes it
+
+	fixed in commit:428efd9 (2022-01-24)
+
+IndexID	using 'auto operator<=>' instead of 'std::strong_ordering operator<=>' caused strange errors including segfault
+	would segfault on comparison such as when adding to a map or otherwise
+
+	since the type would only be deduced in the .cpp file, template methods would have no type for comparisons
+
+	currently, it fail to compile with auto
+		if the class also has '==' and '<' operators it compiles and segfaults on comparison
+			still segfaults if '<=>' operator is removed
+
+			it was because the other operators had no return statement
+
+	fixed in commit:6bdf0bb (2022-01-22)
