@@ -526,7 +526,7 @@ struct IOSpec<SubDirEntry> {
 public:
 	static void write(std::ostream &ios, const SubDirEntry &entry);
 	
-	static SubDirEntry read(std::istream &ios);
+	static std::shared_ptr<SubDirEntry> read(std::istream &ios);
 	
 	static void skip(std::istream &ios);
 };

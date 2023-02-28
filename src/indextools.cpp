@@ -90,8 +90,8 @@ errorf("getLastMINum after getNofVirtualEntries");
 }
 
 uint64_t miReg(char *miName) {
-	if (miName == NULL) {
-		errorf("miName was NULL");
+	if (miName == nullptr) {
+		errorf("miName was nullptr");
 		return 0;
 	}
 	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
@@ -123,21 +123,21 @@ char *miRead_old(uint64_t miNum) {	// returns malloc memory
 }
 
 char miRemove(uint64_t dNum) {
-
+	return 1;
 }
 
 oneslnk *chainMiRead(oneslnk *miNumChain) {		//! not done
 
-	return NULL; //!
+	return nullptr; //!
 }
 
 int chainMiRmv(oneslnk *dNumChain) {
-
+	return 1;
 }
 
 
 int chainMiReroute(twoslnk *rerouteChain) {		//! untested
-
+	return 1;
 }
 
 /*
@@ -265,8 +265,8 @@ errorf("getLastDNUm spot 5");
 
 /*
 uint64_t dReg(uint64_t miNum, char *dPath) {
-	if (dPath == NULL) {
-		errorf("dPath was NULL");
+	if (dPath == nullptr) {
+		errorf("dPath was nullptr");
 		return 0;
 	}
 	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandler.openSession<DirIndex>(miNum);
@@ -319,10 +319,12 @@ std::fs::path dRead(const uint64_t &miNum, const uint64_t &dNum) {	// returns ma
 
 char dRemove(uint64_t miNum, uint64_t dNum) {
 	//! TODO:
+	return 1;
 }
 
 char dReroute(uint64_t miNum, uint64_t dNum, char *dPath) {		// reroute
 	//! TODO:
+	return 1;
 }
 
 int cDReg(uint64_t miNum, oneslnk *dPathChain) {
@@ -350,14 +352,17 @@ int cDReg(const uint64_t &miNum, const std::forward_list<std::fs::path> inputLis
 
 oneslnk *chainDRead(uint64_t miNum, oneslnk *dNumChain) {
 	//! TODO:
+	return nullptr;
 }
 
 int chainDRemove(uint64_t miNum, oneslnk *dNumChain) {
 	//! TODO:
+	return 1;
 }
 
 int chainDReroute(uint64_t miNum, twoslnk *rerouteChain) {		//! untested
 	//! TODO:
+	return 1;
 }
 
 /*
@@ -455,7 +460,7 @@ void verDI(const uint64_t &miNum) { // check for order, duplicates, gaps, 0 char
 //{	subdir
 
 int readSubdirEntryTo(FILE *sourceFile, struct SubDirEntry *dest) {
-
+	return 1;
 }
 
 uint64_t getLastSubDirNum(uint64_t miNum) {
@@ -496,8 +501,8 @@ uint64_t getlastfnum(uint64_t miNum) {
 /*
 
 uint64_t fileReg(uint64_t dNum, char *fname) {
-	if (fname == NULL) {
-		errorf("fname was NULL");
+	if (fname == nullptr) {
+		errorf("fname was nullptr");
 		return 0;
 	}
 	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandler.openSession<FileIndex>(miNum);
@@ -532,6 +537,7 @@ uint64_t fileReg(const uint64_t &miNum, const std::string &fname) {
 		return res;
 	}
 	*/
+	return 1;
 }
 
 char chainFileReadTag(uint64_t dNum, oneslnk *fileNums, oneslnk **retFileName, oneslnk **retTags, unsigned char presort) {	//! untested
@@ -559,7 +565,7 @@ char chainFileReadTag(uint64_t dNum, oneslnk *fileNums, oneslnk **retFileName, o
 	}
 
 	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dNum);
-	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
+	if ((fIndex = MBfopen(buf, "rb")) == nullptr) {
 		errorf("fIndex file not found (fileRead)");
 		return 1;
 	}
@@ -698,7 +704,7 @@ char chainFileReadTag(uint64_t dNum, oneslnk *fileNums, oneslnk **retFileName, o
 }
 
 char *fileRead(uint64_t dNum, uint64_t fNum) {	//! untested // returns malloc memory
-
+	return nullptr;
 }
 
 oneslnk *chainFileRead(uint64_t dNum, oneslnk *fileNumChain) {
@@ -707,20 +713,20 @@ oneslnk *chainFileRead(uint64_t dNum, oneslnk *fileNumChain) {
 	oneslnk *retlnk;
 
 	retlnk = 0;
-	c = chainFileReadTag(dNum, fileNumChain, &retlnk, NULL, 0);
+	c = chainFileReadTag(dNum, fileNumChain, &retlnk, nullptr, 0);
 
 	if (!c) {
 		return retlnk;
 	} else {
-		return NULL;
+		return nullptr;
 	}
 	*/
-	return NULL;
+	return nullptr;
 }
 
 unsigned char fileRemove(uint64_t dNum, uint64_t fNum) {		//! not done
 
-	return 0; //!
+	return 1; //!
 }
 
 int cfireg(uint64_t dNum, oneslnk *fileNameChain) {
@@ -801,12 +807,12 @@ unsigned char addRemoveFileNumTagChain(uint64_t dNum, oneslnk *fileNums, oneslnk
 	}
 
 	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dNum);
-	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
+	if ((fIndex = MBfopen(buf, "rb")) == nullptr) {
 		errorf("fIndex file not found (fileRead)");
 		return 1;
 	}
 	sprintf(baf, "%s\\i\\%llu\\fIndex.tmp", g_prgDir, dNum);
-	if ((tfIndex = MBfopen(baf, "wb")) == NULL) {
+	if ((tfIndex = MBfopen(baf, "wb")) == nullptr) {
 		errorf_old("couldn't create i\\%llu\\fIndex.tmp", dNum);
 		fclose(fIndex);
 		return 2;
@@ -977,7 +983,7 @@ unsigned char addRemoveFileNumTagChain(uint64_t dNum, oneslnk *fileNums, oneslnk
 	return 0;
 
 */
-return 1;
+	return 1;
 }
 
 unsigned char addFileNumChainTag(uint64_t dNum, oneslnk *fileNums, uint64_t tagNum) {	//!untested
@@ -1173,7 +1179,7 @@ unsigned char dirfreg(char *path, unsigned char flag) {	// bit 1: register direc
 }
 */
 int freeSearchExpr(SREXP *searchExpr) {
-	if (searchExpr == NULL) return 0;
+	if (searchExpr == nullptr) return 0;
 
 	SREXP *next;
 
@@ -1346,7 +1352,7 @@ SEARCHSTRUCT *initFileTagSearch(char *searchStr, unsigned char *retArg, uint64_t
 
 	retArg? *retArg = 0:0;
 	if (!searchStr) {
-		return NULL;
+		return nullptr;
 	}
 	long long i;
 	uint64_t subExpLayers;
@@ -1356,10 +1362,10 @@ SEARCHSTRUCT *initFileTagSearch(char *searchStr, unsigned char *retArg, uint64_t
 	SREXPLIST *buildstack, *nextonbstack;
 	SUPEXPSTACK *superexp, *nextsuperexp;
 
-	aliasStack = numstack = NULL;
-	buildstack = NULL;
-	sexp1 = sexp2 = NULL;
-	superexp = nextsuperexp = NULL;
+	aliasStack = numstack = nullptr;
+	buildstack = nullptr;
+	sexp1 = sexp2 = nullptr;
+	superexp = nextsuperexp = nullptr;
 	subExpLayers = 0;
 	do_implicit = 0;
 	neg = 0;
@@ -1435,7 +1441,7 @@ errorf("srpar alias");
 							buildstack->expr = sexp1;
 						}
 
-						if (!(buildstack == NULL || buildstack->expr->exprType == kSrExpTypeSubExprMarker)) {
+						if (!(buildstack == nullptr || buildstack->expr->exprType == kSrExpTypeSubExprMarker)) {
 							sexp1->exprType = kSrExpTypeSubExprMarker;
 
 							nextonbstack = buildstack;
@@ -1478,14 +1484,14 @@ errorf("srpar alias");
 				sexp2->exprType = kSrExpTypeOr;
 			}
 			if (uc == kSearchParseTypeOr) {	// climb out of "and" chain -- "or" has lesser priority
-				while (buildstack != NULL && buildstack->expr->exprType == kSrExpTypeAnd) {
+				while (buildstack != nullptr && buildstack->expr->exprType == kSrExpTypeAnd) {
 					nextonbstack = buildstack->next;
 					free(buildstack);
 					buildstack = nextonbstack;
 				}
 			}
 
-			if (buildstack == NULL) {
+			if (buildstack == nullptr) {
 				sexp2->expr1 = rootexp->expr1;
 				rootexp->expr1 = sexp2;
 				nextonbstack = buildstack;
@@ -1530,12 +1536,12 @@ errorf("srpar alias");
 				goto search_cleanup1;
 			}
 			subExpLayers--;
-			while (buildstack != NULL && buildstack->expr->exprType != kSrExpTypeSubExprMarker) {
+			while (buildstack != nullptr && buildstack->expr->exprType != kSrExpTypeSubExprMarker) {
 				nextonbstack = buildstack->next;
 				free(buildstack);
 				buildstack = nextonbstack;
 			}
-			if (subExpLayers == 0 && buildstack != NULL) { // if buildstack is null the following operator will just continue from root
+			if (subExpLayers == 0 && buildstack != nullptr) { // if buildstack is null the following operator will just continue from root
 				subExpLayers = superexp->subExpLayers;
 				sexp1 = buildstack->expr->expr1;
 				free(buildstack->expr);
@@ -1575,13 +1581,13 @@ if (aliasStack) {
 	errorf_old("alias: %s", aliasStack->u[1].str);
 }
 
-	while (buildstack != NULL) {
+	while (buildstack != nullptr) {
 		nextonbstack = buildstack->next;
 		free(buildstack);
 		buildstack = nextonbstack;
 	}
 
-	while (superexp != NULL) {
+	while (superexp != nullptr) {
 		nextsuperexp = superexp->next;
 		free(superexp);
 		superexp = nextsuperexp;
@@ -1589,10 +1595,10 @@ if (aliasStack) {
 
 	if (rootexp->expr1->exprType == kSrExpTypeBlank) {
 		// no expressions at all
-		while (aliasStack != NULL) {
+		while (aliasStack != nullptr) {
 			nextlnk = aliasStack->next;
 
-			if (aliasStack->u[1].str != NULL)
+			if (aliasStack->u[1].str != nullptr)
 				free(aliasStack->u[1].str);
 
 			free(aliasStack);
@@ -1600,7 +1606,7 @@ if (aliasStack) {
 		}
 		freeSearchExpr(rootexp);
 
-		return NULL;
+		return nullptr;
 
 	} else if (sexp1->exprType == kSrExpTypeBlank) {
 		errorf("unfilled blank expression");
@@ -1623,7 +1629,7 @@ if (aliasStack) {
 		i = 0;
 		uint64_t prev = 0;
 
-		while (lnk != NULL) {
+		while (lnk != nullptr) {
 			nextlnk = lnk->next;
 			sexp1 = lnk->u[0].vp;
 
@@ -1651,7 +1657,7 @@ if (aliasStack) {
 		i = 0;
 		prev = 0;
 
-		while (lnk != NULL) {
+		while (lnk != nullptr) {
 			nextlnk = lnk->next;
 
 			if (lnk->u[1].ull == 0) {
@@ -1681,36 +1687,36 @@ if (aliasStack) {
 
 		// build the search expression and when encountering tag aliases, link them to
 
-		return NULL;
+		return nullptr;
 
 	}
 
 	search_cleanup1: {
 		retArg && *retArg == 0? *retArg = 1:0;
 
-		while (buildstack != NULL) {
+		while (buildstack != nullptr) {
 			nextonbstack = buildstack->next;
 			free(buildstack);
 			buildstack = nextonbstack;
 		}
 
-		while (superexp != NULL) {
+		while (superexp != nullptr) {
 			nextsuperexp = superexp->next;
 			free(superexp);
 			superexp = nextsuperexp;
 		}
 
-		while (aliasStack != NULL) {
+		while (aliasStack != nullptr) {
 			nextlnk = aliasStack->next;
 
-			if (aliasStack->u[1].str != NULL)
+			if (aliasStack->u[1].str != nullptr)
 				free(aliasStack->u[1].str);
 
 			free(aliasStack);
 			aliasStack = nextlnk;
 		}
 
-		//while (numstack != NULL) {
+		//while (numstack != nullptr) {
 		//	nextlnk = numstack->next;
 		//	free(numstack);
 		//	numstack = nextlnk;
@@ -1718,9 +1724,10 @@ if (aliasStack) {
 
 		freeSearchExpr(rootexp);
 
-		return NULL;
+		return nullptr;
 	}
 	*/
+	return nullptr;
 }
 
 void killSearchExpr(struct SearchExpr *searchExpr) {
@@ -1852,7 +1859,7 @@ char *ffiReadTagExt(uint64_t dNum, char *searchStr, char *exts) {	// returns tfi
 	}
 
 	sprintf(buf, "%s\\i\\%llu\\fIndex.bin", g_prgDir, dNum);
-	if ((fIndex = MBfopen(buf, "rb")) == NULL) {
+	if ((fIndex = MBfopen(buf, "rb")) == nullptr) {
 		errorf("fIndex file not found (ffiReadTagExt)");
 		endSearch(searchStruct);
 		return 0;
@@ -1959,6 +1966,7 @@ char *ffiReadTagExt(uint64_t dNum, char *searchStr, char *exts) {	// returns tfi
 		return 0;
 	}
 */
+	return nullptr;
 }
 
 uint64_t getframount(char *tfstr) {
@@ -1967,12 +1975,12 @@ uint64_t getframount(char *tfstr) {
 	FILE *file;
 
 	if (tfstr == 0) {
-		errorf("tfstr is NULL");
+		errorf("tfstr is nullptr");
 		return 0;
 	}
 
-	if (((file = opentfile(tfstr, 1, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
-		if (file != NULL)
+	if (((file = opentfile(tfstr, 1, "rb")) == nullptr) || ((i = getc(file)) == EOF)) {
+		if (file != nullptr)
 			fclose(file);
 		errorf("couldn't access fr file 1");
 		return 0;
@@ -2004,12 +2012,12 @@ uint64_t frinitpos(char *tfstr, uint64_t inpos, uint64_t *retnpos) {
 		*retnpos = 0;
 	}
 	if (tfstr == 0) {
-		errorf("tfstr is NULL");
+		errorf("tfstr is nullptr");
 		return 0;
 	}
 
-	if (((file = opentfile(tfstr, 1, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
-		if (file != NULL)
+	if (((file = opentfile(tfstr, 1, "rb")) == nullptr) || ((i = getc(file)) == EOF)) {
+		if (file != nullptr)
 			fclose(file);
 		errorf("couldn't access fr file 1");
 		return 0;
@@ -2032,6 +2040,7 @@ uint64_t frinitpos(char *tfstr, uint64_t inpos, uint64_t *retnpos) {
 		*retnpos = lastnpos;
 	return pos;
 */
+	return 0;
 }
 
 oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t interval) {
@@ -2043,7 +2052,7 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t interval) {
 	oneslnk *flnk, *lastlnk;
 
 	if (tfstr == 0) {
-		errorf("tfstr is NULL");
+		errorf("tfstr is nullptr");
 		return 0;
 	}
 	if (!interval) {
@@ -2051,8 +2060,8 @@ oneslnk *ifrread(char *tfstr, uint64_t start, uint64_t interval) {
 		return 0;
 	}
 
-	if ((tfile = opentfile(tfstr, 0, "rb")) == NULL) {
-		if (tfile != NULL)
+	if ((tfile = opentfile(tfstr, 0, "rb")) == nullptr) {
+		if (tfile != nullptr)
 			fclose(tfile);
 		errorf("couldn't access fr file 0");
 		return 0;
@@ -2205,7 +2214,7 @@ char crtreg(uint64_t dNum, oneslnk *tagNames, oneslnk *tagNums) { //! untested
 
 	tAlias = MBfopen(buf, "rb");
 	sprintf(baf, "%s\\ttAlias.bin", g_prgDir);
-	if ((ttAlias = MBfopen(baf, "wb")) == NULL) {
+	if ((ttAlias = MBfopen(baf, "wb")) == nullptr) {
 		fclose(tAlias), killtwoschn(ftwolink, 3);
 		return 3;
 	}
@@ -2534,12 +2543,12 @@ uint64_t tagInitPos(uint64_t dNum, uint64_t ifnum) { /*		//! not done
 
 	sprintf(buf, "%s\\diRec.bin", g_prgDir);
 
-	if (((direc = MBfopen(buf, "rb")) == NULL) || ((i = getc(direc)) == EOF)) {
-		if (direc != NULL)
+	if (((direc = MBfopen(buf, "rb")) == nullptr) || ((i = getc(direc)) == EOF)) {
+		if (direc != nullptr)
 			fclose(direc);
 		addtolastdnum(0, 0);
-		if (((direc = MBfopen(buf, "rb")) == NULL) || ((i = getc(direc)) == EOF)) {
-			if (direc != NULL)
+		if (((direc = MBfopen(buf, "rb")) == nullptr) || ((i = getc(direc)) == EOF)) {
+			if (direc != nullptr)
 				fclose(direc);
 			errorf("couldn't access direc");
 			return 0;
@@ -2579,12 +2588,12 @@ uint64_t getlasttnum(uint64_t dNum) {		//! not done
 
 	sprintf(buf, "%s\\diRec.bin", g_prgDir);
 
-	if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
-		if (file != NULL)
+	if (((file = MBfopen(buf, "rb")) == nullptr) || ((i = getc(file)) == EOF)) {
+		if (file != nullptr)
 			fclose(file);
 		addtolastdnum(0, 0);
-		if (((file = MBfopen(buf, "rb")) == NULL) || ((i = getc(file)) == EOF)) {
-			if (file != NULL)
+		if (((file = MBfopen(buf, "rb")) == nullptr) || ((i = getc(file)) == EOF)) {
+			if (file != nullptr)
 				fclose(file);
 			errorf("couldn't access direc");
 			return 0;
@@ -2682,15 +2691,15 @@ char tcregaddrem(uint64_t dNum, oneslnk *fileNums, oneslnk *addTagNums, oneslnk 
 	}
 
 	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dNum);
-	if ((tIndex = MBfopen(buf, "rb+")) == NULL) {
-		if ((tIndex = MBfopen(buf, "wb+")) == NULL) {
+	if ((tIndex = MBfopen(buf, "rb+")) == nullptr) {
+		if ((tIndex = MBfopen(buf, "wb+")) == nullptr) {
 			errorf("tIndex file not created");
 			killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 			return 1;
 		}
 	}
 	sprintf(baf, "%s\\i\\%llu\\tIndex.tmp", g_prgDir, dNum);
-	if ((ttIndex = MBfopen(baf, "wb+")) == NULL) {
+	if ((ttIndex = MBfopen(baf, "wb+")) == nullptr) {
 		errorf("tIndex file not created");
 		fclose(tIndex), killoneschn(fileNums, 1), faddtagnums? killoneschn(faddtagnums, 1) : 0, fremtagnums? killoneschn(fremtagnums, 1) : 0;
 		return 1;
@@ -2927,6 +2936,7 @@ uint64_t tagChainReg(uint64_t dNum, char *tagName, oneslnk *fileNums) {
 	}
 	return lasttnum;
 */
+	return 0;
 }
 
 char chainTagRead(uint64_t dNum, oneslnk *tagNums, oneslnk **retTagName, oneslnk **retFileNums, unsigned char presort) {	//! untested
@@ -2954,7 +2964,7 @@ char chainTagRead(uint64_t dNum, oneslnk *tagNums, oneslnk **retTagName, oneslnk
 	}
 
 	sprintf(buf, "%s\\i\\%llu\\tIndex.bin", g_prgDir, dNum);
-	if ((tIndex = MBfopen(buf, "rb")) == NULL) {
+	if ((tIndex = MBfopen(buf, "rb")) == nullptr) {
 		errorf("tIndex file not found (chainTagRead)");
 		return 1;
 	}

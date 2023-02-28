@@ -629,10 +629,11 @@ void IOSpec<SubDirEntry>::write(std::ostream &ios, const SubDirEntry &entry) {
 	ios.setstate(std::ios_base::badbit | std::ios_base::failbit);
 }
 
-SubDirEntry IOSpec<SubDirEntry>::read(std::istream &ios) {
+std::shared_ptr<SubDirEntry> IOSpec<SubDirEntry>::read(std::istream &ios) {
 	ios.setstate(std::ios_base::failbit);
 
 	// TODO: figure out something to return if read fails
+	return {};
 }
 
 void IOSpec<SubDirEntry>::skip(std::istream &ios) {
