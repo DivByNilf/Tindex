@@ -25,30 +25,30 @@ int fseek64(FILE *file, long long offset, int origin);
 
 long long ftell64(FILE *file);
 
-FILE *MBfopen(char *buf, char *mode);
+FILE *MBfopen(char const *buf, char const *mode);
 
-int MBrename(char *oldname, char *newname);
+int MBrename(char const *oldname, char const *newname);
 
-int MBremove(char *path);
+int MBremove(char const *path);
 
-int casestrcmp(char *str1, char *str2);
+int casestrcmp(char const *str1, char const *str2);
 
-char make_directory(char *path);
+char make_directory(char const *path);
 
-char checkfiletype(char *fname);
+char checkfiletype(char const *fname);
 
-unsigned long long getfilemodified(char *fname);
+unsigned long long getfilemodified(char const *fname);
 
-char existsdir(char *fname);
+char existsdir(char const *fname);
 
-char *mb_from_wide(wchar_t *wbuf);
+char *mb_from_wide(wchar_t const *wbuf);
 
-wchar_t *wide_from_mb(char *buf);
+wchar_t *wide_from_mb(char const *buf);
 
 
 
-DIRSTRUCT *diropen(char *dir);
+DIRSTRUCT *diropen(char const *dir);
 
-char dirread(DIRSTRUCT *dirp, char *buf);
+char dirread(DIRSTRUCT *dirp, char const *buf);
 
 int dirclose(DIRSTRUCT *dirp);

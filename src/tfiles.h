@@ -1,19 +1,19 @@
 char *numtotfilestr(long long num);
 
-long long tfilestrtonum(char *str);
+long long tfilestrtonum(char const *str);
 
-char releasetfile(char *str, unsigned long long nsegments);
+char releasetfile(char const *str, unsigned long long nsegments);
 
-FILE *opentfile(char *str, unsigned long long nsegment, char *mode);
+FILE *opentfile(char const *str, unsigned long long nsegment, char const *mode);
 
 char *reservetfile(void);
 
-char removetfile(char *str, unsigned long long nsegment);
+char removetfile(char const *str, unsigned long long nsegment);
 
-char mergetfiles(char *str, long long nsegments, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending);
+char mergetfiles(char const *str, long long nsegments, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending);
 
 int tempfoldercheck(void);
 
-char sorttfile(char *str, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending);
+char sorttfile(char const *str, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending);
 
-int ullstrcmp(unsigned char *str1, unsigned char *str2);
+int ullstrcmp(unsigned char const *str1, unsigned char const *str2);

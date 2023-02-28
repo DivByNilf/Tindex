@@ -20,7 +20,7 @@ long long ftell64(FILE *file) {
 	return _ftelli64(file);
 }
 
-char *mb_from_wide(wchar_t *wbuf) {
+char *mb_from_wide(wchar_t const *wbuf) {
 	unsigned long long len;
 	char *buf, *buf2;
 	
@@ -48,7 +48,7 @@ char *mb_from_wide(wchar_t *wbuf) {
 	return buf2;
 }
 
-wchar_t *wide_from_mb(char *buf) {
+wchar_t *wide_from_mb(char const *buf) {
 	unsigned long long len;
 	wchar_t *wbuf, *wbuf2;
 	
@@ -76,7 +76,7 @@ wchar_t *wide_from_mb(char *buf) {
 	return wbuf2;
 }
 
-FILE *MBfopen(char *buf, char *mode) {
+FILE *MBfopen(char const *buf, char const *mode) {
 	wchar_t wbuf[MAX_PATH*2], wmode[5];
 	FILE *f;
 	static int inside;
@@ -99,7 +99,7 @@ FILE *MBfopen(char *buf, char *mode) {
 	return f;
 }
 
-int MBrename(char *oldname, char *newname) {
+int MBrename(char const *oldname, char const *newname) {
 	wchar_t woldname[MAX_PATH*2], wnewname[MAX_PATH*2];
 	if ((MultiByteToWideChar(65001, 0, oldname, -1, woldname, MAX_PATH*2)) == 0) {
 		return 6;
@@ -110,7 +110,7 @@ int MBrename(char *oldname, char *newname) {
 	return _wrename(woldname, wnewname);
 }
 
-int MBremove(char *path) {
+int MBremove(char const *path) {
 	wchar_t wpath[MAX_PATH*2];
 	
 	if ((MultiByteToWideChar(65001, 0, path, -1, wpath, MAX_PATH*2)) == 0) {
@@ -119,7 +119,7 @@ int MBremove(char *path) {
 	return _wremove(wpath);
 }
 
-int casestrcmp(char *str1, char *str2) {
+int casestrcmp(char const *str1, char const *str2) {
 	UChar *ustr1, *ustr2;
 	UErrorCode error = 0;
 	int len1, len2, c;
@@ -146,7 +146,7 @@ int casestrcmp(char *str1, char *str2) {
 	return c;
 }
 
-char make_directory(char *path) {
+char make_directory(char const *path) {
 	wchar_t wpath[MAX_PATH*2];
 	
 errorf("making dir %s", path);
@@ -160,7 +160,7 @@ errorf("making dir %s", path);
 	}	
 }
 
-char checkfiletype(char *fname) {
+char checkfiletype(char const *fname) {
 	wchar_t wpath[MAX_PATH*2];
 	struct _stat ws_stat;
 	
@@ -178,7 +178,7 @@ char checkfiletype(char *fname) {
 		return 0;
 }
 
-unsigned long long getfilemodified(char *fname) {
+unsigned long long getfilemodified(char const *fname) {
 	wchar_t wpath[MAX_PATH*2];
 	struct _stat ws_stat;
 
@@ -193,7 +193,7 @@ unsigned long long getfilemodified(char *fname) {
 	}
 }
 
-char existsdir(char *fname) {
+char existsdir(char const *fname) {
 	wchar_t wpath[MAX_PATH*2];
 	struct _stat ws_stat;
 	
@@ -225,7 +225,7 @@ char *timetostr(unsigned long long ulltime) {
 	return buf;
 }
 
-DIRSTRUCT *diropen(char *dir) {
+DIRSTRUCT *diropen(char const *dir) {
 	wchar_t wdir[MAX_PATH+2];
 	
 	char buf[MAX_PATH*4+2];
@@ -246,7 +246,7 @@ DIRSTRUCT *diropen(char *dir) {
 	return ds;
 }
 
-char dirread(DIRSTRUCT *dirp, char *buf) {
+char dirread(DIRSTRUCT *dirp, char const *buf) {
 	if (!dirp->firstread) {
 		if (!FindNextFileW(dirp->search, &dirp->data)) {
 			return 0;

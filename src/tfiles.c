@@ -201,7 +201,7 @@ char *reservetfileold(void) {
 
 */
 
-FILE *opentfile(char *str, unsigned long long nsegment, char *mode) {
+FILE *opentfile(char const *str, unsigned long long nsegment, char const *mode) {
 	char buf[MAX_PATH*4], *segstr;
 	int c;
 
@@ -214,7 +214,7 @@ FILE *opentfile(char *str, unsigned long long nsegment, char *mode) {
 	return MBfopen(buf, mode);
 }
 
-char removetfile(char *str, unsigned long long nsegment) {
+char removetfile(char const *str, unsigned long long nsegment) {
 	char buf[MAX_PATH*4], *segstr;
 	
 	if (str == 0) {
@@ -247,7 +247,7 @@ char releasetfile(char *str, unsigned long long nsegments) {
 	return 0;
 }
 
-char mergetfiles(char *str, long long nsegments, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending) {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
+char mergetfiles(char const *str, long long nsegments, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending) {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
 //! not tested properly with byte prefixed or multiple strings
 	unsigned char *strA[8], *strB[8], doneA, doneB, getA, getB, over;
 	int i, j, c;
@@ -419,7 +419,7 @@ char mergetfiles(char *str, long long nsegments, unsigned char nstrs, unsigned c
 	return 0;
 }
 
-int ullstrcmp(unsigned char *str1, unsigned char *str2) {
+int ullstrcmp(unsigned char const *str1, unsigned char const *str2) {
 	int i, j;
 	i = str1[0];
 	j = str2[0];
@@ -439,7 +439,7 @@ int ullstrcmp(unsigned char *str1, unsigned char *str2) {
 	}
 }
 
-char sorttfile(char *str, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending)  {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
+char sorttfile(char const *str, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending)  {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
 //! not tested properly with byte prefixed or multiple strings
 	unsigned char *strA[8], *strB[8], doneA, doneB, getA, getB, *prevA, *prevB, over, onfile, seltype, *selstrA, *selstrB, startedA, eofA, eofB, *p;
 	int i, j, c;
