@@ -1,244 +1,252 @@
-- TO DO
+TO DO
+	Little Things (Front)
+		- remove "wide_from_mb" and "mb_from_wide" function calls and replace with multibyte std::string
 
-Little things (front):
-	remove "wide_from_mb" and "mb_from_wide" function calls and replace with multibyte std::string
+		- remove errorf_old
 
-	remove errorf_old
+		- try to reduce use of a global prgdir and for example have it stored as a copy in the indextools indexhandler
 
-	try to reduce use of a global prgdir and for example have it stored as a copy in the indextools indexhandler
+		- maybe call 'main index' a 'tracker'
 
-	maybe call 'main index' a 'tracker'
+	Change
+		- remove global PrgDir
+			- maybe make static
+			
+		- create a windowinstancer instead of a global variable and function
+		
+		- don't use friend classes
+		
+		- separate winapi things from hte rest of the code
+			- main.cpp to main.cpp and winmain.cpp
 
-remove global PrgDir
-	maybe make static
+	Main Changes
+		- Fix compiler warnings
 
-allow alternative paths for registered dirs (if the first one doesn't exist at that moment)
+		- Replace winapi with QT and make the program run on Linux
 
-registered dirs should be unique
+		- Use JSON and sqlite for data storage
 
-remove every .tmp file when starting
+		- Reimplement directory tracking
+			- Separate indices by project
+				- Each project tracks its own directories
+				- The tracked directories can have subdirectories
 
-replace malloc and calloc
+		- allow alternative paths for registered dirs (if the first one doesn't exist at that moment)
 
-//safe casting of windowclasses
+		- registered dirs should be unique
 
-separate the inner list object from the window class
+		- remove every .tmp file when starting
 
-check if fstream actually supports multibyte directories
+		- replace malloc and calloc
 
-generalize management window on index
+		- //safe casting of windowclasses
 
-open outside, show outside
+		- separate the inner list object from the window class
 
-search function
-	function syntax -- counting objects that meet criteria, counting true expressions of a set of expressions -- treating these counts like a variable
+		- check if fstream actually supports multibyte directories
 
-converting relative directories to normal -- checking if they exist and checking if there are even enough parent directories
+		- generalize management window on index
 
-make breakpath support (or only use) forward slashes
+		- open outside, show outside
 
-changing the list windows to be based on array -- making a special array for enumeration that are based on the first number
+		- search function
+			- function syntax -- counting objects that meet criteria, counting true expressions of a set of expressions -- treating these counts like a variable
 
-removing associated files from removed directories
+		- converting relative directories to normal -- checking if they exist and checking if there are even enough parent directories
 
-tag creating toolbar that can hold tags to potentially add to multiple images or make batch actions -- applies to selected window (or tab)
-	tag categories to quickly add tags to toolbar or make collapsable tags in toolbar
+		- make breakpath support (or only use) forward slashes
 
-tagging multiple files -- only remove shared tags between files
-	selecting files in multiple pages in the gui
+		- changing the list windows to be based on array -- making a special array for enumeration that are based on the first number
 
-scroll through images in image view mode
-	view only selected images
+		- removing associated files from removed directories
 
-sets functionality and set gui
+		- tag creating toolbar that can hold tags to potentially add to multiple images or make batch actions -- applies to selected window (or tab)
+			- tag categories to quickly add tags to toolbar or make collapsable tags in toolbar
 
-managing tags and aliases and sets
+		- tagging multiple files -- only remove shared tags between files
+			selecting files in multiple pages in the gui
 
-GetKeyState
+		- scroll through images in image view mode
+			view only selected images
 
-edit control by subwindow
-	or maybe just intercept pasting in the superprocedure
+		- sets functionality and set gui
 
-	drag and drop: https://stackoverflow.com/questions/18856514/setcursor-while-dragging-files-into-a-window
+		- managing tags and aliases and sets
 
-tag sidebar to quickly remove tags and categorize them
-	sidebar for adding or excluding tags from search
+		- GetKeyState
 
-creating aliases (and functionality for extra aliases)
+		- edit control by subwindow
+			- or maybe just intercept pasting in the superprocedure
 
-implications
+			- drag and drop: https://stackoverflow.com/questions/18856514/setcursor-while-dragging-files-into-a-window
 
-complex implications
+		- tag sidebar to quickly remove tags and categorize them
+			- sidebar for adding or excluding tags from search
 
-extra tabs and windows
-	open new tab instead if program is already running (FindWindowExA )
+		- creating aliases (and functionality for extra aliases)
 
-image interpolation and blur
+		- implications
 
-time registered for individual files
+		- complex implications
 
-save and load session data
+		- extra tabs and windows
+			- open new tab instead if program is already running (FindWindowExA )
 
-proper automatic reversals from back up if secondary functions fail
+		- image interpolation and blur
 
-trying to remove files from tag or tags from while that they don't have should probably fail the whole function
+		- time registered for individual files
 
-tags from jpg files
+		- save and load session data
 
-block adding same dir twice (it messes with reverse read)
+		- proper automatic reversals from back up if secondary functions fail
 
-variables
+		- trying to remove files from tag or tags from while that they don't have should probably fail the whole function
 
-objects
+		- tags from jpg files
 
-directory partial aliases -- maybe format "ALIAS:/{aliasname}/..."
+		- block adding same dir twice (it messes with reverse read)
 
-handle io exceptions
+		- variables
 
-- - - optimizations
+		- objects
 
-informing of being pre-sorted
+		- directory partial aliases -- maybe format "ALIAS:/{aliasname}/..."
 
-buffer for image so it doesn't need to be constantly reallocated
+		- handle io exceptions
 
-all the unfinished functions
+	Optimizations
+		- informing of being pre-sorted
 
-for read functions, have a function that keeps the record open until done
+		- buffer for image so it doesn't need to be constantly reallocated
 
-OpenCL
-	clCreateCommandQueueWithProperties properties
+		- all the unfinished functions
 
+		- for read functions, have a function that keeps the record open until done
 
+		- OpenCL
+			clCreateCommandQueueWithProperties properties
 
-- - - little things
+	Little Things
+		- remove '.c' files
 
-remove '.c' files
+		- redraw after going out of maximize
 
-redraw after going out of maximize
+		- make list column headers not overlap
 
-make list column headers not overlap
+		- take list column header to account in default size
 
-take list column header to account in default size
+		- change PrgDir to gPrgDir
 
-change PrgDir to gPrgDir
+		- right clicking from context menu open needs to do a hover before opening a new context menu (thumbman)
 
-right clicking from context menu open needs to do a hover before opening a new context menu (thumbman)
+		- max thumbnail gap
 
-max thumbnail gap
+		- including the border line in page list after all
 
-including the border line in page list after all
+		- cursor position when pasting text
 
-cursor position when pasting text
+		- don't readjust the zoom center until after moving image again -- to keep it centered on a single point when zooming multiple times
 
-don't readjust the zoom center until after moving image again -- to keep it centered on a single point when zooming multiple times
+		- implement rerouting multiple as a two-string chain
 
-implement rerouting multiple as a two-string chain
+		- gray different options with 0 selections
 
-gray different options with 0 selections
+		- entering page num via edit control
 
-entering page num via edit control
+		- arrow keys cursor in string list and thumb list
+			- ctrl+arrow key to scroll instead
 
-arrow keys cursor in string list and thumb list
-	ctrl+arrow key to scroll instead
+		- hovering in string list
 
-hovering in string list
+		- notepad++ style undoing: undo until cursor last moved or new line made or pasted
 
-notepad++ style undoing: undo until cursor last moved or new line made or pasted
+		- bmp and webp
 
-bmp and webp
+		- change WM_USERs to be more descriptive
 
-change WM_USERs to be more descriptive
+		- stop registering directories as file entries
 
-stop registering directories as file entries
+		- dealing with WHEEL_DELTA
 
-dealing with WHEEL_DELTA
+		- move header guards to the actual c files
 
-move header guards to the actual c files
+		- replace unsigned character compares with compares that return positive or negative
 
-replace unsigned character compares with compares that return positive or negative
+		- overhaul the whole backup system
 
-overhaul the whole backup system
+		- replacing operator keywords for tags in search and managing tags
 
-replacing operator keywords for tags in search and managing tags
+		- disable select button when none selected
 
-disable select button when none selected
+		- reading in without sorting input
 
-reading in without sorting input
+		- maybe replace strcmp with a function that treats a null input as the lowest possible
 
-maybe replace strcmp with a function that treats a null input as the lowest possible
+		- make the line of the bottom page list a part of the page list window
 
-make the line of the bottom page list a part of the page list window
+		- disable apply button when no changes have been made
 
-disable apply button when no changes have been made
+		- add an option to register directories, ending them with '\'
 
-add an option to register directories, ending them with '\'
+		- add an option to register files from child directories or all descendant directories ("whole hierarchy")
 
-add an option to register files from child directories or all descendant directories ("whole hierarchy")
+		- maybe setting a client guid for different directory searches so the starting directory is different
 
-maybe setting a client guid for different directory searches so the starting directory is different
+		- search returning a specified error (for example the alias that could not be matched)
 
-search returning a specified error (for example the alias that could not be matched)
+		- _get_pgmptr to get the path to the executable instead
 
-_get_pgmptr to get the path to the executable instead
+	Far-off
 
-- - - far off
+		- audio and video
+			- player needs: fetchable duration and position, settable position, feedback when end is reached, maybe feedback when position changes
+				- perhaps only feedback when end is reached and feedback when changing video forward or backward
 
-audio and video
-	player needs: fetchable duration and position, settable position, feedback when end is reached, maybe feedback when position changes
-		perhaps only feedback when end is reached and feedback when changing video forward or backward
+	Ideas
+		createWindowInstance could probably be templated to something like:
+			template <class T>
+			HWND createWindowInstance<T>(args<T>, CreateWinArgs) {
 
-- - - ideas
+			}
 
-createWindowInstance could probably be templated to something like:
-	template <class T>
-	HWND createWindowInstance<T>(args<T>, CreateWinArgs) {
+	Debugging
+		- checking if things start to break when byte values rise to more than 1
 
-	}
+		- testing if functions properly react to adding and removing the same tags
 
-- - - debugging
+Controls
+	String List
+		UP, DOWN, PGUP, PGDN, HOME, END - Scroll
+		Mouse Wheel - Scroll
 
-checking if things start to break when byte values rise to more than 1
+		Clicking to select, ctrl clicking to add to selections, shift clicking to select from last selection to clicked point, ctrl shift clicking to add to selections from last selection to clicked point, right clicking for context menu and select if clicked point not selected, ctrl right click for context menu without changing selections
 
-testing if functions properly react to adding and removing the same tags
+		DEL for deleting, F2 for rerouting, alt+F2 for rerouting relative path
 
-------
+	Thumb List
+		UP, DOWN, PGUP, PGDN, HOME, END - Scrolling
+		Mouse Wheel - Scrolling
 
-- Controls
+		Clicking to select, ctrl clicking to add to selections, shift clicking to select from last selection to clicked point, ctrl shift clicking to add to selections from last selection to clicked point, right clicking for context menu and select if clicked point not selected, ctrl right click for context menu without changing selections
 
-String List
-	UP, DOWN, PGUP, PGDN, HOME, END - Scroll
-	Mouse Wheel - Scroll
-
-	Clicking to select, ctrl clicking to add to selections, shift clicking to select from last selection to clicked point, ctrl shift clicking to add to selections from last selection to clicked point, right clicking for context menu and select if clicked point not selected, ctrl right click for context menu without changing selections
-
-	DEL for deleting, F2 for rerouting, alt+F2 for rerouting relative path
-
-Thumb List
-	UP, DOWN, PGUP, PGDN, HOME, END - Scrolling
-	Mouse Wheel - Scrolling
-
-	Clicking to select, ctrl clicking to add to selections, shift clicking to select from last selection to clicked point, ctrl shift clicking to add to selections from last selection to clicked point, right clicking for context menu and select if clicked point not selected, ctrl right click for context menu without changing selections
-
-Image Viewer
-	Mouse Wheel - Zoom
-	Drag - Move View
-
-------
+	Image Viewer
+		Mouse Wheel - Zoom
+		Drag - Move View
 
 - Page number
 
-arrows if first page or last page not otherwise visible -- otherwise bordering that edge
-will the number reach the middle if starting from beginning
-	calculate the middle position and the width of the selected element to calculate the position of the middle element
-	add to the number 1 until reaching the selected page or its position otherwise
-will the last number reach the edge if starting from middle
-	add to the selected number until reaching the edge or the last page
-calculate the amount of pages that will fit
-	allocate room for the arrows if it doesn't reach one or both of the edges -- iterate from one of the edges or from the middle depending on it
-associate the page numbers with the location ranges and sort them
-	if all pages fit center them
-draw them
-register hovering over them
+	arrows if first page or last page not otherwise visible -- otherwise bordering that edge
+	will the number reach the middle if starting from beginning
+		calculate the middle position and the width of the selected element to calculate the position of the middle element
+		add to the number 1 until reaching the selected page or its position otherwise
+	will the last number reach the edge if starting from middle
+		add to the selected number until reaching the edge or the last page
+	calculate the amount of pages that will fit
+		allocate room for the arrows if it doesn't reach one or both of the edges -- iterate from one of the edges or from the middle depending on it
+	associate the page numbers with the location ranges and sort them
+		if all pages fit center them
+	draw them
+	register hovering over them
 
 === planning
 
