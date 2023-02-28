@@ -31,9 +31,9 @@ void DelRer(HWND hwnd, uint8_t option, STRLISTV const *slv) {	// changing would 
 	//char (*rerf)(uint64_t dnum, char *dpath) = dReroute;
 	//char (*rmvf)(uint64_t dnum) = dRemove;
 	//int (*crmvf)(oneslnk *dnumchn) = chainDRemove;
-	char (*rerf)(uint64_t dnum, char *dpath) = NULL;
-	char (*rmvf)(uint64_t dnum) = NULL;
-	int (*crmvf)(oneslnk *dnumchn) = NULL;
+	char (*rerf)(uint64_t dnum, char *dpath) = nullptr;
+	char (*rmvf)(uint64_t dnum) = nullptr;
+	int (*crmvf)(oneslnk *dnumchn) = nullptr;
 
 	link = flink = (oneslnk *) malloc(sizeof(oneslnk));
 	for (pos = 0, i = 0; pos < slv->nRows; pos++) {

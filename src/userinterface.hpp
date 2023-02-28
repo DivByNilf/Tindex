@@ -233,7 +233,7 @@ public:
 	bool isRegistered(void) const;
 
 private:
-	void (*modifyWinStruct)(WNDCLASSW &wc);
+	void (*modifyWinStruct_)(WNDCLASSW &wc);
 	bool isRegistered_;
 };
 
@@ -460,7 +460,7 @@ public:
 	
 	std::shared_ptr<std::forward_list<int64_t>> getSelPositions(void) const;
 	
-	std::string getSingleSelRowCol(int32_t argCol, ErrorObject *retError = nullptr) const;
+	std::string getSingleSelRowCol(uint32_t argCol, ErrorObject *retError = nullptr) const;
 	
 	bool setNColumns(int32_t);
 	
