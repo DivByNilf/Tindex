@@ -22,6 +22,9 @@ TO DO
 	Main Changes
 		- Fix compiler warnings
 
+		- Defer window class registration until runtime
+			- Don't register statically before g_prgDir and such are initialized
+
 		- Replace winapi with QT and make the program run on Linux
 
 		- Use JSON and sqlite for data storage
@@ -30,6 +33,8 @@ TO DO
 			- Separate indices by project
 				- Each project tracks its own directories
 				- The tracked directories can have subdirectories
+
+		- Adapt UI element dimensions to higher resolutions
 
 		- allow alternative paths for registered dirs (if the first one doesn't exist at that moment)
 
@@ -127,7 +132,11 @@ TO DO
 			clCreateCommandQueueWithProperties properties
 
 	Little Things
-		- remove '.c' files
+		- remove unnecessary struct keywords
+
+		- rewrite '.c' files in cpp
+
+		- maybe change image objects resolutions to signed int, since it will never reach the max value anyway
 
 		- redraw after going out of maximize
 
@@ -459,3 +468,13 @@ IndexID	using 'auto operator<=>' instead of 'std::strong_ordering operator<=>' c
 			it was because the other operators had no return statement
 
 	fixed in commit:6bdf0bb (2022-01-22)
+
+Static initialization and use of hInstance
+	Registering window classes statically
+
+	hInstance is initialized when main starts to execute
+
+	Wrapping hInstance in shared_ptr object made the issue explicit:
+		shared_ptr being dereferenced before initialization
+
+	To use hInstance, the registration has to be moved out of static initialization
