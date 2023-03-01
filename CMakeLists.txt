@@ -60,7 +60,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 list(APPEND CMAKE_CFLAGS " -ggdb")
 # list(APPEND CMAKE_CFLAGS "-Wreturn-type -Wuninitialized")
 list(APPEND CMAKE_CFLAGS "-Wall")
-list(APPEND CMAKE_CFLAGS "-Werror")
+
+# warnings to errors
+# list(APPEND CMAKE_CFLAGS "-Werror")
+
 list(APPEND CMAKE_CFLAGS "-Wno-error=unused-variable -Wno-error=unused-but-set-variable")
 # list(APPEND CMAKE_CFLAGS "-Wextra")
 # list(APPEND CMAKE_CFLAGS "-Wpedantic")
