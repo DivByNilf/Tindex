@@ -5,4 +5,4 @@ oneslnk *listfileschn(char *dir);
 
 char listfilesfilesorted(char *dir, char *dst, char skipdirs, char recursive);
 
-int tempfoldercheck(void);
+int tempfoldercheck(const char *prgDir);

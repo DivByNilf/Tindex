@@ -35,7 +35,7 @@ extern "C" {
 //! TEMP
 #define errorf_old(...) g_errorf(__VA_ARGS__)
 
-extern char *g_prgDir;
+extern std::string g_prgDir;
 
 enum : int32_t {
 	RD_MAX_CLEN = 1000,

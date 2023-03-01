@@ -1,4 +1,3 @@
-//extern std::string g_stdPrgDir;
-extern std::filesystem::path g_fsPrgDir;
+#include <filesystem>
 
-bool PrgDirInit(void);
+std::filesystem::path GetPrgDir(void);

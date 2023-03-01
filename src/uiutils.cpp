@@ -12,7 +12,6 @@ namespace std {
 
 #include "uiutils.hpp"
 #include "portables.hpp"
-#include "prgdir.hpp"
 #include "errorobj.hpp"
 
 //! TODO: clean away old function
@@ -146,7 +145,7 @@ std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr) {
 	return retPath;
 }
 
-std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, ErrorObject *retError) {
+std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, const std::filesystem::path &prgDir, ErrorObject *retError) {
 	//int pdpdc, cpdc;		// pdpdc -- prog dir parent directory count, common pdc
 	//char *rbuf;
 	//int i, j;
@@ -157,8 +156,8 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 		return {};
 	}
 	
-	if (g_fsPrgDir.empty()) {
-		errorf("g_fsPrgDir was empty");
+	if (prgDir.empty()) {
+		errorf("prgDir was empty");
 		setErrorPtr(retError, 1);
 		return {};
 	}
@@ -166,9 +165,9 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 	std::fs::path usePath = argPath;
 	
 	auto usePathIt = usePath.begin();
-	auto prgDirIt = g_fsPrgDir.begin();
+	auto prgDirIt = prgDir.begin();
 	
-	if (usePathIt == usePath.end() || prgDirIt == g_fsPrgDir.end()) {
+	if (usePathIt == usePath.end() || prgDirIt == prgDir.end()) {
 		errorf("first element of non-empty path was end()");
 		setErrorPtr(retError, 1);
 		return {};
@@ -182,7 +181,7 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 		prgDirIt++;
 	}
 	
-	while (usePathIt != usePath.end() && prgDirIt != g_fsPrgDir.end()) {
+	while (usePathIt != usePath.end() && prgDirIt != prgDir.end()) {
 		if (*usePathIt == *prgDirIt) {
 			usePathIt++;
 			prgDirIt++;
@@ -193,7 +192,7 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 	
 	std::fs::path retPath = ".";
 	
-	while (prgDirIt != g_fsPrgDir.end()) {
+	while (prgDirIt != prgDir.end()) {
 		retPath /= "..";
 		prgDirIt++;
 	}

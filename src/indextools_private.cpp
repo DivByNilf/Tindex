@@ -10,6 +10,8 @@
 
 #include "prgdir.hpp"
 
+extern std::filesystem::path g_fsPrgDir;
+
 // a global indexSessionHandler is assumed to exist (from indextools.cpp)
 extern TopIndexSessionHandler g_indexSessionHandler;
 

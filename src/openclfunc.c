@@ -12,14 +12,12 @@
 cl_int report_and_mark_devices(cl_device_id *devices, cl_uint num_devices, int *a_cpu, int *a_gpu, int *an_accelerator);
 char *stringfromfile(char *filename);
 
-extern char *g_prgDir;
-
 static cl_kernel ScalechunkbilinKernel = 0;
 static cl_program ScalechunkbilinProgram = 0;
 static cl_context ScalechunkbilinContext = 0;
 static cl_device_id ScalechunkbilinDevice = 0;
 
-int initChunkBiLinKernel(void) {
+int initChunkBiLinKernel(const char *prgDir) {
 	cl_int err;
 	cl_device_id device_id;
 	int gpu = 1;
@@ -105,7 +103,7 @@ int initChunkBiLinKernel(void) {
 	
 	const char *clSourceFile = "openclkernels.cl";
     char source_path[MAX_PATH*4];
-	sprintf(source_path, "%s\\%s", g_prgDir, clSourceFile);
+	sprintf(source_path, "%s\\%s", prgDir, clSourceFile);
 	
     size_t program_length;
 	
@@ -167,12 +165,12 @@ void freeChunkBiLinKernel(void) {
 	clReleaseContext(context);
 }
 
-int ScaleBmChunkBiLinCL(unsigned char **from, unsigned char **to, const unsigned long n, const unsigned long x1, const unsigned long y1, const unsigned long x2, const unsigned long y2, const unsigned long xspos, const unsigned long yspos, const double zoom) {
+int ScaleBmChunkBiLinCL(unsigned char **from, unsigned char **to, const unsigned long n, const unsigned long x1, const unsigned long y1, const unsigned long x2, const unsigned long y2, const unsigned long xspos, const unsigned long yspos, const double zoom, const char *prgDir) {
 	cl_int err;
 	static int flag = 1;
 	
 	if (flag) {
-		if (!initChunkBiLinKernel()) {
+		if (!initChunkBiLinKernel(prgDir)) {
 			flag = 0;
 		} else {
 			errorf("initChunkBiLinKernel failed");

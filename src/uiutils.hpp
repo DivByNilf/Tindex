@@ -7,7 +7,7 @@
 
 std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr = nullptr);
 
-std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, ErrorObject *retError = nullptr);
+std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &argPath, const std::filesystem::path &prgDir, ErrorObject *retError = nullptr);
 
 uint64_t stringToUint(std::string str, ErrorObject *retError = nullptr);
 

@@ -9,8 +9,6 @@
 #include "errorf.h"
 #define errorf(...) g_errorf(__VA_ARGS__)
 
-extern char *g_prgDir;
-
 static char tempfolderfound;
 
 char *numtotfilestr(long long num) {
@@ -82,12 +80,12 @@ long long tfilestrtonum(char *str) {
 	return -1;
 }
 
-int tempfoldercheck(void) {
+int tempfoldercheck(const char *prgDir) {
 	char buf[MAX_PATH*4];
 	int c;
 	
 	if (!tempfolderfound) {
-		sprintf(buf, "%s\\temp", g_prgDir);
+		sprintf(buf, "%s\\temp", prgDir);
 		if (c = checkfiletype(buf)) {
 			if (c == 1) {
 				tempfolderfound = 1;
@@ -104,14 +102,14 @@ int tempfoldercheck(void) {
 	return 0; //!
 }
 
-char *reservetfile(void) {
+char *reservetfile(const char *prgDir) {
 	char buf[MAX_PATH*4], *str, *str2;
 	int i, j, c;
 	long long largest = -1, nsegment;
 	FILE *temp;
 	
-	tempfoldercheck();
-	sprintf(buf, "%s\\temp", g_prgDir);
+	tempfoldercheck(prgDir);
+	sprintf(buf, "%s\\temp", prgDir);
 	
 	DIRSTRUCT *dirp = diropen(buf);
 	
@@ -134,7 +132,7 @@ char *reservetfile(void) {
 	
 	str = numtotfilestr(largest+1);
 	str2 = numtotfilestr(0);
-	sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, str2);
+	sprintf(buf, "%s\\temp\\%s-%s", prgDir, str, str2);
 	free(str2);
 	fclose(MBfopen(buf, "w"));
 	
@@ -201,34 +199,34 @@ char *reservetfileold(void) {
 
 */
 
-FILE *opentfile(char const *str, unsigned long long nsegment, char const *mode) {
+FILE *opentfile(char const *str, unsigned long long nsegment, char const *mode, const char *prgDir) {
 	char buf[MAX_PATH*4], *segstr;
 	int c;
 
-	tempfoldercheck();
+	tempfoldercheck(prgDir);
 	
 	if (!(segstr = numtotfilestr(nsegment))) {
 		return 0;
 	}
-	sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, segstr);
+	sprintf(buf, "%s\\temp\\%s-%s", prgDir, str, segstr);
 	return MBfopen(buf, mode);
 }
 
-char removetfile(char const *str, unsigned long long nsegment) {
+char removetfile(char const *str, unsigned long long nsegment, const char *prgDir) {
 	char buf[MAX_PATH*4], *segstr;
 	
 	if (str == 0) {
 		return 1;
 	}
 	segstr = numtotfilestr(nsegment);
-	sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, segstr);
+	sprintf(buf, "%s\\temp\\%s-%s", prgDir, str, segstr);
 	free(segstr);
 	MBremove(buf);
 	
 	return 0;
 }
 
-char releasetfile(char *str, unsigned long long nsegments) {
+char releasetfile(char *str, unsigned long long nsegments, const char *prgDir) {
 	char buf[MAX_PATH*4], *segstr;
 	
 	if (str == 0) {
@@ -239,7 +237,7 @@ char releasetfile(char *str, unsigned long long nsegments) {
 		nsegments = 1;
 	while (nsegments-- > 0) {
 		segstr = numtotfilestr(nsegments);
-		sprintf(buf, "%s\\temp\\%s-%s", g_prgDir, str, segstr);
+		sprintf(buf, "%s\\temp\\%s-%s", prgDir, str, segstr);
 		free(segstr);
 		MBremove(buf);
 	}
@@ -247,7 +245,7 @@ char releasetfile(char *str, unsigned long long nsegments) {
 	return 0;
 }
 
-char mergetfiles(char const *str, long long nsegments, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending) {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
+char mergetfiles(char const *str, long long nsegments, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending, const char *prgDir) {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
 //! not tested properly with byte prefixed or multiple strings
 	unsigned char *strA[8], *strB[8], doneA, doneB, getA, getB, over;
 	int i, j, c;
@@ -282,13 +280,13 @@ char mergetfiles(char const *str, long long nsegments, unsigned char nstrs, unsi
 		}
 		for (k = 1; k < remsegments; k += 2) {
 			if (!over) {
-				fileA = opentfile(str, k-1, "rb");
-				fileB = opentfile(str, k, "rb");
-				fileC = opentfile(str, remsegments+(k/2), "wb");
+				fileA = opentfile(str, k-1, "rb", prgDir);
+				fileB = opentfile(str, k, "rb", prgDir);
+				fileC = opentfile(str, remsegments+(k/2), "wb", prgDir);
 			} else {
-				fileA = opentfile(str, (oldremseg)+k-1, "rb");
-				fileB = opentfile(str, (oldremseg)+k, "rb");
-				fileC = opentfile(str, k/2, "wb");
+				fileA = opentfile(str, (oldremseg)+k-1, "rb", prgDir);
+				fileB = opentfile(str, (oldremseg)+k, "rb", prgDir);
+				fileC = opentfile(str, k/2, "wb", prgDir);
 			}
 			
 			doneA = doneB = 0;
@@ -379,37 +377,37 @@ char mergetfiles(char const *str, long long nsegments, unsigned char nstrs, unsi
 			}
 			fclose(fileA), fclose(fileB), fclose(fileC);
 			if (!over) {
-				removetfile(str, k-1);
-				removetfile(str, k);
+				removetfile(str, k-1, prgDir);
+				removetfile(str, k, prgDir);
 			} else {
-				removetfile(str, (oldremseg)+k-1);
-				removetfile(str, (oldremseg)+k);
+				removetfile(str, (oldremseg)+k-1, prgDir);
+				removetfile(str, (oldremseg)+k, prgDir);
 			}
 		}
 		if (k == remsegments) {
 			if (!over) {
-				fileA = opentfile(str, k-1, "rb");
-				fileC = opentfile(str, remsegments+(k/2), "wb");
+				fileA = opentfile(str, k-1, "rb", prgDir);
+				fileC = opentfile(str, remsegments+(k/2), "wb", prgDir);
 			} else {
-				fileA = opentfile(str, (oldremseg)+k-1, "rb");
-				fileC = opentfile(str, k/2, "wb");
+				fileA = opentfile(str, (oldremseg)+k-1, "rb", prgDir);
+				fileC = opentfile(str, k/2, "wb", prgDir);
 			}
 			for (; (c = getc(fileA)) != EOF; putc(c, fileC));
 			fclose(fileA), fclose(fileC);
 			if (!over) {
-				removetfile(str, k-1);
+				removetfile(str, k-1, prgDir);
 			} else {
-				removetfile(str, (oldremseg)+k-1);
+				removetfile(str, (oldremseg)+k-1, prgDir);
 			}
 		}
 	}
 	if (over) {
-		fileA = opentfile(str, 2, "rb");
-		fileC = opentfile(str, 0, "wb");
+		fileA = opentfile(str, 2, "rb", prgDir);
+		fileC = opentfile(str, 0, "wb", prgDir);
 		
 		for (; (c = getc(fileA)) != EOF; putc(c, fileC));
 		fclose(fileA), fclose(fileC);
-		removetfile(str, 2);
+		removetfile(str, 2, prgDir);
 	}	
 	
 	for (i = 0; i < nstrs; i++) {
@@ -439,7 +437,7 @@ int ullstrcmp(unsigned char const *str1, unsigned char const *str2) {
 	}
 }
 
-char sorttfile(char const *str, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending)  {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
+char sorttfile(char const *str, unsigned char nstrs, unsigned char strtypes, int (*compare)(unsigned char *, unsigned char *), unsigned char sel, unsigned char descending, const char *prgDir)  {	// strtypes 0-bit for null-terminated and 1-bit for prefixed for byte lower to higher
 //! not tested properly with byte prefixed or multiple strings
 	unsigned char *strA[8], *strB[8], doneA, doneB, getA, getB, *prevA, *prevB, over, onfile, seltype, *selstrA, *selstrB, startedA, eofA, eofB, *p;
 	int i, j, c;
@@ -482,13 +480,13 @@ char sorttfile(char const *str, unsigned char nstrs, unsigned char strtypes, int
 		startedA = 0;
 		
 		if (!onfile) {
-			fileA = opentfile(str, 0, "rb");
-			fileB = opentfile(str, 0, "rb");
-			fileC = opentfile(str, 1, "wb");
+			fileA = opentfile(str, 0, "rb", prgDir);
+			fileB = opentfile(str, 0, "rb", prgDir);
+			fileC = opentfile(str, 1, "wb", prgDir);
 		} else {
-			fileA = opentfile(str, 1, "rb");
-			fileB = opentfile(str, 1, "rb");
-			fileC = opentfile(str, 0, "wb");
+			fileA = opentfile(str, 1, "rb", prgDir);
+			fileB = opentfile(str, 1, "rb", prgDir);
+			fileC = opentfile(str, 0, "wb", prgDir);
 		}
 		
 		if (!fileA || !fileB || !fileC) {
@@ -724,13 +722,13 @@ char sorttfile(char const *str, unsigned char nstrs, unsigned char strtypes, int
 	free(prevA), free(prevB);
 	
 	if (!!onfile && !!startedA) {
-		fileA = opentfile(str, 1, "rb");
-		fileC = opentfile(str, 0, "wb");
+		fileA = opentfile(str, 1, "rb", prgDir);
+		fileC = opentfile(str, 0, "wb", prgDir);
 		
 		for (; (c = getc(fileA)) != EOF; putc(c, fileC));
 		fclose(fileA), fclose(fileC);
 	}
-	removetfile(str, 1);
+	removetfile(str, 1, prgDir);
 	
 	return 0;
 }
