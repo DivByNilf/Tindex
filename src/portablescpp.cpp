@@ -1,5 +1,17 @@
 #include <string>
 
+#include <unicode/unistr.h>
+
+std::string ToLowerCase(const std::string &str) {
+	std::string res;
+	return icu::UnicodeString::fromUTF8(str).toLower().toUTF8String(res);
+}
+
+std::string ToUpperCase(const std::string &str) {
+	std::string res;
+	return icu::UnicodeString::fromUTF8(str).toUpper().toUTF8String(res);
+}
+
 #include <windows.h>
 
 std::string u16_to_u8(const std::wstring &wstr) {

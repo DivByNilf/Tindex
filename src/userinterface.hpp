@@ -1,9 +1,9 @@
 #pragma once
 
 #include "errorobj.hpp"
+#include "images.hpp"
 
 extern "C" {
-	#include "images.h"
 	#include "stringchains.h"
 }
 
@@ -19,6 +19,8 @@ extern "C" {
 namespace std {
 	namespace fs = std::filesystem;
 }
+
+#include "window_procedures.hpp"
 
 //{ Structs
 
@@ -69,14 +71,14 @@ typedef struct ThumbListVariables {
 
 typedef struct PageListVariables {
 	uint64_t curPage, lastPage;
-	struct ListPage *PageList;
+	ListPage *PageList;
 	int32_t hovered;
 } PAGELISTV;
 
 typedef struct ImageViewVariables {
-	ImgF *FullImage;
-	ImgF *DispImage;
-	char *imgpath;
+	std::shared_ptr<ImgF> FullImage;
+	std::shared_ptr<ImgF> DispImage;
+	std::fs::path imgPath;
 	uint64_t fnum;
 	int32_t zoomp, xpos, ypos, xdrgpos, ydrgpos, dispframe;
 	int64_t xdisp, ydisp, xdrgstart, ydrgstart;
@@ -126,25 +128,12 @@ typedef struct ThumbManArgs {
 	uint64_t dnum;
 } THMBMANARGS;
 
-struct SharedWindowVariables {
-	HINSTANCE ghInstance;
-	DWORD color;
-	HFONT hFont, hFont2, hFontUnderlined;
-	HPEN bgPen1, bgPen2, bgPen3, bgPen4, bgPen5, selPen, selPen2, hPen1;
-	HBRUSH bgBrush1, bgBrush2, bgBrush3, bgBrush4, bgBrush5, selBrush;
-	HBITMAP hListSliceBM, hThumbListBM;
-	WNDPROC g_OldEditProc;
-	struct wMemEntry **wMemArray;
-	uint64_t wMemArrLen, nwMemWnds;
-
-	HCURSOR hDefCrs, hCrsSideWE, hCrsHand;
-};
-
 struct WinProcArgs {
 	HWND hwnd;
 	UINT msg;
 	WPARAM wParam;
 	LPARAM lParam;
+	std::shared_ptr<SharedWindowVariables> sharedWinVars;
 };
 
 //}
@@ -255,7 +244,6 @@ public:
 	int32_t lastOption_, lastDirNum_;
 	
 	std::shared_ptr<void> hMapFile_;
-	//HANDLE hMapFile;
 };
 
 class TabContainerWindow : public WindowClass {
@@ -421,7 +409,7 @@ public:
 	int32_t hovered_;
 	
 protected:
-	std::shared_ptr<std::vector<struct ListPage>> pageListPtr_;
+	std::shared_ptr<std::vector<ListPage>> pageListPtr_;
 	bool doPaint_ = false;
 	
 	void getPages(int32_t edge);
