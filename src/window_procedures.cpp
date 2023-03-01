@@ -53,10 +53,7 @@ void MainInitHandles(SharedWindowVariables &);
 void MainDeInitHandles(SharedWindowVariables &);
 
 /// global variables
-
 extern std::filesystem::path g_fsPrgDir;
-//! TODO: remove from all files
-extern std::string g_prgDir;
 
 /// constants
 
@@ -508,7 +505,7 @@ LRESULT MsgHandler::onCreate(WinProcArgs procArgs) {
 	ShowWindow(thwnd, SW_MAXIMIZE);
 
 	{
-		std::string fileMapStr = std::string(g_prgDir);
+		std::string fileMapStr = std::string(prgDir);
 		std::replace(fileMapStr.begin(), fileMapStr.end(), '\\', '/');
 		fileMapStr += "/HWND";
 
@@ -6014,7 +6011,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				errorf("GetClientRect failed");
 			}
 
-			std::string prgDir = g_prgDir;
+			std::string prgDir = g_SharedWindowVar->prgDir;
 
 			bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 			bminfo.bmiHeader.biPlanes = 1;
@@ -6110,7 +6107,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				errorf("GetClientRect failed");
 			}
 
-			std::string prgDir = g_prgDir;
+			std::string prgDir = g_SharedWindowVar->prgDir;
 
 			if (ev->fit & kBitVI_FitModeEnabled) {
 
@@ -6363,7 +6360,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 				errorf("calling resizeimagechunk 2");
 
-				std::string prgDir = g_prgDir;
+				std::string prgDir = g_SharedWindowVar->prgDir;
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, ev->xpos, ev->ypos, prgDir.c_str());
 			}
 			ev->fit &= ~(kBitVI_FitResizeFitsX | kBitVI_FitResizeFitsY);
@@ -6379,8 +6376,6 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 			}
 			InvalidateRect(hwnd, 0, 0);
-
-// g_errorfStream << "ev->midX: " << ev->midX << ", ev->midY: " << ev->midY << ", x: " << ev->FullImage->x << ", ev->FullImage->y << std::flush;
 
 			break;
 		}
@@ -6470,7 +6465,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					ev->DispImage = nullptr;
 				}
 				errorf("calling resizeimagechunk 3");
-				std::string prgDir = g_prgDir;
+				std::string prgDir = g_SharedWindowVar->prgDir;
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, j, k, prgDir.c_str());
 /*
 				ev->fit &= ~(BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y);
@@ -6541,7 +6536,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 //					ev->ypos = 0;
 				}
 				errorf("calling resizeimagechunk BIT_VI_FIT_RESIZE_FITS_X");
-				std::string prgDir = g_prgDir;
+				std::string prgDir = g_SharedWindowVar->prgDir;
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, j, k, prgDir.c_str());
 /*				ev->fit &= ~(BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y);
 				if (ev->DispImage) {	//! this should probably be removed since the fit mode nor ev->xdisp shouldn't change when dragging
