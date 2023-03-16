@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(FTI)
+project(Tindex)
 
 # GoogleTest requires at least C++11
 set(CMAKE_CXX_STANDARD 20)
@@ -86,22 +86,22 @@ set(CMAKE_RC_COMPILER_INIT windres)
 ENABLE_LANGUAGE(RC)
 SET(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT> --use-temp-file")
 
-set(FTI_SRC_DIR ${CMAKE_BINARY_DIR}/src)
+set(TINDEX_SRC_DIR ${CMAKE_BINARY_DIR}/src)
 
 add_subdirectory(src)
 add_subdirectory(data)
 
-add_executable(fti WIN32 $<TARGET_OBJECTS:main_src_objects> $<TARGET_OBJECTS:main_data_objects>)
+add_executable(tindex WIN32 $<TARGET_OBJECTS:main_src_objects> $<TARGET_OBJECTS:main_data_objects>)
 
 # TODO: link OpenCL in a better way if possible (without direct path to file)
-SET_TARGET_PROPERTIES(fti PROPERTIES LINK_FLAGS "-municode -mwindows C:/Windows/System32/OpenCL.dll -lcomctl32 -lole32 -luuid")
+SET_TARGET_PROPERTIES(tindex PROPERTIES LINK_FLAGS "-municode -mwindows C:/Windows/System32/OpenCL.dll -lcomctl32 -lole32 -luuid")
 
 # TODO: later make the image libs only required as part of an image api
-target_link_libraries(fti LIBPNG)
-target_link_libraries(fti LIBJPEG)
-target_link_libraries(fti GIF)
+target_link_libraries(tindex LIBPNG)
+target_link_libraries(tindex LIBJPEG)
+target_link_libraries(tindex GIF)
 
-target_link_libraries(fti ICUUC)
+target_link_libraries(tindex ICUUC)
 
 ### GoogleTest
 

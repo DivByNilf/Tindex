@@ -27,11 +27,11 @@ gtest_discover_tests(all_tests)
 
 # just the main source directory of the project (./src)
 # enables header files to be found
-target_include_directories(all_tests PRIVATE ${FTI_SRC_DIR})
+target_include_directories(all_tests PRIVATE ${TINDEX_SRC_DIR})
 
 set(OUT )
 
-get_target_property(OUT fti LINK_LIBRARIES)
+get_target_property(OUT tindex LINK_LIBRARIES)
 
 # get things such as libpng, libjpeg
 

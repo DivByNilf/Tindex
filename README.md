@@ -1,4 +1,5 @@
-# FileTagIndex
+# Tindex
+FileTagIndex -- TagIndex
 Program for indexing and tagging files -- searching files through boolean operator queries
 - WinApi (future port to QT)
 

@@ -72,7 +72,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 			}
 		}
 	}
-	HWND hMsgHandler = MsgHandler::createWindowInstance(WinInstancer(0, L"FileTagIndex", WS_OVERLAPPEDWINDOW, 100, 100, 100, 100, HWND_MESSAGE, nullptr, hInstance, nullptr));
+	HWND hMsgHandler = MsgHandler::createWindowInstance(WinInstancer(0, L"Tindex", WS_OVERLAPPEDWINDOW, 100, 100, 100, 100, HWND_MESSAGE, nullptr, hInstance, nullptr));
 
 	// try to prevent program opening and taking mutex with no real window
 	if (!hMsgHandler || !WindowClass::getWindowPtr(hMsgHandler)) {
