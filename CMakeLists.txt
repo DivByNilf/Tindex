@@ -63,11 +63,16 @@ list(APPEND CMAKE_CFLAGS "-Wall")
 
 # warnings to errors
 # list(APPEND CMAKE_CFLAGS "-Werror")
-
 list(APPEND CMAKE_CFLAGS "-Wno-error=unused-variable -Wno-error=unused-but-set-variable")
-# list(APPEND CMAKE_CFLAGS "-Wextra")
+
+list(APPEND CMAKE_CFLAGS "-Werror=implicit-fallthrough -Werror=return-type")
+
+list(APPEND CMAKE_CFLAGS "-Wimplicit-fallthrough -Wdeprecated-copy -Winfinite-recursion")
+list(APPEND CMAKE_CFLAGS "-Wextra")
 # list(APPEND CMAKE_CFLAGS "-Wpedantic")
 list(APPEND CMAKE_CFLAGS "-fmax-errors=10")
+
+# inhibit all warnings
 # list(APPEND CMAKE_CFLAGS "-w")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CFLAGS} -std=c++20 -fpermissive")
 list(APPEND CMAKE_CXX_FLAGS ${CMAKE_CFLAGS})
@@ -94,7 +99,6 @@ SET_TARGET_PROPERTIES(fti PROPERTIES LINK_FLAGS "-municode -mwindows C:/Windows/
 # TODO: later make the image libs only required as part of an image api
 target_link_libraries(fti LIBPNG)
 target_link_libraries(fti LIBJPEG)
-# TODO: fix (fix what??)
 target_link_libraries(fti GIF)
 
 target_link_libraries(fti ICUUC)
