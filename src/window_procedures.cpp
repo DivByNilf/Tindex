@@ -501,7 +501,7 @@ LRESULT MsgHandler::onCreate(WinProcArgs procArgs) {
 
 	HWND thwnd;
 
-	thwnd = TabContainerWindow::createWindowInstance(WinInstancer(0, L"FileTagIndex", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, nullptr, nullptr, g_SharedWindowVar->ghInstance, nullptr));
+	thwnd = TabContainerWindow::createWindowInstance(WinInstancer(0, L"Tindex", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, nullptr, nullptr, g_SharedWindowVar->ghInstance, nullptr));
 
 	if (!thwnd)	{
 		errorf("failed to create TabContainerWindow");
