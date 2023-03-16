@@ -24,16 +24,14 @@ namespace std {
 int RunMessageLoop(void);
 
 int CheckInitMutex(HANDLE &hMutex, std::string prgDir);
-int MainInit(MainInitStruct &ms);
-int MainDeInit(MainInitStruct &ms);
+int MainInit(MainInitStruct &ms, std::shared_ptr<SharedWindowVariables> sharedWindowVars);
+int MainDeInit(MainInitStruct &ms, std::shared_ptr<SharedWindowVariables> sharedWindowVars);
 
 void MainInitHandles(SharedWindowVariables &);
 void MainDeInitHandles(SharedWindowVariables &);
 
 /// global variables
 std::filesystem::path g_fsPrgDir;
-
-std::shared_ptr<SharedWindowVariables> g_SharedWindowVar = nullptr;
 
 /// enums
 enum MainInitReturnCodes : int32_t {
@@ -50,20 +48,29 @@ enum OtherOptionIntegers : int32_t {
 /// Initialization functions
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow) {
-	g_SharedWindowVar = std::make_shared<SharedWindowVariables>();
-	g_SharedWindowVar->ghInstance = hInstance;
+	auto sharedWindowVars = std::make_shared<SharedWindowVariables>();
+	sharedWindowVars->ghInstance = hInstance;
 
-	int i = 0;
-	MainInitStruct ms = {};
-	if ((i = MainInit(ms)) != 0) {
-		if (i == kMainInitMutexReserved) { // mutex already reserved
-			return 0;
-		} else {
-			g_errorfStream << "Preinit: MainInit failed: " << i << std::flush;
+	{
+		bool res = SetSharedWindowVariables(sharedWindowVars);
+		if (!res) {
+			g_errorfStream << "Preinit: SetSharedWindowVariables failed" << std::flush;
 			return 1;
 		}
 	}
 
+	MainInitStruct ms = {};
+	{
+		int32_t i = 0;
+		if ((i = MainInit(ms, sharedWindowVars)) != 0) {
+			if (i == kMainInitMutexReserved) { // mutex already reserved
+				return 0;
+			} else {
+				g_errorfStream << "Preinit: MainInit failed: " << i << std::flush;
+				return 1;
+			}
+		}
+	}
 	HWND hMsgHandler = MsgHandler::createWindowInstance(WinInstancer(0, L"FileTagIndex", WS_OVERLAPPEDWINDOW, 100, 100, 100, 100, HWND_MESSAGE, nullptr, hInstance, nullptr));
 
 	// try to prevent program opening and taking mutex with no real window
@@ -73,12 +80,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 	}
 
 	int loopReturn = RunMessageLoop();
-
-	if ((i = MainDeInit(ms)) != 0) {
-		g_errorfStream << "MainDeInit failed: " << i << std::flush;
-		return 1;
+	{
+		int32_t i = 0;
+		if ((i = MainDeInit(ms, sharedWindowVars)) != 0) {
+			g_errorfStream << "MainDeInit failed: " << i << std::flush;
+			return 1;
+		}
 	}
-
 	return loopReturn;
 }
 
@@ -93,23 +101,19 @@ int RunMessageLoop(void) {
 	return (int) msg.wParam;
 }
 
-int MainInit(MainInitStruct &ms) {
+int MainInit(MainInitStruct &ms, std::shared_ptr<SharedWindowVariables> sharedWindowVars) {
 	if (ms != MainInitStruct()) {
 		errorf("Preinit: MainInitStruct was not empty");
 		return kMainInitFail;
 	}
-	g_fsPrgDir = GetPrgDir();
-	if (g_fsPrgDir.empty()) {
-		errorf("Preinit: GetPrgDir failed");
-		return kMainInitFail;
-	}
-
 	{
-		// g_prgDir = g_fsPrgDir.generic_string();
-		// if (g_prgDir == "") {
-		// 	errorf("Preinit: g_PrgDir init failed");
-		// 	return kMainInitFail;
-		// }
+		g_fsPrgDir = GetPrgDir();
+		if (g_fsPrgDir.empty()) {
+			errorf("Preinit: GetPrgDir failed");
+			return kMainInitFail;
+		}
+		sharedWindowVars->prgDir = g_fsPrgDir.generic_string();
+
 		bool res = SetErrorfStaticPrgDir(g_fsPrgDir.generic_string());
 		if (!res) {
 			errorf("Preinit: SetErrorfStaticPrgDir failed");
@@ -140,7 +144,7 @@ int MainInit(MainInitStruct &ms) {
 		}
 	}
 
-	MainInitHandles(*g_SharedWindowVar);
+	MainInitHandles(*sharedWindowVars);
 
 	return 0;
 
@@ -213,12 +217,12 @@ int CheckInitMutex(HANDLE &hMutex, std::string prgDir) {
 	return 0;
 }
 
-int MainDeInit(MainInitStruct &ms) {
+int MainDeInit(MainInitStruct &ms, std::shared_ptr<SharedWindowVariables> sharedWindowVars) {
 	if (ms.hMutex != nullptr) {
 		CloseHandle(ms.hMutex);
 	}
 
-	MainDeInitHandles(*g_SharedWindowVar);
+	MainDeInitHandles(*sharedWindowVars);
 
 	return 0;
 }
