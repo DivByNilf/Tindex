@@ -22,3 +22,5 @@ void PingExistingProcess(HWND);
 
 void MainInitHandles(SharedWindowVariables &);
 void MainDeInitHandles(SharedWindowVariables &);
+
+bool SetSharedWindowVariables(std::shared_ptr<SharedWindowVariables> sharedWindowVar);

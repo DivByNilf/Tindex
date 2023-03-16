@@ -91,7 +91,6 @@ enum UI_Colors : uint64_t {
 };
 
 enum UI_SpacingConstants : int32_t {
-
 	kDManTopMargin = 38,
 	kDManBottomMargin = 21,
 	kSBarH = 30,
@@ -267,10 +266,16 @@ void PingExistingProcess(HWND hwnd) {
 /// Window Classes
 
 // TODO: remove and use argument in procedures instead
-extern std::shared_ptr<SharedWindowVariables> g_SharedWindowVar;
+static std::shared_ptr<SharedWindowVariables> g_SharedWindowVar;
 
+bool SetSharedWindowVariables(std::shared_ptr<SharedWindowVariables> sharedWindowVar) {
+	g_SharedWindowVar = sharedWindowVar;
+	return true;
+}
+
+// TODO: Move static window registration into this function
 int32_t RegisterWindowClasses(void) {
-
+	return 0;
 }
 
 //{ WindowClass
@@ -367,7 +372,7 @@ LRESULT CALLBACK WindowClass::generalWinProc(HWND hwnd, UINT msg, WPARAM wParam,
 	return res;
 }
 
-// TODO: make this non-static
+// TODO: make this non-global
 std::map<HWND, std::shared_ptr<WindowClass>> WindowClass::winMemMap;
 
 //# non-static
@@ -650,6 +655,7 @@ LRESULT CALLBACK TabContainerWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 			}
 
 			MoveWindow(dispWindow_, 0, 0, rect.right, rect.bottom, 0);
+			break;
 		}
 		case WM_SETFOCUS: {
 			SetFocus(dispWindow_);
@@ -775,6 +781,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			}
 
 			MoveWindow(this->dispWindow_, 0, 0, rect.right, rect.bottom, 0);
+			break;
 		}
 		case WM_SETFOCUS: {
 			if (this->dispWindow_) {
@@ -881,8 +888,8 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 					}
 					break;
 				}
-				break;
 			}
+			break;
 		}
 		case WM_ERASEBKGND: {
 			return 1;
@@ -897,8 +904,6 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 	}
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
-
-
 
 //} TabWindow
 
@@ -1121,6 +1126,7 @@ errorf("miman paint 1");
 			case 0:
 				//return (LRESULT) &this->pageListWin_;
 				errorf("deprecated: 3452089hre");
+				break;
 			case 1:
 				//! TODO:
 				SendMessage(hwnd, WM_U_LISTMAN, kListmanChPageRef, 0);
@@ -3389,6 +3395,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					break;
 				}
 			}
+			break;
 		}
 		case WM_ERASEBKGND: {
 			return 1;
@@ -3540,7 +3547,7 @@ std::shared_ptr<std::forward_list<int64_t>> StrListWindow::getSelPositions(void)
 	}
 	auto rowsPtrHolder = this->rowsPtr_;
 
-	auto &rows = *this->rowsPtr_;
+	// auto &rows = *this->rowsPtr_;
 
 	std::shared_ptr<std::forward_list<int64_t>> selListPtr( new std::forward_list<int64_t>() );
 
@@ -3661,7 +3668,7 @@ bool StrListWindow::clearRows(void) {
 	// clear selections as well
 	bool b_clearRes = this->clearSelections();
 
-	return true;
+	return b_clearRes;
 }
 
 bool StrListWindow::assignRows(std::shared_ptr<std::vector<std::vector<std::string>>> inputVectorPtr) {
@@ -3710,10 +3717,7 @@ bool StrListWindow::clearSelections(void) {
 
 LRESULT StrListWindow::onCreate(WinProcArgs procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	LPARAM &lParam = procArgs.lParam;
-	WPARAM &wParam = procArgs.wParam;
 
-errorf("strlistclass create 1");
 	this->yspos_ = this->xspos_ = 0;
 	this->hvrd_ = 0;
 	this->isDragged_ = 0;
@@ -3819,8 +3823,7 @@ LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 				}
 				g_SharedWindowVar->hListSliceBM = CreateCompatibleBitmap(hdc, j, kRowHeight);
 			}
-			HBITMAP hOldBM;
-			hOldBM = (HBITMAP) SelectObject(hdc2, g_SharedWindowVar->hListSliceBM);
+			SelectObject(hdc2, g_SharedWindowVar->hListSliceBM);
 
 			int64_t lastRow = firstRow + (!!upOffset) + (rect.bottom-kStrListTopMargin-(kRowHeight-upOffset)%kRowHeight)/kRowHeight + (((rect.bottom-kStrListTopMargin-(kRowHeight - upOffset) % kRowHeight)) > 0) - 1;
 			// (rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-upOffset)%ROW_HEIGHT)/ROW_HEIGHT
@@ -4101,8 +4104,8 @@ errorf("no columnWidthsHoldPtr");
 						this->xspos_ = w2 - rect.right;
 				}
 				break;
-			}
-			}
+			}}
+			break;
 		}
 		case WM_U_SL: {
 			switch (wParam) {
@@ -4144,10 +4147,9 @@ errorf("no columnWidthsHoldPtr");
 					SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
 
 					InvalidateRect(hwnd, nullptr, 1);
-
-					break;
 				}
 			}
+			break;
 		}
 		case WM_SIZE: {
 
@@ -5004,8 +5006,6 @@ HWND ThumbListWindow::createWindowInstance(WinInstancer wInstancer) {
 
 LRESULT ThumbListWindow::onCreate(WinProcArgs procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	LPARAM &lParam = procArgs.lParam;
-	WPARAM &wParam = procArgs.wParam;
 
 	this->yspos_ = 0;
 	this->hvrd_ = 0;
@@ -5045,21 +5045,12 @@ LRESULT ThumbListWindow::onCreate(WinProcArgs procArgs) {
 }
 
 LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-
-	RECT rect;
-	HWND thwnd;
-
 	int64_t i;
 	int j, k, l, pos;
-	uint8_t *buf;
-	wchar_t *wbuf;
 	SCROLLINFO sinfo = {0};
 	//THMBLISTV *lv = 0;
 
-	oneslnk **link;
-
-	int len, diff, rowlen, lastrow, firstrow, sparep;
-	char sel;
+	int diff, rowlen, lastrow, firstrow, sparep;
 
 	switch(msg) {
 		case WM_CREATE: {
@@ -5070,13 +5061,15 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_PAINT: {
 			BITMAPINFO bminfo = {0};
 
-			HDC hdc, hdc2, hdc3;
+			HDC hdc, hdc3;
 			PAINTSTRUCT ps;
-			HFONT hOldFont;
 			HPEN hOldPen;
 			HBRUSH hOldBrush;
-			HBITMAP hOldBM, hBitmap;
+			HBITMAP hOldBM;
 
+			char sel;
+
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
@@ -5130,7 +5123,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			Rectangle(hdc3, 0, 0, rect.right, rect.bottom);
 			SelectObject(hdc3, g_SharedWindowVar->bgPen2);
 			SelectObject(hdc3, g_SharedWindowVar->bgBrush2);
-
+			
 			for (i = 0, lastrow = (!!diff)+(rect.bottom-(kDefThumbFH+kDefThumbGapY-diff)%(kDefThumbFH+kDefThumbGapY))/(kDefThumbFH+kDefThumbGapY)+(!!((rect.bottom-(kDefThumbFH+kDefThumbGapY-diff))%(kDefThumbFH+kDefThumbGapY))), sel = 0; i < lastrow; i++, pos++, sel = 0) {
 				if (firstrow+i < 0)
 					continue;
@@ -5172,6 +5165,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			break;
 		}
 		case WM_USER: {	// update scroll info
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
@@ -5283,8 +5277,8 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 					break;
 
-				case SB_LINEDOWN:
-
+				case SB_LINEDOWN: {
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
@@ -5298,9 +5292,11 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 						this->yspos_ += kRowHeight;
 					}
 					break;
+				}
 
-				case SB_PAGEUP:
-
+				case SB_PAGEUP: {
+					
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
@@ -5314,9 +5310,10 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					} else this->yspos_ -= rect.bottom;
 
 					break;
+				}
 
-				case SB_PAGEDOWN:
-
+				case SB_PAGEDOWN: {
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
@@ -5331,7 +5328,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 						this->yspos_ += rect.bottom;
 
 					break;
-
+				}
 				case SB_TOP:
 
 					if (this->yspos_ == 0) {
@@ -5341,8 +5338,8 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 					break;
 
-				case SB_BOTTOM:
-
+				case SB_BOTTOM:	{
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 					}
@@ -5354,6 +5351,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 						this->yspos_ = sinfo.nMax+1-(rect.bottom);
 
 					break;
+				}
 
 				default:
 					doAbort = true;
@@ -5373,7 +5371,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			break;
 		}
 		case WM_MOUSEWHEEL: {
-
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
@@ -5409,6 +5407,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			break;
 		}
 		case WM_MOUSEMOVE: {
+			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf("GetClientRect failed");
 			}
@@ -5491,8 +5490,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			break;
 		}
 		case WM_RBUTTONDOWN: {
-
-
+			RECT rect;
 			this->point_.x = rect.left = lParam & (256*256-1);
 			this->point_.y = rect.top = lParam/256/256 & (256*256-1);
 			if (rect.top < 0)
@@ -5548,7 +5546,8 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 					break;
 
-				case 2:
+				case 2: {
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
@@ -5563,9 +5562,9 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 						this->yspos_ += kRowHeight;
 
 					break;
-
-				case 3:
-
+				}
+				case 3: {
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
@@ -5578,9 +5577,9 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 						this->yspos_ -= rect.bottom;
 
 					break;
-
-				case 4:
-
+				}
+				case 4: {
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
@@ -5595,22 +5594,24 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 						this->yspos_ += rect.bottom;
 
 					break;
+				}
 
-				case 5:
-
+				case 5: {
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
 
 					break;
-
-				case 6:
-
+				}
+				case 6: {
+					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf("GetClientRect failed");
 					}
 
 					break;
+				}
 
 				default:
 					KillTimer(hwnd, 2);
@@ -5650,7 +5651,8 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 				break;
 
-			case VK_END:
+			case VK_END: {
+				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
@@ -5662,7 +5664,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					this->yspos_ = sinfo.nMax+1-(rect.bottom);
 
 				break;
-
+			}
 			case VK_UP:
 
 				if (this->yspos_ == 0) {
@@ -5677,8 +5679,8 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 				break;
 
-			case VK_DOWN:
-
+			case VK_DOWN:{
+				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
@@ -5696,6 +5698,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 
 				break;
+			}
 
 			case VK_LEFT:
 
@@ -5706,8 +5709,8 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 				break;
 
-			case VK_RIGHT:
-
+			case VK_RIGHT: {
+				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
@@ -5720,9 +5723,9 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 
 				break;
-
-			case VK_PRIOR:
-
+			}
+			case VK_PRIOR: {
+				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {		// forgot this part
 					errorf("GetClientRect failed");
 				}
@@ -5740,9 +5743,9 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 
 				break;
-
-			case VK_NEXT:
-
+			}
+			case VK_NEXT: {
+				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
 					errorf("GetClientRect failed");
 				}
@@ -5759,16 +5762,14 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					SetTimer(hwnd, 2, 500, 0);
 				}
 				break;
-
+			}
 			case VK_DELETE:
-
 				doAbort = true;
 				SendMessage(GetParent(hwnd), WM_U_RET_TL, (WPARAM) GetMenu(hwnd), 1);
 
 				break;
 
 			case VK_F2:
-
 				doAbort = true;
 				SendMessage(GetParent(hwnd), WM_U_RET_TL, (WPARAM) GetMenu(hwnd), 2);
 
@@ -5791,7 +5792,6 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			break;
 		}
 		case WM_SYSKEYDOWN: {
-
 			if (lParam & (1UL << 29)) {
 				switch(wParam) {
 					case VK_F2:
@@ -5804,7 +5804,6 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			break;
 		}
 		case WM_KEYUP: {
-
 			switch(wParam) {
 			case VK_UP:
 				if (this->lastKey_ == 1) {
@@ -5895,8 +5894,6 @@ HWND ViewImageWindow::createWindowInstance(WinInstancer wInstancer) {
 
 LRESULT ViewImageWindow::onCreate(WinProcArgs procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	LPARAM &lParam = procArgs.lParam;
-	WPARAM &wParam = procArgs.wParam;
 
 	IMGVIEWV *ev = 0;
 
@@ -5972,7 +5969,6 @@ LRESULT ViewImageWindow::onCreate(WinProcArgs procArgs) {
 LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 	RECT rect;
-	HWND thwnd;
 
 	int64_t i;
 	int j, k, l, m;
@@ -5984,13 +5980,9 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 	HFONT hOldFont;
 	HPEN hOldPen;
 	HBRUSH hOldBrush;
-	HBITMAP hOldBM, hBitmap;
+	HBITMAP hOldBM;
 
-	int len;
-	char sel, *buf;
-
-	HDC thdc, hdcMem;
-	HBITMAP oldBitmap;
+	char *buf;
 
 	double ratio, midpos;
 
@@ -6636,24 +6628,6 @@ errorf("fte create9");
 }
 
 LRESULT CALLBACK FileTagEditWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-
-	RECT rect;
-	HWND thwnd;
-
-	int64_t i, len;
-	FTEV *ev = 0;
-	char *buf, space_flag;
-	wchar_t *wbuf;
-	oneslnk *addaliaschn, *remaliaschn;
-	oneslnk *link1, *link2, *link3, *link4, *link5;
-
-	HDC hdc;
-	PAINTSTRUCT ps;
-	HFONT hOldFont;
-	HPEN hOldPen;
-	HBRUSH hOldBrush;
-
-
 //errorf("x");
 /*
 	switch(msg) {
@@ -7131,8 +7105,6 @@ HWND CreateAliasWindow::createWindowInstance(WinInstancer wInstancer) {
 
 LRESULT CreateAliasWindow::onCreate(WinProcArgs procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	LPARAM &lParam = procArgs.lParam;
-	WPARAM &wParam = procArgs.wParam;
 
 	ShowWindow(hwnd, 0);
 	HWND thwnd = GetParent(hwnd);
@@ -7153,18 +7125,6 @@ LRESULT CreateAliasWindow::onCreate(WinProcArgs procArgs) {
 }
 
 LRESULT CALLBACK CreateAliasWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-
-	RECT rect;
-	HWND thwnd;
-
-	int64_t i;
-
-	HDC hdc;
-	PAINTSTRUCT ps;
-	HFONT hOldFont;
-	HPEN hOldPen;
-	HBRUSH hOldBrush;
-
 	switch(msg) {
 		case WM_CREATE: {
 			return this->onCreate(WinProcArgs(hwnd, msg, wParam, lParam));
@@ -7269,9 +7229,6 @@ LRESULT CALLBACK EditWindowSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wPara
 
 	//return CallWindowProcW(g_shared_window_vars.g_OldEditProc, hwnd, msg, wParam, lParam);
 
-	RECT rect;
-	HWND thwnd;
-
 	switch(msg) {
 		case WM_CREATE: {
 			return this->onCreate(WinProcArgs(hwnd, msg, wParam, lParam));
@@ -7291,6 +7248,7 @@ LRESULT CALLBACK EditWindowSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wPara
 		}
 		case WM_USER: {
 			ShowWindow(hwnd, 1);
+			break;
 		}
 		case WM_CHAR: {
 			switch(wParam) {
@@ -7305,8 +7263,6 @@ LRESULT CALLBACK EditWindowSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wPara
 			}
 			break;
 		}
-		default:
-			return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
 	}
 	return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
 }
@@ -7333,8 +7289,6 @@ HWND SearchBarWindow::createWindowInstance(WinInstancer wInstancer) {
 
 LRESULT SearchBarWindow::onCreate(WinProcArgs procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	LPARAM &lParam = procArgs.lParam;
-	WPARAM &wParam = procArgs.wParam;
 
 	// TODO: make enum instead
 
@@ -7368,6 +7322,8 @@ LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			MoveWindow(thwnd, 5, 5, rect.right - 5 - kSearchBarButtonX - 5 - 5, kSearchBarTextbH, 0);
 			thwnd = GetDlgItem(hwnd, 2);
 			MoveWindow(thwnd, rect.right - 5 - kSearchBarButtonX, 5, kSearchBarButtonX, kSearchBarButtonX, 0);
+
+			break;
 		}
 		case WM_COMMAND: {
 			if (HIWORD(wParam) == BN_CLICKED) {
@@ -7400,12 +7356,13 @@ LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			}
 		}
 		case WM_KEYDOWN: {
+			break;
 		}
 		case WM_CHAR: {
+			break;
 		}
-		default:
-			return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
 	}
+	return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
 }
 
 
@@ -7424,8 +7381,6 @@ const WindowHelper TextEditDialogWindow::helper = WindowHelper(std::wstring(L"Te
 
 LRESULT TextEditDialogWindow::onCreate(WinProcArgs procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	LPARAM &lParam = procArgs.lParam;
-	WPARAM &wParam = procArgs.wParam;
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
@@ -7452,17 +7407,9 @@ HWND TextEditDialogWindow::createWindowInstance(WinInstancer wInstancer) {
 }
 
 LRESULT CALLBACK TextEditDialogWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-
-	RECT rect;
 	HWND thwnd;
 
-	int64_t i, len;
-
-	HDC hdc;
-	PAINTSTRUCT ps;
-	HFONT hOldFont;
-	HPEN hOldPen;
-	HBRUSH hOldBrush;
+	int64_t len;
 
 	switch(msg) {
 		case WM_CREATE: {
