@@ -116,6 +116,9 @@ TO DO
 
 		- handle io exceptions
 
+		- image handling by linking
+			- separate target libraries for image reading from the main CMakeLists file
+
 	Optimizations
 		- informing of being pre-sorted
 
