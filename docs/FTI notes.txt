@@ -8,10 +8,7 @@ TO DO
 
 		- maybe call 'main index' a 'tracker'
 
-	Change
-		- remove global PrgDir
-			- maybe make static
-			
+	Change			
 		- create a windowinstancer instead of a global variable and function
 		
 		- don't use friend classes
