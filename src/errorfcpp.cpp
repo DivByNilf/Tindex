@@ -5,32 +5,29 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <memory>
 
 #include "portables.h"
 #include "portables.hpp"
 
 #include "errorf.hpp"
 
-static std::string g_fileName;
-
 #define MAX_LEN MAX_PATH*4 + 1000
 #define W_MAX_LEN MAX_PATH*2 + 1000
 
-void ErrorfStdStrF(const std::string str, const std::string fileName) {
+void ErrorfStdStrF(const std::string &str, const std::string &fileName) {
 	static bool s_bFirstErr = true;
 	
 	if (fileName == "") {
 		// TODO: maybe defer to some kind of buffer
-		g_errorfDialogStdStr("(ErrorfStdStr file doesn't exist doesn't exist) " + str);
+		ErrorfDialogStdStr("(ErrorfStdStr file doesn't exist doesn't exist) " + str);
 		return;
 	}
-	
-	// std::string fileStr = prgDir + "\\errorfile.log";
 	
 	std::ofstream ofs(fileName, std::ios::app | std::ios::ate);
 	
 	if (!ofs.is_open()) {
-		g_errorfDialogStdStr("Failed to open append file: \"" + fileName + "\"");
+		ErrorfDialogStdStr("Failed to open append file: \"" + fileName + "\"");
 		return;
 	}
 	
@@ -49,27 +46,19 @@ void ErrorfStdStrF(const std::string str, const std::string fileName) {
 	ofs << str;
 }
 
-void g_errorfStdStr(const std::string str) {
-	ErrorfStdStrF(str, g_fileName);
+void ErrorfStdStr(const std::string &str, const std::string &fileName) {
+	ErrorfStdStrF(str, fileName);
 }
 
-class FlushToFileBuf : public std::basic_stringbuf<char> {
-private:
-	virtual int sync() override {
-		if (this->std::basic_stringbuf<char>::sync()) {
-			ErrorfStdStrF("basic_stringbuf sync failed", fileName_);
-			return -1;
-		}
-		ErrorfStdStrF(std::string(this->str()), fileName_);
-		this->str("");
-		return 0;
+int FlushToFileBuf::sync() {
+	if (this->std::basic_stringbuf<char>::sync()) {
+		ErrorfStdStrF("basic_stringbuf sync failed", fileName_);
+		return -1;
 	}
-public:
-	FlushToFileBuf(const std::string &fileName);
-	FlushToFileBuf() = delete;
-
-	std::string fileName_;
-};
+	ErrorfStdStrF(std::string(this->str()), fileName_);
+	this->str("");
+	return 0;
+}
 
 FlushToFileBuf::FlushToFileBuf(const std::string &fileName) :
 	std::basic_stringbuf<char>(),
@@ -77,38 +66,50 @@ FlushToFileBuf::FlushToFileBuf(const std::string &fileName) :
 {}
 
 template <typename T>
-class StringBufFlusher {
-private:
-	std::basic_stringbuf<T> &buf;
-	
-public:
-	
-	StringBufFlusher() = delete;
-	
-	StringBufFlusher(std::basic_stringbuf<T> &buf_) : buf{buf_} {};
-	
-	virtual ~StringBufFlusher() {
-		// should not flush if nothing written
-		if (buf.str().length() >= 1) {
-			this->buf.pubsync();
-		}
+StringBufFlusher<T>::StringBufFlusher(std::basic_stringbuf<T> &buf_) : buf{buf_} {};
+
+template <typename T>
+StringBufFlusher<T>::~StringBufFlusher() {
+	// should not flush if nothing written
+	if (buf.str().length() >= 1) {
+		this->buf.pubsync();
 	}
-};
+}
 
-static FlushToFileBuf g_outerBuf(g_fileName);
-std::basic_ostream<char> g_errorfStream(&g_outerBuf);
+// static FlushToFileBuf g_outerBuf(g_fileName);
+// std::basic_ostream<char> errorfStream(&g_outerBuf);
 // flush the errorf stream when the program exits
-static StringBufFlusher<char> g_flushToFileHelper(g_outerBuf);
+// static StringBufFlusher<char> g_flushToFileHelper(g_outerBuf);
 
-void g_errorfDialogStdStr(std::string str) {
+void ErrorfDialogStdStr(const std::string &str) {
 	std::wstring wstr = u8_to_u16(str);
 	MessageBoxW(0, wstr.c_str(), 0, 0);
 }
 
-bool SetErrorfStaticPrgDir(std::string prgDir) {
-	g_fileName = prgDir + "/errorfile.log";
-	g_outerBuf.fileName_ = g_fileName;
+/* bool SetErrorfStaticPrgDir(const std::string &prgDir) {
+	fileName = prgDir + "/errorfile.log";
+	outerBuf.fileName_ = fileName;
 	return true;
+} */
+
+std::string CreateErrorFileName(std::string prgDir) {
+	return prgDir + "/errorfile.log";
+}
+
+ErrorfData &&MakeErrorfStream(const std::string prgDir) {
+	std::string fileName = prgDir + "/errorfile.log";
+	FlushToFileBuf outerBuf(fileName);
+	auto errorfStreamPtr = std::make_shared<std::ostream>(&outerBuf);
+	StringBufFlusher<char> flushToFileHelper(outerBuf);
+	return ErrorfData {
+		errorfStreamPtr,
+		std::move(outerBuf),
+		std::move(flushToFileHelper)
+	};
+}
+
+void errorf(std::ostream &errorfStream, const std::string &str) {
+	errorfStream << str << std::flush;
 }
 
 //for compatability
@@ -121,8 +122,9 @@ bool SetErrorfStaticPrgDir(std::string prgDir) {
 #define MAX_LEN MAX_PATH*4 + 1000
 #define W_MAX_LEN MAX_PATH*2 + 1000
 
+// TODO: remove all this
 extern "C" {
-	void g_errorf(const char *str, ...) {
+	void c_errorf(const char *file_name, const char *str, ...) {
 		char buf[MAX_LEN];
 		va_list args;
 		
@@ -131,10 +133,11 @@ extern "C" {
 		va_end(args);
 		
 		std::string cpp_str(buf);
-		ErrorfStdStrF(cpp_str, g_fileName);
+		std::string fileName(file_name);
+		ErrorfStdStrF(cpp_str, fileName);
 	}
 
-	void g_errorfDialog(const char *str, ...) {
+	void ErrorfDialog(const char *str, ...) {
 		char buf[MAX_LEN];
 		va_list args;
 		
@@ -143,6 +146,6 @@ extern "C" {
 		va_end(args);
 		
 		std::string cpp_str(buf);
-		g_errorfDialogStdStr(cpp_str);
+		ErrorfDialogStdStr(cpp_str);
 	}
 }

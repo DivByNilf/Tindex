@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <cstdint>
 
-struct SharedWindowVariables {
+struct SharedWindowData {
 	HINSTANCE ghInstance;
 	DWORD color;
 	HFONT hFont, hFont2, hFontUnderlined;
@@ -18,9 +18,30 @@ struct SharedWindowVariables {
     std::shared_ptr<void> hMapFile;
 };
 
+struct WinProcArgs {
+	HWND hwnd;
+	UINT msg;
+	WPARAM wParam;
+	LPARAM lParam;
+	std::shared_ptr<SharedWindowData> sharedWinData;
+	std::ostream &errorfStream;
+	const std::function<std::shared_ptr<WindowClass>(HWND)> getWindowPtr;
+};
+
+struct WinProcData {
+	std::map<HWND, std::shared_ptr<WindowClass>> winMemMap;
+	std::ostream &errorfStream;
+	std::shared_ptr<SharedWindowData> sharedWinData;
+};
+
+//}
+
+class WinCreateArgs;
+
 void PingExistingProcess(HWND);
 
-void MainInitHandles(SharedWindowVariables &);
-void MainDeInitHandles(SharedWindowVariables &);
+void MainInitHandles(WinProcData &, std::ostream &errorfStream);
+void MainDeInitHandles(WinProcData &);
 
-bool SetSharedWindowVariables(std::shared_ptr<SharedWindowVariables> sharedWindowVar);
+bool SetWinProcData(std::shared_ptr<WinProcData> winProcData);
+void ReleaseWinProcData();
