@@ -1,6 +1,9 @@
+#pragma once
+
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <memory>
 
 class FlushToFileBuf : public std::basic_stringbuf<char> {
 private:
@@ -15,18 +18,18 @@ public:
 template <typename T>
 class StringBufFlusher {
 public:
-	std::basic_stringbuf<T> &buf;
+	std::shared_ptr<std::basic_stringbuf<T>> buf_;
 	
 	StringBufFlusher() = delete;
 	
-	StringBufFlusher(std::basic_stringbuf<T> &buf_);
+	StringBufFlusher(std::shared_ptr<std::basic_stringbuf<T>> buf);
 	
 	virtual ~StringBufFlusher();
 };
 
 struct ErrorfData {
-    shared_ptr<std::ostream> errorfStreamPtr;
-    FlushToFileBuf outerBuf;
+    std::shared_ptr<std::ostream> errorfStreamPtr;
+	std::shared_ptr<std::basic_stringbuf<char>> outerBuf;
     StringBufFlusher<char> flushToFileHelper;
 };
 
@@ -40,6 +43,6 @@ bool SetErrorfStaticPrgDir(const std::string prgDir);
 
 std::string CreateErrorFileName(std::string prgDir);
 
-ErrorfData &&MakeErrorfStream(const std::string prgDir);
+ErrorfData MakeErrorfStream(const std::string prgDir);
 
 void errorf(std::ostream &errorfStream, const std::string &str);

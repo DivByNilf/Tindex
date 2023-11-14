@@ -66,13 +66,13 @@ FlushToFileBuf::FlushToFileBuf(const std::string &fileName) :
 {}
 
 template <typename T>
-StringBufFlusher<T>::StringBufFlusher(std::basic_stringbuf<T> &buf_) : buf{buf_} {};
+StringBufFlusher<T>::StringBufFlusher(std::shared_ptr<std::basic_stringbuf<T>> buf) : buf_{buf} {};
 
 template <typename T>
 StringBufFlusher<T>::~StringBufFlusher() {
 	// should not flush if nothing written
-	if (buf.str().length() >= 1) {
-		this->buf.pubsync();
+	if (buf_->str().length() >= 1) {
+		buf_->pubsync();
 	}
 }
 
@@ -96,20 +96,19 @@ std::string CreateErrorFileName(std::string prgDir) {
 	return prgDir + "/errorfile.log";
 }
 
-ErrorfData &&MakeErrorfStream(const std::string prgDir) {
+ErrorfData MakeErrorfStream(const std::string prgDir) {
 	std::string fileName = prgDir + "/errorfile.log";
-	FlushToFileBuf outerBuf(fileName);
-	auto errorfStreamPtr = std::make_shared<std::ostream>(&outerBuf);
-	StringBufFlusher<char> flushToFileHelper(outerBuf);
+	std::shared_ptr<std::basic_stringbuf<char>> outerBufPtr = std::make_shared<FlushToFileBuf>(fileName);
+	auto errorfStreamPtr = std::make_shared<std::ostream>(outerBufPtr.get());
 	return ErrorfData {
 		errorfStreamPtr,
-		std::move(outerBuf),
-		std::move(flushToFileHelper)
+		outerBufPtr,
+		StringBufFlusher<char>(outerBufPtr)
 	};
 }
 
 void errorf(std::ostream &errorfStream, const std::string &str) {
-	errorfStream << str << std::flush;
+	errorfStream << str << std::endl;
 }
 
 //for compatability
