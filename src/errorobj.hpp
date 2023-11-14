@@ -28,10 +28,7 @@ public:
 		return !this->hasNothing();
 	}
 	
-	ErrorObject operator=(const ErrorObject &other) {
-		*this = ErrorObject(other);
-		return *this;
-	}
+	ErrorObject &operator=(const ErrorObject &other) = default;
 };
 
 template <class CharT, class Traits>
