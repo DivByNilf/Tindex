@@ -6,9 +6,7 @@
 
 #include "ioextras.hpp"
 
-#include "errorf.hpp" //! 
-
-#define errorf(str) g_errorfStdStr(str) //!
+#include "errorf.hpp"
 
 void put_u64_stream_pref(std::ostream &ios, uint64_t uint) {
 	unsigned char str[9];
@@ -23,14 +21,14 @@ void put_u64_stream_pref(std::ostream &ios, uint64_t uint) {
 	}
 	
 	if (i <= 0) {
-		errorf("error: i <= 0");
+		errorf(std::cerr, "error: i <= 0");
 		ios.setstate(std::ios_base::badbit | std::ios_base::failbit);
 	} else {
 		int len = 9-i;
 		i--;
 		str[i] = len;
-g_errorfStream << "writing: " << uint << std::flush;
-g_errorfStream << "i: " << i << ", len: " << len << std::flush;
+std::cerr << "writing: " << uint << std::flush;
+std::cerr << "i: " << i << ", len: " << len << std::flush;
 	
 		ios.write((char *) &str[i], len+1);
 	}
@@ -74,7 +72,7 @@ void put_u64_stream_fixed(std::ostream &ios, uint64_t uint) {
 	}
 	
 	if (i < 0) {
-		errorf("error: i < 0");
+		errorf(std::cerr, "error: i < 0");
 		ios.setstate(std::ios_base::badbit | std::ios_base::failbit);
 	} else {
 		int len = 8;

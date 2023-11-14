@@ -8,7 +8,6 @@ namespace std {
 
 
 #include "errorf.hpp"
-#define errorf(str) g_errorfStdStr(str)
 
 #include "uiutils.hpp"
 #include "portables.hpp"
@@ -26,10 +25,10 @@ HRESULT SeekDir(HWND hwnd, char *retstr) {
 	if (SUCCEEDED(hr) || 1) {
 		if (!SUCCEEDED(hr)) {
 			//errorf_old("hr: %d", hr);
-			g_errorfStream << "(SeekDir) hr: " << hr << std::flush;
+			std::cerr << "(SeekDir) hr: " << hr << std::flush;
 			//errorf_old("%d, %d %d, %d, %d, %d", E_INVALIDARG, E_OUTOFMEMORY, E_UNEXPECTED, S_OK, S_FALSE, RPC_E_CHANGED_MODE);
-			g_errorfStream << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
-			errorf("Can't initialize COM");
+			std::cerr << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
+			errorf(std::cerr, "Can't initialize COM");
 		}
 		
 		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileOpenDialog, (void *) &pfd);
@@ -50,7 +49,7 @@ HRESULT SeekDir(HWND hwnd, char *retstr) {
 								hr = psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
 								if (SUCCEEDED(hr)) {
 									if ((WideCharToMultiByte(65001, 0, pszFilePath, -1, retstr, MAX_PATH*4, NULL, NULL)) == 0) {
-										errorf("WideCharToMultiByte Failed");
+										errorf(std::cerr, "WideCharToMultiByte Failed");
 									}
 									CoTaskMemFree(pszFilePath);
 								}
@@ -62,15 +61,15 @@ HRESULT SeekDir(HWND hwnd, char *retstr) {
 			}
 			pfd->Release();
 		} else {
-			errorf("Can't create IExample object. CoCreateInstance error");
+			errorf(std::cerr, "Can't create IExample object. CoCreateInstance error");
 		}
 		CoUninitialize();
 	} else {
 		//errorf_old("hr: %d", hr);
-		g_errorfStream << "(SeekDir) hr: " << hr << std::flush;
+		std::cerr << "(SeekDir) hr: " << hr << std::flush;
 		//errorf_old("%d, %d %d, %d, %d, %d", E_INVALIDARG, E_OUTOFMEMORY, E_UNEXPECTED, S_OK, S_FALSE, RPC_E_CHANGED_MODE);
-		g_errorfStream << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
-		errorf("Can't initialize COM"); 
+		std::cerr << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
+		errorf(std::cerr, "Can't initialize COM"); 
 	}
 	return hr;
 }
@@ -90,9 +89,9 @@ std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr) {
 	
 	if (SUCCEEDED(hr) || 1) {
 		if (!SUCCEEDED(hr)) {
-			g_errorfStream << "(SeekDir) hr: " << hr << std::flush;
-			g_errorfStream << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
-			errorf("Can't initialize COM");
+			std::cerr << "(SeekDir) hr: " << hr << std::flush;
+			std::cerr << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
+			errorf(std::cerr, "Can't initialize COM");
 		}
 		
 		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileOpenDialog, (LPVOID *) &pfd);
@@ -118,7 +117,7 @@ std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr) {
 									if (retPath.is_relative()) {
 										retPath = retPath.root_path();
 										if (!retPath.is_absolute()) {
-											g_errorfStream << "(SeekDir) couldn't make path absolute: " << retPath << std::flush;
+											std::cerr << "(SeekDir) couldn't make path absolute: " << retPath << std::flush;
 											retPath.clear();
 										}
 									}
@@ -131,13 +130,13 @@ std::fs::path SeekDir(const HWND &hwnd, HRESULT *resultPtr) {
 			}
 			pfd->Release();
 		} else {
-			errorf("(SeekDir) Can't create IExample object. CoCreateInstance error");
+			errorf(std::cerr, "(SeekDir) Can't create IExample object. CoCreateInstance error");
 		}
 		CoUninitialize();
 	} else {
-		g_errorfStream << "(SeekDir) hr: " << hr << std::flush;
-		g_errorfStream << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
-		errorf("Can't initialize COM"); 
+		std::cerr << "(SeekDir) hr: " << hr << std::flush;
+		std::cerr << E_INVALIDARG << ", " << E_OUTOFMEMORY << ", " << E_UNEXPECTED << ", " << S_OK << ", " << S_FALSE << ", " << RPC_E_CHANGED_MODE << std::flush;
+		errorf(std::cerr, "Can't initialize COM"); 
 	}
 	if (resultPtr != nullptr) {
 		*resultPtr = hr;
@@ -151,13 +150,13 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 	//int i, j;
 	
 	if (argPath.is_relative()) {
-		errorf("makePathRelativeToProgDir received relative path");
+		errorf(std::cerr, "makePathRelativeToProgDir received relative path");
 		setErrorPtr(retError, 1);
 		return {};
 	}
 	
 	if (prgDir.empty()) {
-		errorf("prgDir was empty");
+		errorf(std::cerr, "prgDir was empty");
 		setErrorPtr(retError, 1);
 		return {};
 	}
@@ -168,13 +167,13 @@ std::filesystem::path makePathRelativeToProgDir(const std::filesystem::path &arg
 	auto prgDirIt = prgDir.begin();
 	
 	if (usePathIt == usePath.end() || prgDirIt == prgDir.end()) {
-		errorf("first element of non-empty path was end()");
+		errorf(std::cerr, "first element of non-empty path was end()");
 		setErrorPtr(retError, 1);
 		return {};
 	}
 	
 	if (*usePathIt != *prgDirIt) {
-		setErrorPtrOrPrint(retError, g_errorfStream, ErrorObject(1, "Entered path has different root from program path"));
+		setErrorPtrOrPrint(retError, std::cerr, ErrorObject(1, "Entered path has different root from program path"));
 		return {};
 	} else {
 		usePathIt++;
@@ -213,7 +212,7 @@ uint64_t stringToUint(std::string str, ErrorObject *retError) {
 		ret_uint = std::stoull(str);
 	} catch(...) {
 		if (!setErrorPtr(retError, 1)) {
-			errorf("stringToUint received exception");
+			errorf(std::cerr, "stringToUint received exception");
 		}
 		return 0;
 	}
@@ -249,7 +248,7 @@ int CleanEditText(HWND hwnd) {
 	} len++;
 	SendMessage(hwnd, EM_GETSEL, (WPARAM) &selStart, (LPARAM) &selend);
 	if (!(buf = (wchar_t *) malloc(len*2))) {
-		errorf("malloc failed");
+		errorf(std::cerr, "malloc failed");
 		return 1;
 	}
 	GetWindowTextW(hwnd, buf, len);
@@ -285,12 +284,12 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 	uint8_t quoted;
 
 	if (!parsedchn) {
-		errorf("no parsedchn");
+		errorf(std::cerr, "no parsedchn");
 		return 1;
 	}
 	*parsedchn = 0;
 	if (!input) {
-		errorf("no input string in parsefiletagstr");
+		errorf(std::cerr, "no input string in parsefiletagstr");
 		return 1;
 	}
 	link = flink = (oneslnk *) malloc(sizeof(oneslnk)), flink->str = 0;
@@ -298,7 +297,7 @@ char parsefiletagstr(char *input, oneslnk **parsedchn) {
 	ull1 = ull2 = quoted = 0;
 	while (1) {
 		if (ull2 >= 10000) {
-			errorf("parsed tag too long");
+			errorf(std::cerr, "parsed tag too long");
 			link->next = 0;
 			killoneschn(flink, 0);
 			return 1;
@@ -352,7 +351,7 @@ char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, one
 	oneslnk *parsedchn, *link1, *link2, *link3, *link4;
 
 	if (!addaliaschn || !remaliaschn) {
-		errorf("no addaliaschn or no remaliaschn");
+		errorf(std::cerr, "no addaliaschn or no remaliaschn");
 		return 1;
 	}
 	*addaliaschn = *remaliaschn = 0;
@@ -364,12 +363,12 @@ char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, one
 
 	if (parsedchn) {
 		if (sortoneschn(parsedchn, (int(*)(void*,void*)) strcmp, 0)) {
-			errorf("sortoneschn failed");
+			errorf(std::cerr, "sortoneschn failed");
 			killoneschn(parsedchn, 0);
 			return 1;
 		}
 		if (parsedchn->str == 0) {
-			errorf("parsed null string");
+			errorf(std::cerr, "parsed null string");
 		}
 		for (link1 = parsedchn; link1->next; link1 = link1->next) {
 			if (strcmp((char *) link1->next->str, (char *) link1->str) == 0) {
@@ -380,28 +379,28 @@ char keepremovedandadded(oneslnk *origchn, char *buf, oneslnk **addaliaschn, one
 	}
 
 ////////
-if (!origchn) { errorf("remadd no origchn"); } else { errorf("remadd with origchn"); } //!
+if (!origchn) { errorf(std::cerr, "remadd no origchn"); } else { errorf(std::cerr, "remadd with origchn"); } //!
 ////////
 
 	if (!presort && origchn) {
 		 origchn = copyoneschn(origchn, 0);
 		if (sortoneschn(origchn, (int(*)(void*,void*)) strcmp, 0)) {
-			errorf("sortoneschn failed");
+			errorf(std::cerr, "sortoneschn failed");
 			killoneschn(parsedchn, 0), killoneschn(origchn, 0);
 			return 1;
 		}
 	} if (origchn && origchn->str == 0) {
-		errorf("origchn null string");
+		errorf(std::cerr, "origchn null string");
 	}
 ////////
 link1 = origchn;
 while (link1) {
-	g_errorfStream << "origchn: " << link1->str << std::flush;
+	std::cerr << "origchn: " << link1->str << std::flush;
 	link1 = link1->next;
 }
 link1 = parsedchn;
 while (link1) {
-	g_errorfStream << "parsedchn: " << link1->str << std::flush;
+	std::cerr << "parsedchn: " << link1->str << std::flush;
 	link1 = link1->next;
 }
 ///////
@@ -494,7 +493,7 @@ void dialogf(HWND hwnd, char *str, ...) {
 	va_end(args);
 
 	if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf.get(), 1001)) == 0) {
-		errorf("MultiByteToWideChar Failed");
+		errorf(std::cerr, "MultiByteToWideChar Failed");
 	}
 	MessageBoxW(hwnd, wbuf.get(), 0, 0);
 }

@@ -26,7 +26,6 @@ extern "C" {
 #include "breakpath.hpp"
 
 #include "errorf.hpp"
-#define errorf(str) g_errorfStdStr(str)
 
 typedef struct my_error_mgr {
 	struct jpeg_error_mgr pub;
@@ -38,7 +37,7 @@ static void my_error_exit(j_common_ptr cinfo) { // address of my_error_mgr struc
 	my_error_ptr myerr = (my_error_ptr)cinfo->err;
 //	(*cinfo->err->output_message) (cinfo);	// function invocation
 	(*cinfo->err->format_message)(cinfo, buf);
-	g_errorfStream << "jpeg exit: " << buf << std::flush;
+	std::cerr << "jpeg exit: " << buf << std::endl;
 
 	longjmp(myerr->setjmp_buffer, 1);
 }
@@ -54,7 +53,7 @@ std::shared_ptr<ImgF> ReadJPG(std::fs::path path) {		// test with monochrome jpg
 	unsigned char *rowp[1];
 
 	if ((infile = MBfopen(path.generic_string().c_str(), "rb")) == NULL) {
-		errorf("fopen failed (ReadJPG)");
+		errorf(std::cerr, "fopen failed (ReadJPG)");
 		return 0;
 	}
 	
@@ -66,7 +65,7 @@ std::shared_ptr<ImgF> ReadJPG(std::fs::path path) {		// test with monochrome jpg
 		fclose(infile);
 		if (bmbuf)
 			free(bmbuf);
-		errorf("jumped error");
+		errorf(std::cerr, "jumped error");
 		return 0;
 	}
 	jpeg_create_decompress(&cinfo);
@@ -74,16 +73,16 @@ std::shared_ptr<ImgF> ReadJPG(std::fs::path path) {		// test with monochrome jpg
 	(void)jpeg_read_header(&cinfo, TRUE);
 	
 	if (cinfo.num_components == 2) {
-		errorf("2 Components");
+		errorf(std::cerr, "2 Components");
 	} if (cinfo.num_components > 4) {
-		errorf("More than 4 components");
+		errorf(std::cerr, "More than 4 components");
 	}
 	
 	cinfo.out_color_space = JCS_EXT_BGRA;
 	
 	(void)jpeg_start_decompress(&cinfo);
 	if ((bmbuf = (uint8_t *) malloc(cinfo.output_width*cinfo.output_height*4)) == 0) {
-		g_errorfStream << "Malloc failed: width " << cinfo.image_width << ", height" << cinfo.image_height << std::flush;
+		std::cerr << "Malloc failed: width " << cinfo.image_width << ", height" << cinfo.image_height << std::endl;
 	}
 	image = std::make_shared<ImgF>();
 	image->n = 1;
@@ -121,24 +120,24 @@ std::shared_ptr<ImgF> ReadPNG(std::fs::path path) {
 	unsigned char *rowpointer;
 	
 	if ((infile = MBfopen(path.generic_string().c_str(), "rb")) == NULL) {
-		g_errorfStream << "fopen failed (ReadPNG) \"" << path << "\"" << std::flush;
+		std::cerr << "fopen failed (ReadPNG) \"" << path << "\"" << std::endl;
 		return 0;
 	}
 	
 	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
 	if (!png_ptr)
-		errorf("png_create_read_struct failed");
+		errorf(std::cerr, "png_create_read_struct failed");
 		
 	png_infop info_ptr = png_create_info_struct(png_ptr);
 	if (!info_ptr) {
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-		errorf("png_create_info_struct failed for info_ptr");
+		errorf(std::cerr, "png_create_info_struct failed for info_ptr");
 	}
 	
 	png_infop end_info = png_create_info_struct(png_ptr);
 	if (!end_info) {
 		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
-		errorf("png_create_info_struct failed for end_info");
+		errorf(std::cerr, "png_create_info_struct failed for end_info");
 	}
 	
 	if (setjmp(png_jmpbuf(png_ptr))) {
@@ -146,7 +145,7 @@ std::shared_ptr<ImgF> ReadPNG(std::fs::path path) {
 		fclose(infile);
 		if (bmbuf)
 			free(bmbuf);
-		errorf("jumped error");
+		errorf(std::cerr, "jumped error");
 		return 0;
 	}
 		
@@ -155,16 +154,16 @@ std::shared_ptr<ImgF> ReadPNG(std::fs::path path) {
 	png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type, 0, 0, 0);
 	
 	if (!(color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA || PNG_COLOR_TYPE_PALETTE)) {
-		g_errorfStream << "Not RGB, RGBA, grayscale or palette: \"" << path << "\"" << std::flush;
+		std::cerr << "Not RGB, RGBA, grayscale or palette: \"" << path << "\"" << std::endl;
 	}
 	if (bit_depth != 8) {
 		if (bit_depth == 16) {
 			png_set_strip_16(png_ptr);
 			if (!(color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA)) {
-				g_errorfStream << "non-rgb bit depth 16: " << path << std::flush;
+				std::cerr << "non-rgb bit depth 16: " << path << std::endl;
 			}
 		} else {
-			g_errorfStream << "Bit depth not 8, bit_depth: " << bit_depth << ", " << path << std::flush;
+			std::cerr << "Bit depth not 8, bit_depth: " << bit_depth << ", " << path << std::endl;
 		}
 	}
 	if (png_get_bKGD(png_ptr, info_ptr, &image_background))
@@ -183,7 +182,7 @@ std::shared_ptr<ImgF> ReadPNG(std::fs::path path) {
 
 	bmbuf = (uint8_t *) malloc(width*height*4);
 	if (bmbuf == 0) {
-		g_errorfStream << "Malloc failed: width " << width << ", height " << height << std::flush;
+		std::cerr << "Malloc failed: width " << width << ", height " << height << std::endl;
 	}
 	
 	image = std::make_shared<ImgF>();
@@ -224,12 +223,12 @@ std::shared_ptr<ImgF> ReadGIF(std::fs::path path) {		// test with special charac
 	GraphicsControlBlock GCB;
 	
 	if ((gifFile = DGifOpenFileName(path.generic_string().c_str(), &error)) == NULL) {
-		g_errorfStream << "DGifOpenFileName -- Error code1: " << error << std::flush;
+		std::cerr << "DGifOpenFileName -- Error code1: " << error << std::endl;
 		return 0;
 	}
 
 	if (DGifSlurp(gifFile) == 0) {
-		errorf("DGifSlurp failed");
+		errorf(std::cerr, "DGifSlurp failed");
 		return 0;
 	}
 	
@@ -239,9 +238,9 @@ std::shared_ptr<ImgF> ReadGIF(std::fs::path path) {		// test with special charac
 	framec = gifFile->ImageCount;
 
 /*	if (gifFile->SColorMap == NULL)
-		errorf("No global colormap. ImageCount: %d Bits per pixel(1): %d Width: %d Height: %d Interlaced: %d Colorcount: %d Sortflag: %d" , framec, gifFile->SavedImages[0].ImageDesc.ColorMap->BitsPerPixel, width, height, gifFile->SavedImages[0].ImageDesc.Interlace, gifFile->SavedImages[0].ImageDesc.ColorMap->ColorCount, gifFile->SavedImages[0].ImageDesc.ColorMap->SortFlag);
+		errorf(std::cerr, "No global colormap. ImageCount: %d Bits per pixel(1): %d Width: %d Height: %d Interlaced: %d Colorcount: %d Sortflag: %d" , framec, gifFile->SavedImages[0].ImageDesc.ColorMap->BitsPerPixel, width, height, gifFile->SavedImages[0].ImageDesc.Interlace, gifFile->SavedImages[0].ImageDesc.ColorMap->ColorCount, gifFile->SavedImages[0].ImageDesc.ColorMap->SortFlag);
 	else
-		errorf("Yes global colormap. ImageCount: %d Bits per pixel: %d Width: %d Height: %d Interlaced: %d Colorcount: %d Sortflag: %d", framec, gifFile->SColorMap->BitsPerPixel, width, height, gifFile->SavedImages[1].ImageDesc.Interlace, gifFile->SColorMap->ColorCount, gifFile->SColorMap->SortFlag);
+		errorf(std::cerr, "Yes global colormap. ImageCount: %d Bits per pixel: %d Width: %d Height: %d Interlaced: %d Colorcount: %d Sortflag: %d", framec, gifFile->SColorMap->BitsPerPixel, width, height, gifFile->SavedImages[1].ImageDesc.Interlace, gifFile->SColorMap->ColorCount, gifFile->SColorMap->SortFlag);
 */
 	tcolors = (int *) calloc(framec, sizeof(int));
 	delay = (int *) calloc(framec, sizeof(int));
@@ -257,13 +256,13 @@ std::shared_ptr<ImgF> ReadGIF(std::fs::path path) {		// test with special charac
 					delay[i] = 10;		// 0 defaults to 0,1 seconds
 				disposal[i] = GCB.DisposalMode;
 					if (disposal[i] == DISPOSE_BACKGROUND && gifFile->SBackGroundColor != tcolors[0]) 	// haven't tested with non-transparent bg -- only transparent color of the first frame matters?
-						errorf("Dispose BG");													
+						errorf(std::cerr, "Dispose BG");													
 					if (disposal[i] == DISPOSE_PREVIOUS)	// never seen; no support yet, would require keeping previous frame in buffer (which might be feasible here)
-						errorf("Dispose previous");
+						errorf(std::cerr, "Dispose previous");
 			}
 		}
 		if (j == gifFile->SavedImages[i].ExtensionBlockCount-1 && gifFile->SavedImages[i].ExtensionBlocks[j-1].Function != 0xf9) {		//? is the j loop meant to break when it finds the GCB or does the GCB only come at a certain position? is the -1 meant to be there for the first operand of &&? 
-			g_errorfStream << "Didn't get GCB frame %d" << std::flush;
+			std::cerr << "Didn't get GCB frame %d" << std::endl;
 		}
 	}
 	
@@ -277,7 +276,7 @@ std::shared_ptr<ImgF> ReadGIF(std::fs::path path) {		// test with special charac
 	
 	for (i = 0; i < framec; i++) {
 		if (!(image->img[i] = (uint8_t *) malloc(res*4))) {
-			g_errorfStream << "malloc failed for gif frame " << i+1 << " / " << framec << std::flush;
+			std::cerr << "malloc failed for gif frame " << i+1 << " / " << framec << std::endl;
 			while (i > 0) {
 				i--;
 				free(image->img[i]);
@@ -341,7 +340,7 @@ std::shared_ptr<ImgF> ReadGIF(std::fs::path path) {		// test with special charac
 			}
 			
 		} else {
-			g_errorfStream << "No global colormap or local colormap for " << (i+1) << std::flush;
+			std::cerr << "No global colormap or local colormap for " << (i+1) << std::endl;
 		}
 		for (j = 0; j < res*4; image->img[i][j] = bmbuf[j], j++);
 		
@@ -390,7 +389,7 @@ std::shared_ptr<ImgF> ReadBMP(std::fs::path path) { //! unfinished
 	
 	if (strcmp(buf, "BM") && strcmp(buf, "BA") && strcmp(buf, "CI") && strcmp(buf, "CP") && strcmp(buf, "IC") && strcmp(buf, "PT")) {
 		fclose(infile);
-		g_errorfStream << "bitmap init chars, " << buf << std::flush;
+		std::cerr << "bitmap init chars, " << buf << std::endl;
 		return 0;
 	}
 	fseek(infile, 8, SEEK_CUR);
@@ -406,12 +405,12 @@ std::shared_ptr<ImgF> ReadBMP(std::fs::path path) { //! unfinished
 		height = getc(infile), height += getc(infile)*256;
 		getc(infile);
 		if (getc(infile) != 1 || getc(infile) != 0) {
-			errorf("color planes different from 1");
+			errorf(std::cerr, "color planes different from 1");
 			fclose(infile);
 			return 0;
 		} bpp = getc(infile), bpp += getc(infile)*256;
 		if (bpp != 24 && bpp != 8 && bpp != 4 && bpp != 1) {
-			errorf("bpp not 1, 4, 8 or 24");
+			errorf(std::cerr, "bpp not 1, 4, 8 or 24");
 			fclose(infile);
 			return 0;
 		}
@@ -426,7 +425,7 @@ std::shared_ptr<ImgF> ReadBMP(std::fs::path path) { //! unfinished
 		
 		
 	} else {
-		g_errorfStream << "unsupported bmp header: size - " << j << std::flush;
+		std::cerr << "unsupported bmp header: size - " << j << std::endl;
 		fclose(infile);
 		return 0;
 	}
@@ -446,10 +445,10 @@ std::shared_ptr<ImgF> ReadImage(std::fs::path path) {
 	} else if (extension == "bmp") {
 		image = ReadBMP(path);
 	} else {
-		g_errorfStream << "no matched file extension: " << path << std::flush;
+		std::cerr << "no matched file extension: " << path << std::endl;
 	}
 	if (image == nullptr) {
-		g_errorfStream << ("no picture: %s", path);
+		std::cerr << ("no picture: %s", path);
 	}
 	return image;
 }
@@ -467,7 +466,7 @@ ImageFormat::~ImageFormat() {
 
 std::shared_ptr<ImgF> ResizeImage(std::shared_ptr<ImgF> img, double zoom) {
 	if (img == 0 || img->img == 0) {
-		errorf("tried to resize 0");
+		errorf(std::cerr, "tried to resize 0");
 		return 0;
 	}
 	std::shared_ptr<ImgF> dest;
@@ -506,10 +505,10 @@ std::shared_ptr<ImgF> ResizeImage(std::shared_ptr<ImgF> img, double zoom) {
 
 std::shared_ptr<ImgF> ResizeImageChunk(std::shared_ptr<ImgF> img, double zoom, unsigned long xOut, unsigned long yOut, unsigned long xspos, unsigned long yspos, const char *prgDir) {
 	if (img == 0 || img->img == 0) {
-		errorf("tried to resize 0");
+		errorf(std::cerr, "tried to resize 0");
 		return 0;
 	} if (xspos < 0 || yspos < 0) {
-		errorf("resizeimagechunk startpos less than 0");
+		errorf(std::cerr, "resizeimagechunk startpos less than 0");
 	}
 	std::shared_ptr<ImgF> dest;
 	dest = std::make_shared<ImgF>();
@@ -522,8 +521,8 @@ std::shared_ptr<ImgF> ResizeImageChunk(std::shared_ptr<ImgF> img, double zoom, u
 	full_x = img->x*zoom;
 	full_y = img->y*zoom;
 	if (xspos+xOut > full_x || yspos+yOut > full_y) {
-		errorf("imagechunk reaches out of bounds");
-		g_errorfStream
+		errorf(std::cerr, "imagechunk reaches out of bounds");
+		std::cerr
 			<< "vals: zoom: " << zoom
 			<< ", full_x: " << full_x
 			<< ", full_y: " << full_y
@@ -531,7 +530,7 @@ std::shared_ptr<ImgF> ResizeImageChunk(std::shared_ptr<ImgF> img, double zoom, u
 			<< ", xOut: " << xOut
 			<< ", yspos: " << yspos
 			<< ", yOut: " << yOut 
-			<< std::flush;
+			<< std::endl;
 	}
 		
 	if (dest->x <= 0 || dest->y <= 0) {
@@ -550,7 +549,7 @@ std::shared_ptr<ImgF> ResizeImageChunk(std::shared_ptr<ImgF> img, double zoom, u
 			dest->dur[pos] = img->dur[pos];
 		}
 	}
-	errorf("ResizeImageChunk spot 3");
+	errorf(std::cerr, "ResizeImageChunk spot 3");
 //	ScaleBmChunkNN(img->img, dest->img, img->n, img->x, img->y, dest->x, dest->y, xspos, yspos, zoom);
 //	ScaleBmChunkBiLin(img->img, dest->img, img->n, img->x, img->y, dest->x, dest->y, xspos, yspos, zoom);
 	ScaleBmChunkBiLinCL(img->img, dest->img, img->n, img->x, img->y, dest->x, dest->y, xspos, yspos, zoom, prgDir);
@@ -559,7 +558,7 @@ std::shared_ptr<ImgF> ResizeImageChunk(std::shared_ptr<ImgF> img, double zoom, u
 
 std::shared_ptr<ImgF> FitImage(std::shared_ptr<ImgF> img, unsigned long xfit, unsigned long yfit, unsigned char fitTo, unsigned char filteropt) {
 	if (img == 0 || img->img == 0) {
-		errorf("tried to resize 0");
+		errorf(std::cerr, "tried to resize 0");
 		return 0;
 	}
 	std::shared_ptr<ImgF> dest;
@@ -632,7 +631,7 @@ std::shared_ptr<ImgF> FitImage(std::shared_ptr<ImgF> img, unsigned long xfit, un
 
 std::shared_ptr<ImgF> FitImageX(std::shared_ptr<ImgF> img, unsigned long xfit, unsigned long yfit, int filter) {
 	if (img == 0 || img->img == 0) {
-		errorf("tried to resize 0");
+		errorf(std::cerr, "tried to resize 0");
 		return 0;
 	}
 	std::shared_ptr<ImgF> dest;
@@ -750,7 +749,7 @@ int ScaleBmChunkBiLin(unsigned char **from, unsigned char **to, unsigned long n,
 	full_x = x1*zoom;
 	full_y = y1*zoom;
 	
-	// errorf("resizing with: n: %d, x1: %d, y1: %d, x2: %d, y2: %d, xspos: %d, yspos: %d, zoom: %f", n, x1, y1, x2, y2, xspos, yspos, zoom);
+	// errorf(std::cerr, "resizing with: n: %d, x1: %d, y1: %d, x2: %d, y2: %d, xspos: %d, yspos: %d, zoom: %f", n, x1, y1, x2, y2, xspos, yspos, zoom);
 	
 	// first_y: ((yspos + 0.5) / zoom) - 0.5
 	// last_y : ((yspos + y2 - 1 + 0.5) / zoom) - 0.5
@@ -773,19 +772,19 @@ int ScaleBmChunkBiLin(unsigned char **from, unsigned char **to, unsigned long n,
 				ypx2 = ypx1+1;
 				if (ypx1 < 0) { // might not be necessary if it's truncated toward 0
 					ypx1 = 0;
-					errorf("ypx1 under");
+					errorf(std::cerr, "ypx1 under");
 				}
 				if (ypx1 >= y1) {
 					ypx1 = y1 - 1;
-					errorf("ypx1 over");
+					errorf(std::cerr, "ypx1 over");
 				}
 				if (ypx2 < 0) { //! this check shouldn't be necessary
 					ypx2 = 0;
-					errorf("ypx2 under");
+					errorf(std::cerr, "ypx2 under");
 				}
 				if (ypx2 >= y1) {
 					ypx2 = y1 - 1;
-					//errorf("ypx2 over");
+					//errorf(std::cerr, "ypx2 over");
 				}
 				for (j = 0; j < x2; j++) {
 					if (xspos+j >= full_x) {
@@ -801,19 +800,19 @@ int ScaleBmChunkBiLin(unsigned char **from, unsigned char **to, unsigned long n,
 					xpx2 = xpx1+1;
 					if (xpx1 < 0) { // might not be necessary if it's truncated toward 0
 						xpx1 = 0;
-						errorf("xpx1 under");
+						errorf(std::cerr, "xpx1 under");
 					}
 					if (xpx1 >= x1) {
 						xpx1 = x1 - 1;
-						errorf("xpx1 over");
+						errorf(std::cerr, "xpx1 over");
 					}
 					if (xpx2 < 0) { //! this check shouldn't be necessary
 						xpx2 = 0;
-						errorf("xpx2 under");
+						errorf(std::cerr, "xpx2 under");
 					}
 					if (xpx2 >= x1) {
 						xpx2 = x1 - 1;
-						//errorf("xpx2 over");
+						//errorf(std::cerr, "xpx2 over");
 					}
 						
 					to[pos][4*(i*x2+j)] = (from[pos][4*(ypx1*x1+xpx1)]*fmodx1 + from[pos][4*(ypx1*x1+xpx2)]*fmodx2)*fmody1 + (from[pos][4*(ypx2*x1+xpx1)]*fmodx1 + from[pos][4*(ypx2*x1+xpx2)]*fmodx2)*fmody2 + 0.5;
@@ -888,24 +887,24 @@ int ScaleBmBiLin(unsigned char **from, unsigned char **to, unsigned long n, unsi
 				fmody1 = 1-fmody2;
 				ypx1 = y-0.5;
 				ypx2 = ypx1+1;
-//errorf("y: %lf, fmody1: %lf, fmody2: %lf, ypx1: %lld, ypx2: %lld", y, fmody1, fmody2, ypx1, ypx2);
+//errorf(std::cerr, "y: %lf, fmody1: %lf, fmody2: %lf, ypx1: %lld, ypx2: %lld", y, fmody1, fmody2, ypx1, ypx2);
 
 				//! no checks should be necessary
 				if (ypx1 < 0) { // might not be necessary if it's truncated toward 0
 					ypx1 = 0;
-					errorf("ypx1 under");
+					errorf(std::cerr, "ypx1 under");
 				}
 				if (ypx1 >= y1) {
 					ypx1 = y1 - 1;
-					errorf("ypx1 over");
+					errorf(std::cerr, "ypx1 over");
 				}
 				if (ypx2 < 0) { //! this check shouldn't be necessary
 					ypx2 = 0;
-					errorf("ypx2 under");
+					errorf(std::cerr, "ypx2 under");
 				}
 				if (ypx2 >= y1) {
 					ypx2 = y1 - 1;
-					//errorf("ypx2 over");
+					//errorf(std::cerr, "ypx2 over");
 				}
 				for (j = 0; j < x2; j++) {
 					x = (j+0.5)/zoom;
@@ -946,11 +945,11 @@ int ScaleBmBiLin(unsigned char **from, unsigned char **to, unsigned long n, unsi
 
 std::shared_ptr<ImgF> BlurImage(std::shared_ptr<ImgF> img, float stdev) {
 	if (img == 0 || img->img == 0) {
-		errorf("no source image to blur");
+		errorf(std::cerr, "no source image to blur");
 		return 0;
 	}
 	
-errorf("blur1");
+errorf(std::cerr, "blur1");
 	std::shared_ptr<ImgF> dest;
 	dest = std::make_shared<ImgF>();
 	unsigned long pos;
@@ -983,12 +982,12 @@ errorf("blur1");
 	float *mods = (float *) malloc((range+1)*sizeof(float));
 	float out = 1;
 	
-//errorf("range: %i", range);
+//errorf(std::cerr, "range: %i", range);
 	
 	float gauss1 = (float) 1 / sqrt(2*M_PI*stdev*stdev);
-//errorf("gauss1: %f", gauss1);
+//errorf(std::cerr, "gauss1: %f", gauss1);
 	float gauss2 = (float) 2*stdev*stdev;
-//errorf("gauss2: %f", gauss2);
+//errorf(std::cerr, "gauss2: %f", gauss2);
 	for (i = 0; i <= range; i++) {
 		mods[i] = gauss1 * exp(-i*i/(2*stdev*stdev));
 		out -= mods[i];
@@ -997,15 +996,15 @@ errorf("blur1");
 		if (1 - out < 0.005) {
 			range = i;
 		}
-//errorf("mods[%lld]: %f", i, mods[i]);
+//errorf(std::cerr, "mods[%lld]: %f", i, mods[i]);
 	}
-g_errorfStream << "out: " << out << std::flush;
+std::cerr << "out: " << out << std::endl;
 	
-//errorf("range after: %i", range);
+//errorf(std::cerr, "range after: %i", range);
 
 	
 	float cumR, cumG, cumB, cumA, cumOut;
-errorf("blur2");
+errorf(std::cerr, "blur2");
 	
 	for (pos = 0; pos < dest->n; pos++) {
 		if (dest->n > 1) {
@@ -1021,20 +1020,20 @@ errorf("blur2");
 							abs = k;
 						else
 							abs = -k;
-//errorf("k: %lld, i: %lld, j: %lld", k, i, j);
-//errorf("var4: %lld", var4);
+//errorf(std::cerr, "k: %lld, i: %lld, j: %lld", k, i, j);
+//errorf(std::cerr, "var4: %lld", var4);
 						if (var4 >= 0 && var4 < img->x) {
-//errorf("cumR before: %f", cumR);
-//errorf("value: %d, mods: %f,  adding: %f", img->img[pos][4*(i*img->x+var4)], mods[abs], img->img[pos][4*(i*img->x+var4)] * mods[abs]);
+//errorf(std::cerr, "cumR before: %f", cumR);
+//errorf(std::cerr, "value: %d, mods: %f,  adding: %f", img->img[pos][4*(i*img->x+var4)], mods[abs], img->img[pos][4*(i*img->x+var4)] * mods[abs]);
 							cumR += img->img[pos][4*(i*img->x+var4)] * mods[abs];
 							cumG += img->img[pos][4*(i*img->x+var4)+1] * mods[abs];
 							cumB += img->img[pos][4*(i*img->x+var4)+2] * mods[abs];
-//errorf("cumR after: %f", cumR);
+//errorf(std::cerr, "cumR after: %f", cumR);
 						} else {
 							cumOut += mods[abs];
 						}
 					}
-//errorf("cumR: %f, cumG: %f, cumB: %f, cumOut: %f, cumR value after: %f", cumR, cumG, cumB, cumOut, cumR/(1-cumOut)+0.5);
+//errorf(std::cerr, "cumR: %f, cumG: %f, cumB: %f, cumOut: %f, cumR value after: %f", cumR, cumG, cumB, cumOut, cumR/(1-cumOut)+0.5);
 					bm[pos][4*(i*dest->x+j)] = cumR/(1-cumOut)+0.5;	// theoretically max 255 -- practically cumR rounded down and divisor rounded up so always 255 at most
 					bm[pos][4*(i*dest->x+j)+1] = cumG/(1-cumOut)+0.5;
 					bm[pos][4*(i*dest->x+j)+2] = cumB/(1-cumOut)+0.5;
@@ -1051,7 +1050,7 @@ errorf("blur2");
 		}
 	}
 	
-errorf("made it out");
+errorf(std::cerr, "made it out");
 	for (pos = 0; pos < dest->n; pos++) {
 		for (i = 0; i < dest->y; i++) {
 			for (j = 0; j < dest->x; j++) {
@@ -1077,9 +1076,9 @@ errorf("made it out");
 		}
 		free(bm[pos]);
 	}
-errorf("pre freebm");
+errorf(std::cerr, "pre freebm");
 	free(bm);
-errorf("after freebm");
+errorf(std::cerr, "after freebm");
 	
 	return dest;
 }

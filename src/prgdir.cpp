@@ -6,7 +6,6 @@ namespace std {
 #include "prgdir.hpp"
 
 #include "errorf.hpp"
-#define errorf(str) g_errorfStdStr(str)
 
 std::fs::path GetPrgDir(void) {
 	std::error_code ec;
@@ -15,7 +14,7 @@ std::fs::path GetPrgDir(void) {
 	if (ec) {
 		return std::fs::path();
 	} else if (!std::fs::is_directory(prgDir)) {
-		errorf("prgDir was not directory");
+		errorf(std::cerr, "prgDir was not directory");
 		return std::fs::path();
 	}
 	else {
