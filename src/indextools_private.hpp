@@ -23,6 +23,8 @@ namespace std {
 
 // #include "prgdir.hpp"
 
+#include "errorf.hpp"
+
 typedef struct SearchExpr {
 	unsigned short exprType;
 	struct {
@@ -192,11 +194,13 @@ protected:
 class TopIndex : public IndexSession {
 public:
 
-	TopIndex(IndexSessionHandler &handler, const IndexID &indexID);
+	TopIndex(IndexSessionHandler &handler, const IndexID &indexID, const std::fs::path prgDir);
 	
 	virtual const std::filesystem::path getDirPath(void) const;
 	
 	virtual ~TopIndex(void);
+
+	const std::fs::path prgDir_;
 	
 };
 
@@ -204,9 +208,9 @@ class SubIndex : public IndexSession {
 public:
 	SubIndex() = delete;
 
-	SubIndex(std::shared_ptr<SubIndexSessionHandler> &handler, const IndexID &indexID);
+	SubIndex(std::shared_ptr<SubIndexSessionHandler> &handler, const IndexID &indexID, const std::fs::path prgDir);
 	
-	static const std::filesystem::path getDirPathFor(uint64_t miNum);
+	static const std::filesystem::path getDirPathFor(std::fs::path prgDir, uint64_t miNum);
 	
 	virtual const std::filesystem::path getDirPath(void) const;
 	
@@ -214,8 +218,8 @@ public:
 	
 	virtual ~SubIndex();
 	
-protected:
 	std::shared_ptr<SubIndexSessionHandler> handlerPtr_;
+	const std::fs::path prgDir_;
 	
 };
 
@@ -377,13 +381,15 @@ protected:
 
 class TopIndexSessionHandler : public IndexSessionHandler {
 public:
-
-	TopIndexSessionHandler();
+	TopIndexSessionHandler(const std::fs::path &prgDir);
+	TopIndexSessionHandler() = delete;
 	TopIndexSessionHandler(const TopIndexSessionHandler &) = delete;
 	TopIndexSessionHandler &operator=(const TopIndexSessionHandler &other) = delete;
 
 	template <class U, class ... Ts>
 	std::shared_ptr<U> openSession(Ts&& ... args);
+
+	const std::fs::path prgDir_;
 	
 protected:
 	std::map<IndexID, std::weak_ptr<TopIndex>> openSessions_;
@@ -624,10 +630,6 @@ int tnumfromalias2(uint64_t dnum, twoslnk **sourcelist);
 
 //// template methods
 
-// has to be undefined since this is a header file
-#include "errorf.hpp"
-#define errorf(str) g_errorfStdStr(str)
-
 /// StandardIndex<KeyT, EntryT>
 
 template <class KeyT, class EntryT>
@@ -648,12 +650,12 @@ EntryT StandardIndex<KeyT, EntryT>::makeNullKey(void) {
 template <class KeyT, class EntryT>
 std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readIntervalEntries(const KeyT &start, const uint64_t intrvl) {
 	if (!intrvl) {
-		errorf("readIntervalEntries without intrvl");
+		errorf(std::cerr, "readIntervalEntries without intrvl");
 		return {};
 	}
 	
 	if (start == 0) {
-		errorf("readInterval start was 0");
+		errorf(std::cerr, "readInterval start was 0");
 		return {};
 	}
 	
@@ -666,7 +668,7 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 	std::ifstream indexStream = std::ifstream(indexFilePath, std::ios::binary | std::ios::in);
 
 	if (!indexStream.is_open()) {
-		errorf("(readIntervalEntries) failed to open indexStream for read");
+		errorf(std::cerr, "(readIntervalEntries) failed to open indexStream for read");
 		return {};
 	}
 	
@@ -675,21 +677,21 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 	uint64_t filePos = getKeySeekPos(start, seekPosError);
 	
 	if (seekPosError) {
-		errorf("getKeySeekPos failed");
+		errorf(std::cerr, "getKeySeekPos failed");
 		return {};
 	}
 	
 	indexStream.seekg(filePos, std::ios_base::beg);
 	
 	if (indexStream.fail()) {
-		g_errorfStream << "indexStream seek failed -- seekpos: " << filePos << std::flush;
+		std::cerr << "indexStream seek failed -- seekpos: " << filePos << std::flush;
 		return {};
 	}
 	
 	std::shared_ptr<std::forward_list<EntryT>> retListPtr(new std::forward_list<EntryT>());
 	
 	if (retListPtr == nullptr) {
-		errorf("shared_ptr construct fail");
+		errorf(std::cerr, "shared_ptr construct fail");
 		return {};
 	}
 	
@@ -706,7 +708,7 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 		
 		while (!indexStream.eof()) {
 			if (tempEntryKey <= lastEntryKey) {
-				errorf("tempEntryKey <= lastEntryKey");
+				errorf(std::cerr, "tempEntryKey <= lastEntryKey");
 				return {};
 			} else {
 				lastEntryKey = tempEntryKey;
@@ -724,7 +726,7 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 			if (tempEntryKey == nextGetKey) {
 				EntryT tempEntry = this->streamGetEntry(indexStream);
 				if (indexStream.fail()) {
-					errorf("indexStream getEntry fail");
+					errorf(std::cerr, "indexStream getEntry fail");
 					return {};
 				} else {
 					insertPos = retList.insert_after(insertPos, std::move(tempEntry));
@@ -733,7 +735,7 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 			} else {
 				this->streamSkipEntry(indexStream);
 				if (indexStream.fail()) {
-					errorf("indexStream skipEntry fail");
+					errorf(std::cerr, "indexStream skipEntry fail");
 					return {};
 				}
 			}
@@ -741,7 +743,7 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 		}
 		
 		if (indexStream.fail()) {
-			errorf("indexStream getKey fail (1)");
+			errorf(std::cerr, "indexStream getKey fail (1)");
 			return {};
 		}
 		
@@ -750,7 +752,7 @@ std::shared_ptr<std::forward_list<EntryT>> StandardIndex<KeyT, EntryT>::readInte
 	int64_t retListLen = std::distance(retList.begin(), retList.end());
 	
 	if (retListLen < 0) {
-		errorf("retList negative length");
+		errorf(std::cerr, "retList negative length");
 		return {};
 	}
 	
@@ -824,24 +826,24 @@ KeyT StandardIndex<KeyT, EntryT>::streamSkipEntryGetKey(std::istream &ios) {
 	
 template <class KeyT, class EntryT>
 std::shared_ptr<std::pair<KeyT, EntryT>> StandardIndex<KeyT, EntryT>::streamWriteEntryGetPair(std::ostream &ios, const KeyT &entryKey, const EntryT &inputEntry) {
-errorf("writeEntryGetPair start");
+errorf(std::cerr, "writeEntryGetPair start");
 	IOSpec<KeyT>::write(ios, entryKey);
 	
 	if (ios.fail() || ios.bad()) {
-errorf("write failed at key");
+errorf(std::cerr, "write failed at key");
 		ios.setstate(std::ios_base::badbit);
 		return {};
 	}
-errorf("writeEntryGetPair writing entry");
+errorf(std::cerr, "writeEntryGetPair writing entry");
 	
 	IOSpec<EntryT>::write(ios, inputEntry);
 	
 	if (ios.fail() || ios.bad()) {
-errorf("write failed at EntryT");
+errorf(std::cerr, "write failed at EntryT");
 		ios.setstate(std::ios_base::badbit);
 		return {};
 	}
-errorf("writeEntryGetPair after writing entry");
+errorf(std::cerr, "writeEntryGetPair after writing entry");
 	
 	return std::make_shared<std::pair<KeyT, EntryT>>(entryKey, inputEntry);
 }
@@ -855,7 +857,7 @@ bool StandardIndex<KeyT, EntryT>::clearRec(void) {
 		std::error_code error;
 		bool success = std::fs::remove(indexRecPath, error);
 		if (error) {
-			g_errorfStream << "(clearRec) failed to remove: " << indexRecPath << std::flush;
+			std::cerr << "(clearRec) failed to remove: " << indexRecPath << std::flush;
 			return false;
 		}
 	}
@@ -864,7 +866,7 @@ bool StandardIndex<KeyT, EntryT>::clearRec(void) {
 		std::error_code error;
 		bool success = std::fs::remove(indexRecBakPath, error);
 		if (error) {
-			g_errorfStream << "(clearRec) failed to remove: " << indexRecBakPath << std::flush;
+			std::cerr << "(clearRec) failed to remove: " << indexRecBakPath << std::flush;
 			return false;
 		}
 	}
@@ -888,11 +890,11 @@ uint64_t StandardIndex<KeyT, EntryT>::createRec(int32_t &error) {
 	auto resPair = prepareRec(indexFilePath, lastEntryKeyPtr);
 	
 	if (resPair.first == false) {
-		errorf("(createRec) prepareRec failed");
+		errorf(std::cerr, "(createRec) prepareRec failed");
 		error = 1;
 		return 0;
 	} else if (lastEntryKeyPtr == nullptr) {
-		errorf("returned lastEntryKeyPtr is null");
+		errorf(std::cerr, "returned lastEntryKeyPtr is null");
 		error = 1;
 		return 0;
 	}
@@ -901,7 +903,7 @@ uint64_t StandardIndex<KeyT, EntryT>::createRec(int32_t &error) {
 	
 	bool success = executeRenameOpList(renameOpList);
 	if (!success) {
-		errorf("executeRenameOpList failed");
+		errorf(std::cerr, "executeRenameOpList failed");
 		//! TODO: remove tmp files
 		error = 1;
 		return 0;
@@ -919,7 +921,7 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 	std::filesystem::path tempIndexRecPath = this->getDirPath() / (this->getFileStrBase() + ".rec.tmp");
 	
 	if (tempIndexRecPath.extension() != ".tmp") {
-		errorf("failed to create tempIndexRecPath");
+		errorf(std::cerr, "failed to create tempIndexRecPath");
 		return {};
 	}
 	
@@ -928,8 +930,8 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 		std::error_code ec;
 		std::filesystem::remove(indexRecPath, ec); // returns (bool) false if path didn't exist or if there's an error
 		if (ec) {
-			errorf("failed to remove indexRecPath");
-			g_errorfStream << "tried to remove: " << indexRecPath << std::flush;
+			errorf(std::cerr, "failed to remove indexRecPath");
+			std::cerr << "tried to remove: " << indexRecPath << std::flush;
 			return {};
 		}
 	}
@@ -939,8 +941,8 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 		std::error_code ec;
 		std::filesystem::remove(tempIndexRecPath, ec); // returns (bool) false if path didn't exist or if there's an error
 		if (ec) {
-			errorf("failed to remove tempIndexRecPath");
-			g_errorfStream << "tried to remove: " << tempIndexRecPath << std::flush;
+			errorf(std::cerr, "failed to remove tempIndexRecPath");
+			std::cerr << "tried to remove: " << tempIndexRecPath << std::flush;
 			return {};
 		}
 	}
@@ -949,8 +951,8 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 	
 	// should not be error if indexFile doesn't exist
 	if (!indexStream.is_open()) {
-		errorf("(createRec) failed to open indexStream for read");
-		g_errorfStream << "path was: " << indexFilePath << std::flush;
+		errorf(std::cerr, "(createRec) failed to open indexStream for read");
+		std::cerr << "path was: " << indexFilePath << std::flush;
 		return {};
 	}
 	
@@ -959,7 +961,7 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 	std::ofstream tempRecStream = std::ofstream(tempIndexRecPath, std::ios::binary | std::ios::out | std::ios::trunc | std::ios::in);
 	
 	if (!tempRecStream.is_open()) {
-		errorf("failed to open tempRecStream for write");
+		errorf(std::cerr, "failed to open tempRecStream for write");
 		return {};
 	}
 	
@@ -972,7 +974,7 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 		KeyT tempEntryKey = this->streamSkipEntryGetKey(indexStream);
 		while (!indexStream.eof()) {
 			if (tempEntryKey <= lastEntryKey) {
-				errorf("tempEntryKey <= lastEntryKey");
+				errorf(std::cerr, "tempEntryKey <= lastEntryKey");
 				return {};
 			} else {
 				lastEntryKey = tempEntryKey;
@@ -980,7 +982,7 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 			tempEntryKey = this->streamSkipEntryGetKey(indexStream);
 		}
 		if (indexStream.fail()) {
-			errorf("indexStream entry read fail (1)");
+			errorf(std::cerr, "indexStream entry read fail (1)");
 			return {};
 		}
 		indexStream.clear();
@@ -991,7 +993,7 @@ std::pair<bool, std::list<FileRenameOp>> StandardIndex<KeyT, EntryT>::prepareRec
 	FixedIOSpec<uint64_t>::write(tempRecStream, lastEntryKey);
 	
 	if (tempRecStream.fail()) {
-		errorf("failed to write to tempRecStream");
+		errorf(std::cerr, "failed to write to tempRecStream");
 		return {};
 	}
 	
@@ -1057,7 +1059,7 @@ uint64_t StandardAutoKeyIndex<KeyT, EntryT>::getNofVirtualEntries(int32_t &error
 		uint64_t uint = this->createRec(retError);
 		
 		if (retError) {
-			errorf("createRec failed");
+			errorf(std::cerr, "createRec failed");
 			return 0;
 		} else {
 			return uint;
@@ -1067,14 +1069,14 @@ uint64_t StandardAutoKeyIndex<KeyT, EntryT>::getNofVirtualEntries(int32_t &error
 	
 		if (!inputRecStream.is_open()) {
 			
-			errorf("(getNumEntries) failed to open inputRecStream for read");
+			errorf(std::cerr, "(getNumEntries) failed to open inputRecStream for read");
 			error = 1;
 			return 0;
 		}
 		
 		uint64_t uint = FixedIOSpec<uint64_t>::read(inputRecStream);
 		if (inputRecStream.fail()) {
-			errorf("inputRecStream fixed uint64_t read fail");
+			errorf(std::cerr, "inputRecStream fixed uint64_t read fail");
 			error = 3;
 			
 			return 0;
@@ -1096,9 +1098,9 @@ KeyT StandardAutoKeyIndex<KeyT, EntryT>::addEntry(const EntryT &argEntry) {
 	std::forward_list<KeyT> retList = this->addEntries(inputList);
 	
 	if (retList.empty()) {
-		errorf("addEntry received empty list");
+		errorf(std::cerr, "addEntry received empty list");
 	} else if (std::next(retList.begin()) != retList.end()) {
-		errorf("addEntry received multiple keys");
+		errorf(std::cerr, "addEntry received multiple keys");
 	} else {
 		return (KeyT) (*retList.begin());
 	}
@@ -1118,9 +1120,9 @@ KeyT StandardAutoKeyIndex<KeyT, EntryT>::addEntry(EntryT *argEntry) {
 	std::forward_list<KeyT> retList = this->addEntries(inputList);
 	
 	if (retList.empty()) {
-		errorf("addEntry(raw) received empty list");
+		errorf(std::cerr, "addEntry(raw) received empty list");
 	} else if (std::next(retList.begin()) != retList.end()) {
-		errorf("addEntry(raw) received multiple keys");
+		errorf(std::cerr, "addEntry(raw) received multiple keys");
 	} else {
 		return (KeyT) (*retList.begin());
 	}
@@ -1139,9 +1141,9 @@ KeyT StandardAutoKeyIndex<KeyT, EntryT>::addEntry(std::shared_ptr<EntryT> argEnt
 	std::forward_list<KeyT> retList = this->addEntries(inputList);
 	
 	if (retList.empty()) {
-		errorf("addEntry(raw) received empty list");
+		errorf(std::cerr, "addEntry(raw) received empty list");
 	} else if (std::next(retList.begin()) != retList.end()) {
-		errorf("addEntry(raw) received multiple keys");
+		errorf(std::cerr, "addEntry(raw) received multiple keys");
 	} else {
 		return (KeyT) (*retList.begin());
 	}
@@ -1153,13 +1155,13 @@ KeyT StandardAutoKeyIndex<KeyT, EntryT>::addEntry(std::shared_ptr<EntryT> argEnt
 template <class KeyT, class EntryT>
 std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std::forward_list<EntryT> inputList) {
 	if (inputList.empty()) {
-		errorf("(StandardAutoKeyIndex.addEntries) inputList was empty");
+		errorf(std::cerr, "(StandardAutoKeyIndex.addEntries) inputList was empty");
 		return {};
 	}
 	
 	for (auto &inputEntry : inputList) {
 		if (!this->isValidInputEntry(inputEntry)) {
-			errorf("(StandardAutoKeyIndex.addEntries) inputList contained invalid entry");
+			errorf(std::cerr, "(StandardAutoKeyIndex.addEntries) inputList contained invalid entry");
 			return {}; 
 		}
 	}
@@ -1170,7 +1172,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 	tempIndexPath.replace_extension("tmp");
 	
 	if (tempIndexPath.extension() != ".tmp") {
-		errorf("failed to create tempIndexPath");
+		errorf(std::cerr, "failed to create tempIndexPath");
 		return {};
 	}
 	std::shared_ptr<FilePathDeleter> fpathDeleterPtr; // assuming class deleters are called in reverse order of appearance
@@ -1189,9 +1191,9 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 		bool copyres = std::filesystem::copy_file(indexFilePath, tempIndexPath, ec);
 		
 		if (!copyres) {
-			errorf("(StandardAutoKeyIndex.addEntries) failed to copy to temp file");
-			g_errorfStream << "tried to copy \"" << indexFilePath << "\" to \"" << tempIndexPath << "\"" << std::flush;
-			g_errorfStream << "error code was: " << ec << std::flush;
+			errorf(std::cerr, "(StandardAutoKeyIndex.addEntries) failed to copy to temp file");
+			std::cerr << "tried to copy \"" << indexFilePath << "\" to \"" << tempIndexPath << "\"" << std::flush;
+			std::cerr << "error code was: " << ec << std::flush;
 			return {};
 		}
 		
@@ -1200,8 +1202,8 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 		tempIndexStream = std::fstream(tempIndexPath, std::ios::binary | std::ios::out | std::ios::in);
 
 		if (!tempIndexStream.is_open()) {
-			errorf("failed to open tempIndexStream for read and write");
-			g_errorfStream << "path was: " << tempIndexPath << std::flush;
+			errorf(std::cerr, "failed to open tempIndexStream for read and write");
+			std::cerr << "path was: " << tempIndexPath << std::flush;
 			return {};
 		}
 		
@@ -1210,7 +1212,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 			//sets the output position to the end
 			tempIndexStream.seekp(0, std::ios::end);
 			if (tempIndexStream.fail()) {
-				errorf("seekp failed");
+				errorf(std::cerr, "seekp failed");
 				return {};
 			}
 		// skip to end manually
@@ -1219,7 +1221,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 			tempEntryKey = this->streamSkipEntryGetKey(tempIndexStream);
 			while (!tempIndexStream.eof()) {
 				if (tempEntryKey <= lastEntryKey) {
-					errorf("tempEntryKey <= lastEntryKey");
+					errorf(std::cerr, "tempEntryKey <= lastEntryKey");
 					return {};
 				} else {
 					lastEntryKey = tempEntryKey;
@@ -1227,7 +1229,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 				tempEntryKey = this->streamSkipEntryGetKey(tempIndexStream);
 			}
 			if (tempIndexStream.fail()) {
-				errorf("tempIndexStream entry read fail (1)");
+				errorf(std::cerr, "tempIndexStream entry read fail (1)");
 				return {};
 			}
 			tempIndexStream.clear();
@@ -1235,7 +1237,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 			//sets the output position
 			tempIndexStream.seekp(0, std::ios::end);
 			if (tempIndexStream.fail()) {
-				errorf("seekp failed (2)");
+				errorf(std::cerr, "seekp failed (2)");
 				return {};
 			}
 		}
@@ -1243,7 +1245,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 		bool clearRes = this->clearRec();
 		
 		if (!clearRes) {
-			errorf("clearRec() failed");
+			errorf(std::cerr, "clearRec() failed");
 			return {};
 		}
 		
@@ -1251,8 +1253,8 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 		fpathDeleterPtr = std::make_shared<FilePathDeleter>(tempIndexPath);
 		
 		if (!tempIndexStream.is_open()) {
-			errorf("failed to create tempIndexStream for read and write");
-			g_errorfStream << "path was: " << tempIndexPath << std::flush;
+			errorf(std::cerr, "failed to create tempIndexStream for read and write");
+			std::cerr << "path was: " << tempIndexPath << std::flush;
 			return {};
 		}
 	}
@@ -1267,10 +1269,10 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 			lastEntryKey++;
 			std::shared_ptr<std::pair<KeyT, EntryT>> entryPairPtr = this->streamWriteEntryGetPair(tempIndexStream, lastEntryKey, inputEntry);
 			if (tempIndexStream.bad()) {
-				errorf("tempIndexStream write failed");
+				errorf(std::cerr, "tempIndexStream write failed");
 				return {};
 			} else if (entryPairPtr == nullptr) {
-				errorf("entryPairPtr is null");
+				errorf(std::cerr, "entryPairPtr is null");
 				return {};
 			} else {
 				insertPos = regEntryPairList.emplace_after(insertPos, *entryPairPtr);
@@ -1281,14 +1283,14 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 	tempIndexStream.close();
 	
 	if (tempIndexStream.fail()) {
-		errorf("tempIndexStream close fail");
+		errorf(std::cerr, "tempIndexStream close fail");
 		return {};
 	}
 	
 	int64_t nRegEntries = std::distance(regEntryPairList.begin(), regEntryPairList.end());
 	
 	if (nRegEntries < 0) {
-		errorf("regEntryPairList negative length");
+		errorf(std::cerr, "regEntryPairList negative length");
 		return {};
 	}
 	
@@ -1296,7 +1298,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 	std::pair<bool, std::list<FileRenameOp>> reverseOpList = this->reverseAddEntries(regEntryPairList);
 	
 	if (!reverseOpList.first) {
-		errorf("(addEntries) reverseAddEntries failed");
+		errorf(std::cerr, "(addEntries) reverseAddEntries failed");
 		return {};
 	}
 	
@@ -1307,7 +1309,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 	//! TODO: automatically remove the .tmp files of opList on return
 	
 	if (!addToLastOpList.first) {
-		errorf("(addEntries) addToLastEntryNum failed");
+		errorf(std::cerr, "(addEntries) addToLastEntryNum failed");
 		//! TODO: cancel each in reverseOpList 
 		
 		return {};
@@ -1316,7 +1318,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 	if (fpathDeleterPtr) {
 		fpathDeleterPtr->release();
 	} else {
-		errorf("fpathDeleterPtr is null");
+		errorf(std::cerr, "fpathDeleterPtr is null");
 		return {};
 	}
 	
@@ -1324,7 +1326,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 	bakIndexPath.replace_extension("bak");
 	
 	if (bakIndexPath.extension() != ".bak") {
-		errorf("failed to create bakIndexPath");
+		errorf(std::cerr, "failed to create bakIndexPath");
 		return {};
 	}
 	
@@ -1335,7 +1337,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 	
 	bool success = executeRenameOpList(renameOpList);
 	if (!success) {
-		errorf("executeRenameOpList failed");
+		errorf(std::cerr, "executeRenameOpList failed");
 		//! TODO: remove tmp files
 		return {};
 	}
@@ -1381,17 +1383,17 @@ std::shared_ptr<U> TopIndexSessionHandler::openTopIndexSession(Ts&& ... args) {
 			if (inputPair.second.lock() != nullptr) {
 				auto resPair = openSessions_.emplace(inputPair);
 				if (resPair.first == openSessions_.end()) {
-					errorf("failed to emplace handler_session_ptr");
+					errorf(std::cerr, "failed to emplace handler_session_ptr");
 				} else if (resPair.second == false) {
-					errorf("indexID already registered");
+					errorf(std::cerr, "indexID already registered");
 				} else {
 					return sessionPtr;
 				}
 			} else {
-				errorf("(IndexSessionHandler) failed to create weak_ptr in pair");
+				errorf(std::cerr, "(IndexSessionHandler) failed to create weak_ptr in pair");
 			}
 		} else {
-			errorf("(IndexSessionHandler) failed to create sessionPtr");
+			errorf(std::cerr, "(IndexSessionHandler) failed to create sessionPtr");
 		}
 	}
 	
@@ -1425,17 +1427,17 @@ std::shared_ptr<U> SubIndexSessionHandler::openSession(std::shared_ptr<SubIndexS
 				if (inputPair.second.lock() != nullptr) {
 					auto resPair = openSessions_.emplace(inputPair);
 					if (resPair.first == openSessions_.end()) {
-						errorf("failed to emplace handler_session_ptr");
+						errorf(std::cerr, "failed to emplace handler_session_ptr");
 					} else if (resPair.second == false) {
-						errorf("indexID already registered");
+						errorf(std::cerr, "indexID already registered");
 					} else {
 						return sessionPtr;
 					}
 				} else {
-					errorf("(IndexSessionHandler) failed to create weak_ptr in pair");
+					errorf(std::cerr, "(IndexSessionHandler) failed to create weak_ptr in pair");
 				}
 			} else {
-				errorf("(IndexSessionHandler) failed to create sessionPtr");
+				errorf(std::cerr, "(IndexSessionHandler) failed to create sessionPtr");
 			}
 		}
 	}
@@ -1463,26 +1465,20 @@ std::shared_ptr<U> TopIndexSessionHandler::openSubIndexSession(uint64_t miNum, T
 				if (inputPair.second.lock() != nullptr) {
 					auto resPair = subHandlers_.emplace(inputPair);
 					if (resPair.first == subHandlers_.end()) {
-						errorf("failed to emplace inputPair");
+						errorf(std::cerr, "failed to emplace inputPair");
 					} else if (resPair.second == false) {
-						errorf("indexID already registered");
+						errorf(std::cerr, "indexID already registered");
 					} else {
 						return handlerPtr->openSession<U>(handlerPtr, args...);
 					}
 				} else {
-					errorf("(IndexSessionHandler) failed to create weak_ptr in pair");
+					errorf(std::cerr, "(IndexSessionHandler) failed to create weak_ptr in pair");
 				}
 			} else {
-				errorf("(IndexSessionHandler) failed to create handlerPtr");
+				errorf(std::cerr, "(IndexSessionHandler) failed to create handlerPtr");
 			}
 		}
 	}
 	
 	return std::shared_ptr<U>();
 }
-
-
-#undef errorf
-
-///
-

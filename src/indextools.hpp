@@ -10,6 +10,9 @@ extern "C" {
 #include <filesystem>
 #include <forward_list>
 
+// TODO: replace with something better later
+bool initSessionHandler(const std::filesystem::path &prgDir);
+
 uint64_t rmiread(char *entrystr);
 
 char rmirmv(char *entrystr);

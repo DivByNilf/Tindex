@@ -1,19 +1,14 @@
 #include "indextools_private.hpp"
 
 #include "errorf.hpp"
-#define errorf(str) g_errorfStdStr(str)
 
 #include <type_traits> //!
 #include <utility> //!
 
 #include "ioextras.hpp"
 
-#include "prgdir.hpp"
-
-extern std::filesystem::path g_fsPrgDir;
-
 // a global indexSessionHandler is assumed to exist (from indextools.cpp)
-extern TopIndexSessionHandler g_indexSessionHandler;
+extern std::shared_ptr<TopIndexSessionHandler> g_indexSessionHandlerPtr;
 
 FileCloser::FileCloser(FILE *fp) : fp_{fp} {}
 
@@ -37,7 +32,7 @@ FilePathDeleter::~FilePathDeleter() {
 		if (!released_) {
 			bool success = std::fs::remove(fpath_);
 			if (!success) {
-				errorf("FilePathDeleter remove failed");
+				errorf(std::cerr, "FilePathDeleter remove failed");
 			}
 		}
 	}
@@ -67,15 +62,15 @@ bool FileRenameOp::hasReversed(void) const {
 }
 
 bool FileRenameOp::firstExecute(void) {
-g_errorfStream << "first-executing: " << to_ << std::flush;
+std::cerr << "first-executing: " << to_ << std::endl;
 	if (this->firstExecuted_) {
-		errorf("(FileRenameOp) already firstExecuted");
+		errorf(std::cerr, "(FileRenameOp) already firstExecuted");
 		return false;
 	} else {
 		std::error_code ec1;
 		bool exists = std::fs::exists(to_);
 		if (ec1) {
-			errorf("exists check failed in firstExecute");
+			errorf(std::cerr, "exists check failed in firstExecute");
 		} else if (!exists) {
 			this->hasOriginal_ = false;
 			this->firstExecuted_ = true;
@@ -84,10 +79,10 @@ g_errorfStream << "first-executing: " << to_ << std::flush;
 			std::error_code ec;
 			std::filesystem::rename(to_, bak_, ec);
 			if (ec) {
-				g_errorfStream << "rename op failed: " << to_ << " to " << bak_ << std::flush;
+				std::cerr << "rename op failed: " << to_ << " to " << bak_ << std::endl;
 				return false;
 			} else {
-errorf("firstExecute success");
+errorf(std::cerr, "firstExecute success");
 				this->firstExecuted_ = true;
 				return true;
 			}
@@ -97,18 +92,18 @@ errorf("firstExecute success");
 }
 
 bool FileRenameOp::secondExecute(void) {
-g_errorfStream << "second-executing: " << to_ << std::flush;
+std::cerr << "second-executing: " << to_ << std::endl;
 	if (!this->firstExecuted_) {
-		errorf("(FileRenameOp) haven't firstExecuted");
+		errorf(std::cerr, "(FileRenameOp) haven't firstExecuted");
 		return false;
 	} else {
 		std::error_code ec;
 		std::filesystem::rename(from_, to_, ec);
 		if (ec) {
-			g_errorfStream << "rename op failed: " << from_ << " to " << to_ << std::flush;
+			std::cerr << "rename op failed: " << from_ << " to " << to_ << std::endl;
 			return false;
 		} else {
-errorf("secondExecute success");
+errorf(std::cerr, "secondExecute success");
 			this->secondExecuted_ = true;
 			return true;
 		}
@@ -125,13 +120,13 @@ bool FileRenameOp::reverse(void) {
 		std::error_code ec;
 		std::filesystem::rename(to_, afterBak, ec);
 		if (ec) {
-			g_errorfStream << "rename op failed: " << to_ << " to " << afterBak << std::flush;
+			std::cerr << "rename op failed: " << to_ << " to " << afterBak << std::endl;
 			return false;
 		} else {
 			std::error_code ec;
 			std::filesystem::rename(bak_, to_, ec);
 			if (ec) {
-				g_errorfStream << "rename op failed: " << bak_ << " to " << to_ << std::flush;
+				std::cerr << "rename op failed: " << bak_ << " to " << to_ << std::endl;
 				return false;
 			} else {
 				this->reversed_ = true;
@@ -146,7 +141,7 @@ FileRenameOp::~FileRenameOp(void) {
 	if (this->secondExecuted_ && hasOriginal_) {
 		bool success = std::fs::remove(bak_);
 		if (!success) {
-			g_errorfStream << "FileRenameOp remove failed for: " << bak_ << std::flush;
+			std::cerr << "FileRenameOp remove failed for: " << bak_ << std::endl;
 		}
 	}
 }
@@ -155,11 +150,11 @@ bool executeRenameOpList(std::list<FileRenameOp> opList) {
 	for (auto &op : opList) {
 		bool success = op.firstExecute();
 		if (!success) {
-			errorf("firstExecute failed in list");
+			errorf(std::cerr, "firstExecute failed in list");
 			
 			bool reverseRes = reverseRenameOpList(opList);
 			if (!reverseRes) {
-				errorf("reverseRenameOpList failed");
+				errorf(std::cerr, "reverseRenameOpList failed");
 			}
 			
 			return false;
@@ -168,17 +163,17 @@ bool executeRenameOpList(std::list<FileRenameOp> opList) {
 	for (auto &op : opList) {
 		bool success = op.secondExecute();
 		if (!success) {
-			errorf("secondExecute failed in list");
+			errorf(std::cerr, "secondExecute failed in list");
 			
 			bool reverseRes = reverseRenameOpList(opList);
 			if (!reverseRes) {
-				errorf("reverseRenameOpList failed");
+				errorf(std::cerr, "reverseRenameOpList failed");
 			}
 			
 			return false;
 		}
 	}
-errorf("executeRenameOpList success");
+errorf(std::cerr, "executeRenameOpList success");
 	return true;
 }
 
@@ -223,10 +218,12 @@ IndexSession::IndexSession(IndexSessionHandler &handler, const IndexID &indexID)
 
 /// TopIndex
 
-TopIndex::TopIndex(IndexSessionHandler &handler, const IndexID &indexID) : IndexSession(handler, indexID) {}
+TopIndex::TopIndex(IndexSessionHandler &handler, const IndexID &indexID, const std::fs::path prgDir) :
+	prgDir_{prgDir},
+	IndexSession(handler, indexID) {}
 
 const std::filesystem::path TopIndex::getDirPath(void) const {
-	return g_fsPrgDir;
+	return prgDir_;
 }
 
 TopIndex::~TopIndex(void) {
@@ -235,19 +232,20 @@ TopIndex::~TopIndex(void) {
 
 /// SubIndex
 
-SubIndex::SubIndex(std::shared_ptr<SubIndexSessionHandler> &handlerPtr, const IndexID &indexID) :
+SubIndex::SubIndex(std::shared_ptr<SubIndexSessionHandler> &handlerPtr, const IndexID &indexID, const std::fs::path prgDir) :
 	handlerPtr_{handlerPtr},
+	prgDir_{prgDir},
 	// without cast, it segfaults on virtual method invocation
 	// actually it was because of using the pointer from member instead of constructor argument
 	IndexSession( *handlerPtr, indexID )
 {}
 
-const std::filesystem::path SubIndex::getDirPathFor(uint64_t miNum) {
-	return g_fsPrgDir / "i" / ( std::to_string(miNum) );
+const std::filesystem::path SubIndex::getDirPathFor(std::fs::path prgDir, uint64_t miNum) {
+	return prgDir / "i" / ( std::to_string(miNum) );
 }
 
 const std::filesystem::path SubIndex::getDirPath(void) const {
-	return this->getDirPathFor(this->getMINum());
+	return this->getDirPathFor(prgDir_, this->getMINum());
 }
 	
 uint64_t SubIndex::getMINum(void) const {
@@ -268,7 +266,7 @@ uint64_t IOSpec<uint64_t>::read(std::istream &ios) {
 	bool b_gotNull = false;
 	uint64_t uint = get_u64_stream_pref(ios, b_gotNull);
 	if (b_gotNull) {
-		errorf("IOSpec<uint64_t>::get -- b_gotNull");
+		errorf(std::cerr, "IOSpec<uint64_t>::get -- b_gotNull");
 		ios.setstate(std::ios_base::failbit);
 		return 0;
 	} else {
@@ -280,7 +278,7 @@ void IOSpec<uint64_t>::skip(std::istream &ios) {
 	bool b_gotNull = false;
 	uint64_t uint = get_u64_stream_pref(ios, b_gotNull);
 	if (b_gotNull) {
-		errorf("IOSpec<uint64_t>::skip -- b_gotNull");
+		errorf(std::cerr, "IOSpec<uint64_t>::skip -- b_gotNull");
 		ios.setstate(std::ios_base::failbit);
 	}
 }
@@ -299,15 +297,15 @@ std::string IOSpec<std::string>::read(std::istream &ios) {
 	
 	if (ios.eof()) {
 		if (str != "") {
-errorf("string set failbit");
+errorf(std::cerr, "string set failbit");
 			ios.setstate(std::ios_base::failbit);
 		} else  {
-errorf("string cleared failbit");
+errorf(std::cerr, "string cleared failbit");
 		// don't set failbit at EOF and read no characters
 		ios.clear(std::ios_base::eofbit);
 		}
 	}
-errorf("read string: " + str);
+errorf(std::cerr, "read string: " + str);
 	return str;
 }
 
@@ -319,15 +317,15 @@ void IOSpec<std::string>::skip(std::istream &ios) {
 	
 	if (ios.eof()) {
 		if (str != "") {
-errorf("string set failbit");
+errorf(std::cerr, "string set failbit");
 			ios.setstate(std::ios_base::failbit);
 		} else  {
-errorf("string cleared failbit");
+errorf(std::cerr, "string cleared failbit");
 		// don't set failbit at EOF and read no characters
 		ios.clear(std::ios_base::eofbit);
 		}
 	}
-errorf("skipped string: " + str);
+errorf(std::cerr, "skipped string: " + str);
 }
 
 /// IOSpec<std::fs::path>
@@ -345,15 +343,15 @@ std::fs::path IOSpec<std::fs::path>::read(std::istream &ios) {
 	
 	if (ios.eof()) {
 		if (str != "") {
-errorf("string set failbit");
+errorf(std::cerr, "string set failbit");
 			ios.setstate(std::ios_base::failbit);
 		} else  {
-errorf("string cleared failbit");
+errorf(std::cerr, "string cleared failbit");
 		// don't set failbit at EOF and read no characters
 		ios.clear(std::ios_base::eofbit);
 		}
 	}
-errorf("read string: " + str);
+errorf(std::cerr, "read string: " + str);
 	return std::fs::path(str);
 }
 
@@ -365,15 +363,15 @@ void IOSpec<std::fs::path>::skip(std::istream &ios) {
 	
 	if (ios.eof()) {
 		if (str != "") {
-errorf("string set failbit");
+errorf(std::cerr, "string set failbit");
 			ios.setstate(std::ios_base::failbit);
 		} else  {
-errorf("string cleared failbit");
+errorf(std::cerr, "string cleared failbit");
 		// don't set failbit at EOF and read no characters
 		ios.clear(std::ios_base::eofbit);
 		}
 	}
-errorf("skipped string: " + str);
+errorf(std::cerr, "skipped string: " + str);
 }
 
 /// FixedIOSpec<uint64_t>
@@ -403,14 +401,14 @@ void FixedIOSpec<uint64_t>::skip(std::istream &ios) {
 /// MainIndexIndex
 
 MainIndexIndex::MainIndexIndex(IndexSessionHandler &handler) :
-	TopIndex(handler, this->indexID),
+	TopIndex(handler, this->indexID, prgDir_),
 	StandardAutoKeyIndex<uint64_t, std::string>()
 {}
 
 bool TopIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) {
 	auto findIt = openSessions_.find(indexID);
 	if (findIt == openSessions_.end()) {
-		g_errorfStream << "(TopIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::flush;
+		std::cerr << "(TopIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::endl;
 	} else {
 		if ((IndexSession *) findIt->second.lock().get() == sessionPtr || (IndexSession *) findIt->second.lock().get() == nullptr) {
 			openSessions_.erase(findIt);
@@ -457,16 +455,17 @@ void IndexSession::removeHandlerRefs(void) {
 
 /// TopIndexSessionHandler
 
-TopIndexSessionHandler::TopIndexSessionHandler() :
+TopIndexSessionHandler::TopIndexSessionHandler(const std::fs::path &prgDir) :
 	openSessions_{},
 	subHandlers_{},
+	prgDir_{prgDir},
 	IndexSessionHandler()
 {}
 
 bool TopIndexSessionHandler::removeSubHandlerRefs(const uint64_t &miNum, const SubIndexSessionHandler *handlerPtr) {
 	auto findIt = subHandlers_.find(miNum);
 	if (findIt == subHandlers_.end()) {
-		errorf("(removeSubHandlerRefs) couldn't find miNum entry");
+		errorf(std::cerr, "(removeSubHandlerRefs) couldn't find miNum entry");
 	} else {
 		if ((SubIndexSessionHandler *) findIt->second.lock().get() == handlerPtr || (SubIndexSessionHandler *) findIt->second.lock().get() == nullptr) {
 			
@@ -486,15 +485,15 @@ SubIndexSessionHandler::SubIndexSessionHandler(TopIndexSessionHandler &parent, c
 	IndexSessionHandler()
 {
 	if (miNum_ == 0) {
-		errorf("SubIndexSessionHandler miNum was 0");
+		errorf(std::cerr, "SubIndexSessionHandler miNum was 0");
 	} else if (!existsMainIndex(miNum)) {
-		g_errorfStream << "existsmainindex returned false for: " << miNum << std::flush;
+		std::cerr << "existsmainindex returned false for: " << miNum << std::endl;
 	} else {
-		std::fs::path miPath = SubIndex::getDirPathFor(miNum);
+		std::fs::path miPath = SubIndex::getDirPathFor(parent_.prgDir_, miNum);
 		std::error_code error;
 		bool success = std::fs::create_directory(miPath, error);
 		if (error) {
-			g_errorfStream << "(SubIndexSessionHandler) failed to create directory: " << miPath << std::flush;
+			std::cerr << "(SubIndexSessionHandler) failed to create directory: " << miPath << std::endl;
 		}
 	}
 }
@@ -510,13 +509,13 @@ SubIndexSessionHandler::~SubIndexSessionHandler(void) {
 bool SubIndexSessionHandler::removeRefs(const IndexID &indexID, const IndexSession *sessionPtr) {
 /*
 	auto findIt = openSessions_.find(indexID);
-errorf("Sub::removeRefs spot 2");
+errorf(std::cerr, "Sub::removeRefs spot 2");
 	if (findIt == openSessions_.end()) {
-errorf("Sub::removeRefs spot 3");
-		g_errorfStream << "(SubIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::flush; 
-		//errorf("(removeRefs) couldn't find indexID entry");
+errorf(std::cerr, "Sub::removeRefs spot 3");
+		std::cerr << "(SubIndexSessionHandler::removeRefs) couldn't find indexID entry (indexID: " << indexID.str_ << ")" << std::endl; 
+		//errorf(std::cerr, "(removeRefs) couldn't find indexID entry");
 	} else {
-errorf("Sub::removeRefs spot 4");
+errorf(std::cerr, "Sub::removeRefs spot 4");
 		if ((IndexSession *) findIt->second.lock().get() == sessionPtr || (IndexSession *) findIt->second.lock().get() == nullptr) {
 			
 			openSessions_.erase(findIt);
@@ -524,7 +523,7 @@ errorf("Sub::removeRefs spot 4");
 			return true;
 		}
 	}
-errorf("Sub::removeRefs spot 5");
+errorf(std::cerr, "Sub::removeRefs spot 5");
 */
 	return false;
 }
@@ -533,11 +532,12 @@ errorf("Sub::removeRefs spot 5");
 
 /// independent function
 
+// TODO: remove g_indexSessionHandlerPtr
 bool existsMainIndex(const uint64_t &miNum) {
-	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandler.openSession<MainIndexIndex>();
+	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
 	
 	if (indexSession == nullptr) {
-		errorf("existsMainIndex could not open session");
+		errorf(std::cerr, "existsMainIndex could not open session");
 		return false;
 	}
 	
@@ -547,7 +547,7 @@ bool existsMainIndex(const uint64_t &miNum) {
 /// MainIndexReverse
 	
 MainIndexReverse::MainIndexReverse(IndexSessionHandler &handler_) :
-	TopIndex(handler_, this->indexID),
+	TopIndex(handler_, this->indexID, prgDir_),
 	StandardManualKeyIndex<std::string, std::forward_list<uint64_t>>()
 {}
 
@@ -581,7 +581,7 @@ const IndexID MainIndexExtras::indexID = IndexID("MainIndexExtras");  // static 
 /// DirIndex
 
 DirIndex::DirIndex(std::shared_ptr<SubIndexSessionHandler> &handler_) :
-	SubIndex(handler_, this->indexID),
+	SubIndex(handler_, this->indexID, prgDir_),
 	StandardAutoKeyIndex<uint64_t, std::fs::path>()
 {}
 
@@ -645,7 +645,7 @@ void IOSpec<SubDirEntry>::skip(std::istream &ios) {
 /// SubDirIndex
 
 SubDirIndex::SubDirIndex(std::shared_ptr<SubIndexSessionHandler> &handler_) :
-	SubIndex(handler_, this->indexID),
+	SubIndex(handler_, this->indexID, prgDir_),
 	StandardAutoKeyIndex<uint64_t, SubDirEntry>()
 {}
 
