@@ -59,7 +59,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # set (CMAKE_FLAGS "")
 list(APPEND CMAKE_CFLAGS " -ggdb")
 # list(APPEND CMAKE_CFLAGS "-Wreturn-type -Wuninitialized")
-list(APPEND CMAKE_CFLAGS "-Wall")
+# list(APPEND CMAKE_CFLAGS "-Wall")
 
 # warnings to errors
 # list(APPEND CMAKE_CFLAGS "-Werror")
@@ -68,7 +68,7 @@ list(APPEND CMAKE_CFLAGS "-Wno-error=unused-variable -Wno-error=unused-but-set-v
 list(APPEND CMAKE_CFLAGS "-Werror=implicit-fallthrough -Werror=return-type")
 
 list(APPEND CMAKE_CFLAGS "-Wimplicit-fallthrough -Wdeprecated-copy -Winfinite-recursion")
-list(APPEND CMAKE_CFLAGS "-Wextra")
+# list(APPEND CMAKE_CFLAGS "-Wextra")
 # list(APPEND CMAKE_CFLAGS "-Wpedantic")
 list(APPEND CMAKE_CFLAGS "-fmax-errors=10")
 
@@ -95,6 +95,9 @@ add_executable(tindex WIN32 $<TARGET_OBJECTS:main_src_objects> $<TARGET_OBJECTS:
 
 # TODO: link OpenCL in a better way if possible (without direct path to file)
 SET_TARGET_PROPERTIES(tindex PROPERTIES LINK_FLAGS "-municode -mwindows C:/Windows/System32/OpenCL.dll -lcomctl32 -lole32 -luuid")
+
+# target_compile_options(tindex PUBLIC -Werror -Wall -Wextra)
+target_compile_options(tindex PUBLIC -Wimplicit-fallthrough -Wdeprecated-copy -Winfinite-recursion)
 
 # TODO: later make the image libs only required as part of an image api
 target_link_libraries(tindex LIBPNG)
