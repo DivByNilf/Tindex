@@ -131,19 +131,6 @@ typedef struct ThumbManArgs {
 class PageListWindow;
 class StrListWindow;
 
-class WindowClass {
-public:
-	virtual ~WindowClass(void) = default;
-	
-	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) = 0;
-
-	virtual LRESULT onCreate(WinProcArgs &procArgs);
-	
-protected:
-	//HWND defaultWindowInstancer(DWORD dwExStyle, LPCWSTR lpWindowName, DWORD dwStyle, int32_t X, int32_t Y, int32_t nWidth, int32_t nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
-	//static HWND defaultWindowInstancer(DWORD dwExStyle, LPCWSTR lpWindowName, DWORD dwStyle, int32_t X, int32_t Y, int32_t nWidth, int32_t nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
-};
-
 class WinCreateArgs {
 public:
 	WindowClass *(&constructor)(void);
@@ -181,11 +168,11 @@ public:
 
 	WindowHelper &operator=(WindowHelper &) = delete;
 	
-	WindowHelper(const std::wstring, void (*)(WNDCLASSW &wc), std::ostream &errorfStream);
+	WindowHelper(const std::wstring, void (*)(WNDCLASSW &wc));
 	WindowHelper(const std::wstring winClassName);
 	WindowHelper() = delete;
 	
-	virtual bool registerWindowClass(std::ostream &errorfStream);
+	virtual bool registerWindowClass(void);
 };
 
 class DeferredRegWindowHelper : public WindowHelper {
@@ -194,7 +181,7 @@ public:
 
 	DeferredRegWindowHelper &operator=(DeferredRegWindowHelper &) = delete;
 	
-	virtual bool registerWindowClass(std::ostream &errorfStream) override;
+	virtual bool registerWindowClass(void) override;
 
 	bool isRegistered(void) const;
 
@@ -205,8 +192,7 @@ private:
 
 class MsgHandler : public WindowClass {
 public:
-	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 
@@ -226,7 +212,7 @@ public:
 class TabContainerWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 
@@ -246,7 +232,7 @@ public:
 class TabWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 
@@ -269,38 +255,38 @@ public:
 
 	//virtual LRESULT onCreate(WinProcArgs &procArgs) override;
 	
-	virtual uint64_t getNumElems(std::ostream &errorfStream) = 0;
+	virtual uint64_t getNumElems(void) = 0;
 	
 	HWND parent_;
 	
 	//int32_t menuCreate(HWND hwnd);
 	//int32_t menuUse(HWND hwnd, int32_t menuID);
 	
-	virtual uint64_t getSingleSelID(std::ostream &errorfStream) const;
+	virtual uint64_t getSingleSelID(void) const;
 	
 protected:
 	std::shared_ptr<PageListWindow> pageListWin_;
 	std::shared_ptr<StrListWindow> strListWin_;
 	uint8_t winOptions_;
 
-	virtual int32_t menuCreate(HWND hwnd, std::ostream &errorfStream);
-	virtual int32_t menuUse(HWND hwnd, int32_t menuID, std::ostream &errorfStream);
+	virtual int32_t menuCreate(HWND hwnd);
+	virtual int32_t menuUse(HWND hwnd, int32_t menuID);
 
 };
 
 class DirManWindow : public ListManWindow {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 
 	virtual LRESULT onCreate(WinProcArgs &procArgs) override;
 	
-	virtual uint64_t getNumElems(std::ostream &errorfStream) override;
+	virtual uint64_t getNumElems(void) override;
 	
-	virtual int32_t menuCreate(HWND hwnd, std::ostream &errorfStream) override;
-	virtual int32_t menuUse(HWND hwnd, int32_t menuID, std::ostream &errorfStream) override;
+	virtual int32_t menuCreate(HWND hwnd) override;
+	virtual int32_t menuUse(HWND hwnd, int32_t menuID) override;
 	
 protected:
 	
@@ -310,16 +296,16 @@ protected:
 class SubDirManWindow : public ListManWindow {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 
 	virtual LRESULT onCreate(WinProcArgs &procArgs) override;
 	
-	virtual uint64_t getNumElems(std::ostream &errorfStream) override;
+	virtual uint64_t getNumElems(void) override;
 	
-	int32_t menuCreate(HWND hwnd, std::ostream &errorfStream);
-	int32_t menuUse(HWND hwnd, int32_t menuID, std::ostream &errorfStream);
+	int32_t menuCreate(HWND hwnd);
+	int32_t menuUse(HWND hwnd, int32_t menuID);
 	
 protected:
 	
@@ -330,16 +316,16 @@ protected:
 class MainIndexManWindow : public ListManWindow {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
 	virtual LRESULT onCreate(WinProcArgs &procArgs) override;
 	
-	virtual uint64_t getNumElems(std::ostream &errorfStream) override;
+	virtual uint64_t getNumElems(void) override;
 	
 	int32_t menuCreate(HWND hwnd);
-	int32_t menuUse(HWND hwnd, int32_t menuID);
+	int32_t menuUse(HWND hwnd, int32_t menu_id, WinProcArgs &procArgs, std::wstring dirManName, std::wstring subDirManName);
 	
 	
 };
@@ -347,7 +333,7 @@ public:
 class ThumbManWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -370,7 +356,7 @@ public:
 class PageListWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -402,7 +388,7 @@ public:
 class StrListWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -461,7 +447,7 @@ protected:
 class ThumbListWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -486,7 +472,7 @@ class ViewImageWindow : public WindowClass {
 public:
 	ViewImageWindow(void);
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -507,7 +493,7 @@ public:
 class FileTagEditWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -525,7 +511,7 @@ public:
 class CreateAliasWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -539,7 +525,7 @@ class EditWindowSuperClass : public WindowClass {
 public:
 //! TODO: make the helper a reference in each windowclass
 	static DeferredRegWindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -550,7 +536,7 @@ public:
 class SearchBarWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -561,7 +547,7 @@ public:
 class TextEditDialogWindow : public WindowClass {
 public:
 	static const WindowHelper helper;
-	static HWND createWindowInstance(WinInstancer);
+	static HWND createWindowInstance(WinInstancer, std::wstring &winClassName);
 	
 	virtual LRESULT CALLBACK winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) override;
 	
@@ -578,8 +564,7 @@ void DelRer(HWND, uint8_t, STRLISTV const*);
 
 std::shared_ptr<WindowClass> GetWindowPtr(
 	const HWND hwnd,
-	const std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap,
-	std::function<void(std::string)> errorf
+	const std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap
 );
 	
 std::shared_ptr<WindowClass> CreateWindowMemory(

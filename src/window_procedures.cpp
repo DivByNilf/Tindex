@@ -54,9 +54,6 @@ int MainDeInit(MainInitStruct &ms);
 void MainInitHandles(SharedWindowData &);
 void MainDeInitHandles(SharedWindowData &);
 
-/// global variables
-extern std::filesystem::path g_fsPrgDir;
-
 /// constants
 
 //# enums
@@ -144,9 +141,15 @@ enum PageListButtonTypes : uint8_t {
 
 inline const std::string kImgExtensions = ".bmp.gif.jpeg.jpg.png";
 
+
+/// global
+
+// wish the data could be passed as an argument to window procedure, but alas
+std::shared_ptr<WinProcData> g_winProcData = nullptr;
+
 /// Initialization functions
 
-void MainInitHandles(SharedWindowData &winVars, std::ostream &errorfStream) {
+void MainInitHandles(SharedWindowData &winVars) {
 	winVars.hDefCrs = LoadCursor(nullptr, IDC_ARROW);
 	winVars.hCrsSideWE = LoadCursor(nullptr, IDC_SIZEWE);
 	winVars.hCrsHand = LoadCursor(nullptr, IDC_HAND);
@@ -156,108 +159,109 @@ void MainInitHandles(SharedWindowData &winVars, std::ostream &errorfStream) {
 	winVars.hFont2 = CreateFontW(16, 0, 0, 0, FW_MEDIUM, 0, 0, 0, 0, 0, 0, 0, 0, L"Helvetica");
 	winVars.color = GetSysColor(COLOR_BTNFACE);
 	if (!(winVars.hPen1 = CreatePen(PS_SOLID, 0, DL_BORDER_COL))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.bgPen1 = CreatePen(PS_SOLID, 0, winVars.color))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.bgPen2 = CreatePen(PS_SOLID, 0, DL_NUM_UE_COL))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.bgPen3 = CreatePen(PS_SOLID, 0, DL_NUM_E_COL))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.bgPen4 = CreatePen(PS_SOLID, 0, DL_DIR_UE_COL))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.bgPen5 = CreatePen(PS_SOLID, 0, DL_DIR_E_COL))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.selPen = CreatePen(PS_SOLID, 0, DL_SL_COL))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.selPen2 = CreatePen(PS_SOLID, 0, DL_SA_COL))) {
-		errorf(errorfStream, "Preinit: CreatePen failed");
+		errorf(std::cerr, "Preinit: CreatePen failed");
 	}
 	if (!(winVars.bgBrush1 = CreateSolidBrush(winVars.color))) {
-		errorf(errorfStream, "Preinit: CreateSolidBrush failed");
+		errorf(std::cerr, "Preinit: CreateSolidBrush failed");
 	}
 	if (!(winVars.bgBrush2 = CreateSolidBrush(DL_NUM_UE_COL))) {
-		errorf(errorfStream, "Preinit: CreateSolidBrush failed");
+		errorf(std::cerr, "Preinit: CreateSolidBrush failed");
 	}
 	if (!(winVars.bgBrush3 = CreateSolidBrush(DL_NUM_E_COL))) {
-		errorf(errorfStream, "Preinit: CreateSolidBrush failed");
+		errorf(std::cerr, "Preinit: CreateSolidBrush failed");
 	}
 	if (!(winVars.bgBrush4 = CreateSolidBrush(DL_DIR_UE_COL))) {
-		errorf(errorfStream, "Preinit: CreateSolidBrush failed");
+		errorf(std::cerr, "Preinit: CreateSolidBrush failed");
 	}
 	if (!(winVars.bgBrush5 = CreateSolidBrush(DL_DIR_E_COL))) {
-		errorf(errorfStream, "Preinit: CreateSolidBrush failed");
+		errorf(std::cerr, "Preinit: CreateSolidBrush failed");
 	}
 	if (!(winVars.selBrush = CreateSolidBrush(DL_SA_COL))) {
-		errorf(errorfStream, "Preinit: CreateSolidBrush failed");
+		errorf(std::cerr, "Preinit: CreateSolidBrush failed");
 	}
 }
 
-void MainDeInitHandles(SharedWindowData &winVars, std::ostream &errorfStream) {
+void MainDeInitHandles(SharedWindowData &winVars) {
 	SetCursor(winVars.hDefCrs);
+
 	if (!(DestroyCursor(winVars.hCrsSideWE))) {
-		errorf(errorfStream, "DestroyCursor failed");
+		errorf(std::cerr, "DestroyCursor failed");
 	}
 	if (!(DestroyCursor(winVars.hCrsHand))) {
-		errorf(errorfStream, "DestroyCursor failed");
+		errorf(std::cerr, "DestroyCursor failed");
 	}
 	if (winVars.hListSliceBM) {
 		if (!(DeleteObject(winVars.hListSliceBM))) {
-			errorf(errorfStream, "DeleteObject failed");
+			errorf(std::cerr, "DeleteObject failed");
 		} winVars.hListSliceBM = 0;
 	}
 	if (winVars.hThumbListBM) {
 		if (!(DeleteObject(winVars.hThumbListBM))) {
-			errorf(errorfStream, "DeleteObject failed");
+			errorf(std::cerr, "DeleteObject failed");
 		} winVars.hThumbListBM = 0;
 	}
 	if (!(DeleteObject(winVars.hFont))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgPen1))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgPen2))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgPen3))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgPen4))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgPen5))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.selPen))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.selPen2))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgBrush1))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgBrush2))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgBrush3))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgBrush4))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.bgBrush5))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 	if (!(DeleteObject(winVars.selBrush))) {
-		errorf(errorfStream, "DeleteObject failed");
+		errorf(std::cerr, "DeleteObject failed");
 	}
 }
 
@@ -267,29 +271,191 @@ void PingExistingProcess(HWND hwnd) {
 
 /// Window Classes
 
-// TODO: remove and use argument in procedures instead
-static std::shared_ptr<SharedWindowData> g_SharedWindowVar;
+struct WinRegStructs GetWinRegStructs() {
+	auto &winProcData = g_winProcData;
 
-bool SetSharedWindowData(std::shared_ptr<SharedWindowData> sharedWindowVar) {
-	g_SharedWindowVar = sharedWindowVar;
-	return true;
+	return WinRegStructs{
+		WinRegStruct(
+			L"MsgHandlerClass",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"TabWindowClass",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW;
+				wc.hbrBackground = 0;
+				wc.hCursor = LoadCursor(0, IDC_ARROW);
+			}
+		),
+		WinRegStruct(
+			L"TabWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW;
+				wc.hbrBackground = 0;
+				wc.hCursor = LoadCursor(0, IDC_ARROW);
+			}
+		),
+		WinRegStruct(
+			L"MainIndexManWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"DirManWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"SubDirManWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"ThumbManWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"PageListWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = 0;
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"StrListWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = 0;
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"ThumbListWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = 0;
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"ViewImageWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = 0;
+				wc.hbrBackground = 0;
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"FileTagEditWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = 0;
+				wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"CreateAliasWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = 0;
+				wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"EditWindowSuperClass",
+			[&](WNDCLASSW &wc) -> void {
+				WNDCLASSW t_wc = {0};
+				errorf(std::cerr, "ESC helper 1");
+				int c = GetClassInfoW(nullptr, MSFTEDIT_CLASS, &t_wc);
+				if (!c) {
+					std::cerr << "GetClassInfoW failed" << std::endl;
+				}
+				if (t_wc.lpfnWndProc == nullptr) {
+					errorf(std::cerr, "t_wc has no proc");
+				}
+					std::cerr << "ESC helper 1.2" << std::endl;
+
+				wc.style = t_wc.style;
+				wc.cbClsExtra = t_wc.cbClsExtra;
+				wc.cbWndExtra = t_wc.cbWndExtra;
+				wc.hIcon = t_wc.hIcon;
+				wc.hCursor = t_wc.hCursor;
+				wc.hbrBackground = t_wc.hbrBackground;
+				wc.lpszMenuName = t_wc.lpszMenuName;
+
+				std::cerr << "ESC helper 1.5" << std::endl;
+				winProcData->sharedWinData.g_OldEditProc = t_wc.lpfnWndProc;
+				errorf(std::cerr, "ESC helper 2");
+			}
+		),
+		WinRegStruct(
+			L"SearchBarWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW;
+				wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
+				wc.hCursor = nullptr;
+			}
+		),
+		WinRegStruct(
+			L"TextEditDialogWindow",
+			[](WNDCLASSW &wc) -> void {
+				wc.style = CS_HREDRAW | CS_VREDRAW;
+				wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
+				wc.hCursor = nullptr;
+			}
+		),
+	};
 }
 
 // TODO: Move static window registration into this function
-int32_t RegisterWindowClasses(void) {
+int32_t RegisterWindowClasses(const WinRegStructs &winRegs) {
+	registerWinClass(winRegs.msgHandler);
+	registerWinClass(winRegs.tabContainer);
+	registerWinClass(winRegs.tabWindow);
+	registerWinClass(winRegs.mainIndexMan);
+	registerWinClass(winRegs.dirMan);
+	registerWinClass(winRegs.subDirMan);
+	registerWinClass(winRegs.thumbMan);
+	registerWinClass(winRegs.pageList);
+	registerWinClass(winRegs.strList);
+	registerWinClass(winRegs.thumbList);
+	registerWinClass(winRegs.viewImage);
+	registerWinClass(winRegs.fileTagEdit);
+	registerWinClass(winRegs.createAlias);
+	registerWinClass(winRegs.editWindowSuper);
+	registerWinClass(winRegs.searchBar);
+	registerWinClass(winRegs.textEditDialog);
+
 	return 0;
 }
 
 std::shared_ptr<WindowClass> GetWindowPtr(
 	const HWND hwnd,
-	const std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap,
-	std::ostream &errorfStream
+	const std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap
 ) {
 	auto findIt = winMemMap.find(hwnd);
 	if (findIt == winMemMap.end()) {
-		//errorf(errorfStream, "couldn't find window pointer");
+		//errorf(std::cerr, "couldn't find window pointer");
 		if (hwnd == 0) {
-			errorf(errorfStream, "tried to get pointer for hwnd: 0");
+			errorf(std::cerr, "tried to get pointer for hwnd: 0");
 		}
 		return std::shared_ptr<WindowClass>();
 	}
@@ -299,22 +465,21 @@ std::shared_ptr<WindowClass> GetWindowPtr(
 std::shared_ptr<WindowClass> CreateWindowMemory(
 	const HWND hwnd,
 	const WinCreateArgs &winArgs,
-	std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap,
-	std::ostream &errorfStream
+	std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap
 ) {
 	if (hwnd == 0) {
-		errorf(errorfStream, "tried to register hwnd: 0");
+		errorf(std::cerr, "tried to register hwnd: 0");
 	} else {
 		auto resPair = winMemMap.emplace(hwnd, std::shared_ptr<WindowClass>(winArgs.constructor()));
 		if (resPair.first == winMemMap.end()) {
-			errorf(errorfStream, "failed to emplace windowMemory");
+			errorf(std::cerr, "failed to emplace windowMemory");
 		} else if (resPair.second == false) {
-			errorf(errorfStream, "windowMemory already registered");
+			errorf(std::cerr, "windowMemory already registered");
 		} else {
 			auto elemPair = *resPair.first;
 
 			if (!elemPair.second) {
-				errorf(errorfStream, "registered nullptr to windowMemory");
+				errorf(std::cerr, "registered nullptr to windowMemory");
 			}
 
 			return elemPair.second;
@@ -325,16 +490,15 @@ std::shared_ptr<WindowClass> CreateWindowMemory(
 
 boolean ReleaseWindowMemory(
 	const HWND hwnd,
-	std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap,
-	std::ostream &errorfStream
+	std::map<HWND, std::shared_ptr<WindowClass>> &winMemMap
 ) {
 	if (hwnd == 0) {
-		errorf(errorfStream, "tried to release hwnd: 0");
+		errorf(std::cerr, "tried to release hwnd: 0");
 	} else {
 		int c = winMemMap.erase(hwnd);
 
 		if (!c) {
-			errorf(errorfStream, "failed to release hwnd");
+			errorf(std::cerr, "failed to release hwnd");
 		} else {
 			return true;
 		}
@@ -342,11 +506,9 @@ boolean ReleaseWindowMemory(
 	return false;
 }
 
-// wish the data could be passed as an argument to window procedure, but alas
-std::shared_ptr<WinProcData> g_winProcData = nullptr;
-
 bool SetWinProcData(std::shared_ptr<WinProcData> winProcData) {
 	g_winProcData = winProcData;
+	return true;
 }
 
 void ReleaseWinProcData() {
@@ -361,15 +523,14 @@ LRESULT CALLBACK GeneralWinProc(
 ) {
 	auto &winMemMap = g_winProcData->winMemMap;
 
-	auto &errorfStream = g_winProcData->errorfStream;
 
-	shared_ptr<WindowClass> winPtr = GetWindowPtr(hwnd, winMemMap, errorfStream);
+	shared_ptr<WindowClass> winPtr = GetWindowPtr(hwnd, winMemMap);
 	if (!winPtr) {
 		// the subclassed RichEdit does initialization in WM_NCCREATE before WM_CREATE
 		if (msg == WM_NCCREATE) {
 			WinCreateArgs *winArgs = *(WinCreateArgs **) lParam;
 			if (winArgs == nullptr) {
-				errorf(errorfStream, "creating window class without lpParam");
+				errorf(std::cerr, "creating window class without lpParam");
 				return 0;
 			}
 
@@ -377,15 +538,15 @@ LRESULT CALLBACK GeneralWinProc(
 			// modifying (*lParam) here doesn't seem to carry over to WM_CREATE
 			*((void **)lParam) = 0;
 		} else if (msg == WM_CREATE) {
-			errorf(errorfStream, "winPtr was null for WM_CREATE");
+			errorf(std::cerr, "winPtr was null for WM_CREATE");
 			return -1;
 		} else {
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		}
 	}
 
-	auto getWinPtr = [&winMemMap, &errorfStream](HWND hwnd) -> std::shared_ptr<WindowClass> {
-		GetWindowPtr(hwnd, winMemMap, errorfStream);
+	auto getWinPtr = [&winMemMap](HWND hwnd) -> std::shared_ptr<WindowClass> {
+		return GetWindowPtr(hwnd, winMemMap);
 	};
 
 	auto procArgs = WinProcArgs(
@@ -393,8 +554,7 @@ LRESULT CALLBACK GeneralWinProc(
 		msg,
 		wParam,
 		lParam,
-		g_SharedWindowVar,
-		errorfStream,
+		g_winProcData->sharedWinData,
 		getWinPtr
 	);
 	
@@ -402,7 +562,7 @@ LRESULT CALLBACK GeneralWinProc(
 		case WM_CREATE: {
 			WinCreateArgs *winArgs = *(WinCreateArgs **) lParam;
 			if (winArgs == nullptr) {
-				errorf(errorfStream, "creating window class without lpParam");
+				errorf(std::cerr, "creating window class without lpParam");
 				return -1;
 			}
 
@@ -461,77 +621,32 @@ HWND WinInstancer::create(std::shared_ptr<WinCreateArgs> winArgs, const std::wst
 }
 
 
-// WindowHelper
-WindowHelper::WindowHelper(
-	const std::wstring winClassName,
-	void (*modifyWinStruct)(WNDCLASSW &wc),
-	std::ostream &errorfStream
-) : winClassName_{winClassName} {
+void registerWinClass(
+	const struct WinRegStruct &winRegStruct
+) {
 	WNDCLASSW wc = {0};
 
 	wc.style = 0;
 	wc.hbrBackground = 0;
 	wc.hCursor = nullptr;
 
-	modifyWinStruct(wc);
+	winRegStruct.modifyWinStruct(wc);
 
-	wc.lpszClassName = this->winClassName_.c_str();
+	wc.lpszClassName = winRegStruct.winClassName.c_str();
 	wc.lpfnWndProc = GeneralWinProc;
-	// wc.hInstance = g_SharedWindowVar->ghInstance;
+	// wc.hInstance = args.sharedWinData.ghInstance;
 
 	int c = RegisterClassW(&wc);
 	if (!c) {
 //! TODO: add collision detection and crash on collision
-		errorf(errorfStream, "RegisterClassW failed");
+		errorf(std::cerr, "RegisterClassW failed");
 	}
 }
 
 WindowHelper::WindowHelper(const std::wstring winClassName_) : winClassName_{winClassName_} {}
 
-bool WindowHelper::registerWindowClass(std::ostream &errorfStream) {
+bool WindowHelper::registerWindowClass(void) {
 	return false;
-}
-
-// DeferredRegWindowHelper
-DeferredRegWindowHelper::DeferredRegWindowHelper(const std::wstring winClassName_, void (*modifyWinStruct)(WNDCLASSW &wc))
-	: WindowHelper(winClassName_)
-	, modifyWinStruct_{modifyWinStruct}
-	, isRegistered_(false)
-{}
-
-bool DeferredRegWindowHelper::registerWindowClass(std::ostream &errorfStream) {
-	if (!this->isRegistered_) {
-
-		WNDCLASSW wc = {0};
-
-		wc.style = 0;
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-
-		modifyWinStruct_(wc);
-
-		wc.lpfnWndProc = GeneralWinProc;
-		wc.lpszClassName = this->winClassName_.c_str();
-		wc.hInstance = g_SharedWindowVar->ghInstance;
-
-		int c = RegisterClassW(&wc);
-		if (!c) {
-			errorfStream << "RegisterClassW failed" << std::flush;
-			int error1 = GetLastError();
-			errorfStream << error1 << std::flush;
-			return false;
-		} else {
-			isRegistered_ = true;
-			return true;
-		}
-	}
-	errorf(errorfStream, "RWC already registered");
-	errorfStream << "tried to register: " << u16_to_u8(std::wstring(winClassName_)) << std::flush;
-	return true;
-}
-
-bool DeferredRegWindowHelper::isRegistered(void) const {
-	return isRegistered_;
 }
 
 //} Non-WindowClass
@@ -539,34 +654,25 @@ bool DeferredRegWindowHelper::isRegistered(void) const {
 //{ MsgHandler
 //subclass of WindowClass
 //public:
-// static
-const WindowHelper MsgHandler::helper = WindowHelper(
-	std::wstring(L"MsgHandlerClass"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	},
-	errorfStream
-);
 
 // static
-HWND MsgHandler::createWindowInstance(WinInstancer wInstancer) {
+HWND MsgHandler::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new MsgHandler(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT MsgHandler::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	std::string prgDir = procArgs.sharedWinData->prgDir;
-	auto &errorfStream = procArgs.errorfStream;
+	std::string prgDir = procArgs.sharedWinData.prgDir;
 
 	HWND thwnd;
 
-	thwnd = TabContainerWindow::createWindowInstance(WinInstancer(0, L"Tindex", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, nullptr, nullptr, g_SharedWindowVar->ghInstance, nullptr));
+	auto &tabContainerName = procArgs.sharedWinData.winRegs.tabContainer.winClassName;
+
+	thwnd = TabContainerWindow::createWindowInstance(WinInstancer(0, L"Tindex", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, nullptr, nullptr, procArgs.sharedWinData.ghInstance, nullptr), tabContainerName);
 
 	if (!thwnd)	{
-		errorf(errorfStream, "failed to create TabContainerWindow");
+		errorf(std::cerr, "failed to create TabContainerWindow");
 		return -1;
 	}
 	ShowWindow(thwnd, SW_MAXIMIZE);
@@ -592,13 +698,13 @@ LRESULT MsgHandler::onCreate(WinProcArgs &procArgs) {
 		);
 
 		if (hMapFile_ == nullptr) {
-			errorfStream << "Could not create file mapping object (" << GetLastError() << ")." << std::flush;
+			std::cerr << "Could not create file mapping object (" << GetLastError() << ")." << std::flush;
 			return -1;
 		}
 		std::shared_ptr<void> pBuf = std::shared_ptr<void>(MapViewOfFile(hMapFile_.get(), FILE_MAP_ALL_ACCESS, 0, 0, kHWndBufSize), UnmapViewOfFile);
 
 		if (pBuf == nullptr) {
-			errorfStream << "Could not map view of file (" << GetLastError() << ")." << std::flush;
+			std::cerr << "Could not map view of file (" << GetLastError() << ")." << std::flush;
 			return -1;
 		}
 
@@ -612,11 +718,10 @@ LRESULT MsgHandler::onCreate(WinProcArgs &procArgs) {
 }
 
 LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 
 	switch(msg) {
 		case WM_U_TOP: {
-			errorf(errorfStream, "received WM_U_TOP");
+			errorf(std::cerr, "received WM_U_TOP");
 			break;
 		}
 		case WM_DESTROY: {
@@ -631,27 +736,17 @@ LRESULT CALLBACK MsgHandler::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
 //{ TabContainerWindow
 //public:
-// static
-const WindowHelper TabContainerWindow::helper = WindowHelper(std::wstring(L"TabWindowClass"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW;
-		wc.hbrBackground = 0;
-		wc.hCursor = LoadCursor(0, IDC_ARROW);
-	},
-	errorfStream
-);
 
 // static
-HWND TabContainerWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND TabContainerWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new TabContainerWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT TabContainerWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
-	// LPARAM &lParam = procArgs.lParam;
-	// WPARAM &wParam = procArgs.wParam;
+
+	auto &tabWindowName = procArgs.sharedWinData.winRegs.tabWindow.winClassName;
 
 	HMENU hMenubar;
 	HMENU hMenu;
@@ -667,14 +762,14 @@ LRESULT TabContainerWindow::onCreate(WinProcArgs &procArgs) {
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	HWND thwnd = 0;
-	dispWindow_ = thwnd = TabWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, rect.bottom, hwnd, (HMENU) 3, nullptr, nullptr));
+	dispWindow_ = thwnd = TabWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, rect.bottom, hwnd, (HMENU) 3, nullptr, nullptr), tabWindowName);
 
 	if (!thwnd) {
-		errorf(errorfStream, "failed to create TabWindow");
+		errorf(std::cerr, "failed to create TabWindow");
 		return -1;
 	}
 
@@ -682,7 +777,7 @@ LRESULT TabContainerWindow::onCreate(WinProcArgs &procArgs) {
 }
 
 LRESULT CALLBACK TabContainerWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
+	auto &mainIndexManName = args.sharedWinData.winRegs.mainIndexMan.winClassName;
 
 	switch(msg) {
 		case WM_PAINT: {
@@ -693,11 +788,11 @@ LRESULT CALLBACK TabContainerWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 			
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			hdc = BeginPaint(hwnd, &ps);
-			hOldBrush = (HBRUSH) SelectObject(hdc, g_SharedWindowVar->bgBrush1);
-			hOldPen = (HPEN) SelectObject(hdc, g_SharedWindowVar->bgPen1);
+			hOldBrush = (HBRUSH) SelectObject(hdc, args.sharedWinData.bgBrush1);
+			hOldPen = (HPEN) SelectObject(hdc, args.sharedWinData.bgPen1);
 			Rectangle(hdc, 0, 0, rect.right, rect.bottom);
 			SelectObject(hdc, hOldBrush);
 			SelectObject(hdc, hOldPen);
@@ -707,7 +802,7 @@ LRESULT CALLBACK TabContainerWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 		case WM_SIZE: {
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			MoveWindow(dispWindow_, 0, 0, rect.right, rect.bottom, 0);
@@ -726,10 +821,10 @@ LRESULT CALLBACK TabContainerWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 					if (!wHandle_[0]) {
 						lastOption_ = 0;
 						//DirManWindow::createWindowInstance(WinInstancer(0, L"Manage Directories", WS_VISIBLE | WS_SYSMENU | WS_CAPTION | WS_SIZEBOX | WS_POPUP, 200, 200, 300, 300, hwnd, 0, g_shared_window_vars.ghInstance, 0));
-						MainIndexManWindow::createWindowInstance(WinInstancer(0, L"Manage Main Indices", WS_VISIBLE | WS_SYSMENU | WS_CAPTION | WS_SIZEBOX | WS_POPUP, 200, 200, 300, 300, hwnd, 0, g_SharedWindowVar->ghInstance, 0));
+						MainIndexManWindow::createWindowInstance(WinInstancer(0, L"Manage Main Indices", WS_VISIBLE | WS_SYSMENU | WS_CAPTION | WS_SIZEBOX | WS_POPUP, 200, 200, 300, 300, hwnd, 0, args.sharedWinData.ghInstance, 0), mainIndexManName);
 					} else {
 						if (!BringWindowToTop(wHandle_[0])) {
-							errorf(errorfStream, "BringWindowToTop for wHandle_[0] failed");
+							errorf(std::cerr, "BringWindowToTop for wHandle_[0] failed");
 						}
 					}
 					break;
@@ -757,43 +852,34 @@ LRESULT CALLBACK TabContainerWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 
 //{ TabWindow
 //public:
-// static
-const WindowHelper TabWindow::helper = WindowHelper(std::wstring(L"TabWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW;
-		wc.hbrBackground = 0;
-		wc.hCursor = LoadCursor(0, IDC_ARROW);
-	},
-	errorfStream
-);
 
 // static
-HWND TabWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND TabWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new TabWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT TabWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
+	auto &editWindowSuperName = procArgs.sharedWinData.winRegs.editWindowSuper.winClassName;
 
 	HWND thwnd;
 	thwnd = CreateWindowW(L"Button", L"Open Dir", WS_VISIBLE | WS_CHILD , 5, 5, 80, 25, hwnd, (HMENU) 1, nullptr, nullptr);
-	SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+	SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 	if (!thwnd) return -1;
 
 	{
 		int y1 = 20;
 
 		//thwnd = CreateWindowExW(0, MSFTEDIT_CLASS, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 35, 380, y1, hwnd, (HMENU) 2, nullptr, nullptr);
-errorf(errorfStream, "creating editsuperclass outer");
-		thwnd = EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 35, 380, y1, hwnd, (HMENU) 2, nullptr, nullptr));
+errorf(std::cerr, "creating editsuperclass outer");
+		thwnd = EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 35, 380, y1, hwnd, (HMENU) 2, nullptr, nullptr), editWindowSuperName);
 		if (!thwnd) {
-			errorf(errorfStream, "couldn't create editwindow");
+			errorf(std::cerr, "couldn't create editwindow");
 		}
-		thwnd = EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, 5, 35 + y1 + 5, 380, 300, hwnd, (HMENU) 3, nullptr, nullptr));
+		thwnd = EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, 5, 35 + y1 + 5, 380, 300, hwnd, (HMENU) 3, nullptr, nullptr), editWindowSuperName);
 		if (!thwnd) {
-			errorf(errorfStream, "couldn't create editwindow 2");
+			errorf(std::cerr, "couldn't create editwindow 2");
 		}
 	}
 
@@ -801,8 +887,8 @@ errorf(errorfStream, "creating editsuperclass outer");
 
 }
 
-LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
+LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &procArgs) {
+	auto &mainIndexManName = procArgs.sharedWinData.winRegs.mainIndexMan.winClassName;
 
 	switch(msg) {
 		case WM_PAINT: {
@@ -815,11 +901,11 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			RECT rect;
 
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			hdc = BeginPaint(hwnd, &ps);
-			hOldBrush = (HBRUSH) SelectObject(hdc, g_SharedWindowVar->bgBrush1);
-			hOldPen = (HPEN) SelectObject(hdc, g_SharedWindowVar->bgPen1);
+			hOldBrush = (HBRUSH) SelectObject(hdc, procArgs.sharedWinData.bgBrush1);
+			hOldPen = (HPEN) SelectObject(hdc, procArgs.sharedWinData.bgPen1);
 			Rectangle(hdc, 0, 0, rect.right, rect.bottom);
 			SelectObject(hdc, hOldBrush);
 			SelectObject(hdc, hOldPen);
@@ -830,7 +916,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			RECT rect;
 
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			MoveWindow(this->dispWindow_, 0, 0, rect.right, rect.bottom, 0);
@@ -853,7 +939,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 					args.option = 2;
 					args.parent = hwnd;
 
-					MainIndexManWindow::createWindowInstance(WinInstancer(0, L"Select Index", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, g_SharedWindowVar->ghInstance, (LPVOID) &args));
+					MainIndexManWindow::createWindowInstance(WinInstancer(0, L"Select Index", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, procArgs.sharedWinData.ghInstance, (LPVOID) &args), mainIndexManName);
 				}
 			}
 
@@ -885,11 +971,11 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 						break;
 					}
 				} if (i == ndirman_) {
-					errorf(errorfStream, "didn't zero wHandle_");
+					errorf(std::cerr, "didn't zero wHandle_");
 				}
 				break;
 			case 3: // selected directory
-//				errorfStream << "returned: " << ((int) lParam) << std::flush;
+//				std::cerr << "returned: " << ((int) lParam) << std::flush;
 				if ((int) lParam == 0)
 					break;
 				lastDirNum_ = (int) lParam;
@@ -904,7 +990,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 //					thwnd = ThumbManWindow::createWindowInstance(WinInstancer(0, L"Thumbnail View", WS_VISIBLE | WS_SYSMENU | WS_CAPTION | WS_SIZEBOX | WS_POPUP, 200, 200, 300, 300, hwnd, 0, g_shared_window_vars.ghInstance, &args));
 
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 					thwnd = ThumbManWindow::createWindowInstance(WinInstancer(0, L"Thumbnail View", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, rect.bottom, hwnd, 0, g_shared_window_vars.ghInstance, &args));
 					ShowWindow(GetDlgItem(hwnd, 1), 0);
@@ -937,7 +1023,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 							break;
 						}
 					} if (i == nthmbman_) {
-						errorf(errorfStream, "didn't close wHandle2_");
+						errorf(std::cerr, "didn't close wHandle2_");
 					}
 					break;
 				}
@@ -963,28 +1049,28 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 
 //{ ListManWindow
 
-int ListManWindow::menuCreate(HWND hwnd, std::ostream &errorfStream) {
+int ListManWindow::menuCreate(HWND hwnd) {
 	return 0;
 }
 
-int ListManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorfStream) {
+int ListManWindow::menuUse(HWND hwnd, int32_t menu_id) {
 	return 0;
 }
 
-uint64_t ListManWindow::getSingleSelID(std::ostream &errorfStream) const {
+uint64_t ListManWindow::getSingleSelID(void) const {
 	ErrorObject retError;
 	auto retStr = this->strListWin_->getSingleSelRowCol(0, &retError);
 
 	if (retError) {
-		errorf(errorfStream, "getSingleSelRowCol failed");
-		errorfStream << retError << std::flush;
+		errorf(std::cerr, "getSingleSelRowCol failed");
+		std::cerr << retError << std::flush;
 		return 0;
 	}
 
 	uint64_t retUint = stringToUint(retStr, &retError);
 
 	if (retError) {
-		errorf(errorfStream, "stringToUint failed");
+		errorf(std::cerr, "stringToUint failed");
 		return 0;
 	}
 
@@ -995,7 +1081,6 @@ uint64_t ListManWindow::getSingleSelID(std::ostream &errorfStream) const {
 
 
 LRESULT CALLBACK ListManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 
 	switch(msg) {
 		case WM_U_LISTMAN: {
@@ -1032,11 +1117,11 @@ LRESULT CALLBACK ListManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					uint64_t fNum = (this->pageListWin_->curPage_-1)*kMaxNRows+1;
 					int32_t i = log10(fNum+kMaxNRows-1)+1;
 					if ( !this->strListWin_->setColumnWidth(0, kCharWidth*(i)+6) ) {
-						errorf(errorfStream, "setColumnWidth failed (0)");
+						errorf(std::cerr, "setColumnWidth failed (0)");
 						return -1;
 					}
 					if ( !this->strListWin_->setColumnWidth(1, 0) ) {
-						errorf(errorfStream, "setColumnWidth failed (1)");
+						errorf(std::cerr, "setColumnWidth failed (1)");
 						return -1;
 					}
 
@@ -1051,8 +1136,8 @@ LRESULT CALLBACK ListManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					uint64_t lastlastpage = this->pageListWin_->lastPage_;
 					int32_t j = 0;
 
-					uint64_t ll = this->getNumElems(errorfStream);
-errorfStream << "got getNumElems: " << ll << std::flush;
+					uint64_t ll = this->getNumElems();
+std::cerr << "got getNumElems: " << ll << std::flush;
 					this->pageListWin_->lastPage_ = ll/kMaxNRows + !!(ll % kMaxNRows);
 					if (this->pageListWin_->lastPage_ == 0) {
 						this->pageListWin_->lastPage_ = 1;
@@ -1064,12 +1149,12 @@ errorfStream << "got getNumElems: " << ll << std::flush;
 					}
 
 					if (this->pageListWin_->lastPage_ != lastlastpage) {
-errorfStream << "set lastpage to " << this->pageListWin_->lastPage_ << std::flush;
+std::cerr << "set lastpage to " << this->pageListWin_->lastPage_ << std::flush;
 						if (j == 1) {
 							SendMessage(hwnd, WM_U_LISTMAN, kListmanChPageNoRef, this->pageListWin_->curPage_);
 						}
 						this->pageListWin_->hovered_ = 0;
-						SetCursor(g_SharedWindowVar->hDefCrs);
+						SetCursor(args.sharedWinData.hDefCrs);
 						SendDlgItemMessageW(hwnd, 4, WM_USER, 0, 0);
 
 						SendMessage(hwnd, WM_U_LISTMAN, kListManRefresh, 0);
@@ -1084,7 +1169,7 @@ errorfStream << "set lastpage to " << this->pageListWin_->lastPage_ << std::flus
 				case kListmanRetSelPos: { 	// return selected row num
 					// error if more than one selected
 					if (this->winOptions_ == 2) {
-						uint64_t ull = this->getSingleSelID(errorfStream);
+						uint64_t ull = this->getSingleSelID();
 
 						EnableWindow(this->parent_, 1);
 						PostMessage(this->parent_, WM_U_RET_DMAN, 3, (LPARAM) ull);
@@ -1097,11 +1182,11 @@ errorfStream << "set lastpage to " << this->pageListWin_->lastPage_ << std::flus
 			break;
 		}
 		case WM_PAINT: {
-errorf(errorfStream, "miman paint 1");
+errorf(std::cerr, "miman paint 1");
 
 			RECT rect = {0};
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			HPEN hOldPen;
@@ -1111,11 +1196,11 @@ errorf(errorfStream, "miman paint 1");
 
 			hdc = BeginPaint(hwnd, &ps);
 
-			hOldPen = (HPEN) SelectObject(hdc, g_SharedWindowVar->bgPen1);
-			hOldBrush = (HBRUSH) SelectObject(hdc, g_SharedWindowVar->bgBrush1);
+			hOldPen = (HPEN) SelectObject(hdc, args.sharedWinData.bgPen1);
+			hOldBrush = (HBRUSH) SelectObject(hdc, args.sharedWinData.bgBrush1);
 
 			Rectangle(hdc, 0, 0, rect.right, kDManTopMargin);
-			SelectObject(hdc, g_SharedWindowVar->hPen1);
+			SelectObject(hdc, args.sharedWinData.hPen1);
 			MoveToEx(hdc, 0, 0, nullptr);
 			LineTo(hdc, rect.right, 0);
 			MoveToEx(hdc, 0, kDManTopMargin-1, nullptr);
@@ -1134,7 +1219,7 @@ errorf(errorfStream, "miman paint 1");
 		case WM_MOUSEMOVE: {
 
 			this->pageListWin_->hovered_ = 0;
-			SetCursor(g_SharedWindowVar->hDefCrs);
+			SetCursor(args.sharedWinData.hDefCrs);
 
 			break;
 		}
@@ -1158,7 +1243,7 @@ errorf(errorfStream, "miman paint 1");
 				}
 				break;
 			case 4:
-				this->menuCreate(hwnd, errorfStream);
+				this->menuCreate(hwnd);
 				break;
 			case 5:	// make selection
 
@@ -1174,7 +1259,7 @@ errorf(errorfStream, "miman paint 1");
 			switch (wParam) {
 			case 0:
 				//return (LRESULT) &this->pageListWin_;
-				errorf(errorfStream, "deprecated: 3452089hre");
+				errorf(std::cerr, "deprecated: 3452089hre");
 				break;
 			case 1:
 				//! TODO:
@@ -1220,19 +1305,11 @@ errorf(errorfStream, "miman paint 1");
 
 //{ MainIndexManWindow
 //public:
-// static
-const WindowHelper MainIndexManWindow::helper = WindowHelper(std::wstring(L"MainIndexManWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND MainIndexManWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND MainIndexManWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new MainIndexManWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 int MainIndexManWindow::menuCreate(HWND hwnd) {
@@ -1254,8 +1331,8 @@ int MainIndexManWindow::menuCreate(HWND hwnd) {
 	return 0;
 };
 
-int MainIndexManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorfStream) {
-	errorfStream << "menu_id is: " << menu_id << std::flush;
+int MainIndexManWindow::menuUse(HWND hwnd, int32_t menu_id, WinProcArgs &procArgs, std::wstring dirManName, std::wstring subDirManName) {
+	std::cerr << "menu_id is: " << menu_id << std::flush;
 
 
 	if (this->winOptions_ != 2) {
@@ -1275,13 +1352,13 @@ int MainIndexManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorf
 			DIRMANARGS args = {0};
 			args.option = 0;
 			args.parent = hwnd;
-			args.inum = this->getSingleSelID(errorfStream);
+			args.inum = this->getSingleSelID();
 			HWND thwnd = 0;
-			// errorfStream << "inum: " << args->inum << std::flush;
+			// std::cerr << "inum: " << args->inum << std::flush;
 			if (args.inum != 0) {
-				thwnd = DirManWindow::createWindowInstance(WinInstancer(0, L"Manage Directories", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, g_SharedWindowVar->ghInstance, (LPVOID) &args));
+				thwnd = DirManWindow::createWindowInstance(WinInstancer(0, L"Manage Directories", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, procArgs.sharedWinData.ghInstance, (LPVOID) &args), dirManName);
 				if (!thwnd) {
-					errorf(errorfStream, "failed to create DirManWindow from MainIndexManWindow");
+					errorf(std::cerr, "failed to create DirManWindow from MainIndexManWindow");
 				}
 			}
 
@@ -1292,10 +1369,10 @@ int MainIndexManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorf
 			SDIRMANARGS *args = (SDIRMANARGS *) calloc(1, sizeof(SDIRMANARGS));
 			args->option = 0;
 			args->parent = hwnd;
-			args->inum = this->getSingleSelID(errorfStream);
-			// errorfStream << "inum: " << args->inum << std::flush;
+			args->inum = this->getSingleSelID();
+			// std::cerr << "inum: " << args->inum << std::flush;
 			if (args->inum != 0) {
-				SubDirManWindow::createWindowInstance(WinInstancer(0, L"Manage Subdirectories", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, g_SharedWindowVar->ghInstance, (LPVOID) args));
+				SubDirManWindow::createWindowInstance(WinInstancer(0, L"Manage Subdirectories", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, procArgs.sharedWinData.ghInstance, (LPVOID) args), subDirManName);
 			}
 			free(args);
 			break;
@@ -1307,13 +1384,14 @@ int MainIndexManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorf
 	return 0;
 };
 
-uint64_t MainIndexManWindow::getNumElems() {
+uint64_t MainIndexManWindow::getNumElems(void) {
 	return getLastMINum();
 }
 
 LRESULT MainIndexManWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
+	auto &pageListName = procArgs.sharedWinData.winRegs.pageList.winClassName;
+	auto &strListName = procArgs.sharedWinData.winRegs.strList.winClassName;
 
 	this->pageListWin_ = nullptr;
 	this->strListWin_ = nullptr;
@@ -1335,7 +1413,7 @@ LRESULT MainIndexManWindow::onCreate(WinProcArgs &procArgs) {
 
 	RECT rect = {0};
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	//# divergence 2
@@ -1346,7 +1424,7 @@ LRESULT MainIndexManWindow::onCreate(WinProcArgs &procArgs) {
 		if (x < 5)
 			x = 5;
 		CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, nullptr, nullptr);
-		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 		//CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, nullptr, nullptr);
 		//SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) g_shared_window_vars.hFont2, 1);
 		//CheckDlgButton(hwnd, 2, BST_UNCHECKED);
@@ -1356,7 +1434,7 @@ LRESULT MainIndexManWindow::onCreate(WinProcArgs &procArgs) {
 			x = 5;
 		EnableWindow(this->parent_, 0);
 		CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, nullptr, nullptr);
-		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 	}
 
 	//# convergence 2
@@ -1365,27 +1443,27 @@ LRESULT MainIndexManWindow::onCreate(WinProcArgs &procArgs) {
 	uint64_t ll = 0;
 	int32_t i = 0;
 
-	thwnd = PageListWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, nullptr, nullptr));
+	thwnd = PageListWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, nullptr, nullptr), pageListName);
 	if (!thwnd) {
-		errorf(errorfStream, "failed to create PageListWindow");
+		errorf(std::cerr, "failed to create PageListWindow");
 		return -1;
 	}
 
-	this->pageListWin_ = std::dynamic_pointer_cast<PageListWindow>(args.getWindowPtr(thwnd));
+	this->pageListWin_ = std::dynamic_pointer_cast<PageListWindow>(procArgs.getWindowPtr(thwnd));
 	if (!this->pageListWin_) {
-		errorf(errorfStream, "failed to receive PageListWindow pointer");
+		errorf(std::cerr, "failed to receive PageListWindow pointer");
 		return -1;
 	}
 
-	thwnd = StrListWindow::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, nullptr, nullptr));
+	thwnd = StrListWindow::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, nullptr, nullptr), strListName);
 	if (!thwnd) {
-		errorf(errorfStream, "failed to create StrListWindow");
+		errorf(std::cerr, "failed to create StrListWindow");
 		return -1;
 	}
 
-	this->strListWin_ = std::dynamic_pointer_cast<StrListWindow>(args.getWindowPtr(thwnd));
+	this->strListWin_ = std::dynamic_pointer_cast<StrListWindow>(procArgs.getWindowPtr(thwnd));
 	if (!this->strListWin_) {
-		errorf(errorfStream, "failed to receive StrListWindow pointer");
+		errorf(std::cerr, "failed to receive StrListWindow pointer");
 		return -1;
 	}
 
@@ -1395,8 +1473,8 @@ LRESULT MainIndexManWindow::onCreate(WinProcArgs &procArgs) {
 	}
 
 	this->pageListWin_->curPage_ = 1;
-	ll = this->getNumElems(errorfStream);
-errorfStream << "getNumElems: " << ll << std::flush;
+	ll = this->getNumElems();
+std::cerr << "getNumElems: " << ll << std::flush;
 	this->pageListWin_->lastPage_ = ll/kMaxNRows + !!(ll % kMaxNRows);
 	if (this->pageListWin_->lastPage_ == 0) {
 		this->pageListWin_->lastPage_ = 1;
@@ -1406,7 +1484,7 @@ errorfStream << "getNumElems: " << ll << std::flush;
 
 	i = kMaxNRows/8 + !!(kMaxNRows%8);
 	if (!i) {
-		errorf(errorfStream, "no space row selections");
+		errorf(std::cerr, "no space row selections");
 	}
 
 	//# divergence 3
@@ -1416,16 +1494,16 @@ errorfStream << "getNumElems: " << ll << std::flush;
 	uint64_t fNum = (this->pageListWin_->curPage_-1)*kMaxNRows+1;
 	i = log10(fNum+kMaxNRows-1)+1;
 	if ( !this->strListWin_->setColumnWidth(0, kCharWidth*(i)+6) ) {
-		errorf(errorfStream, "setColumnWidth failed (0)");
+		errorf(std::cerr, "setColumnWidth failed (0)");
 		return -1;
 	}
-	if ( !this->strListWin_->setColumnWidth(1, 0) ) {
-		errorf(errorfStream, "setColumnWidth failed (1)");
+	if ( !this->strListWin_->setColumnWidth(1, 0)) {
+		errorf(std::cerr, "setColumnWidth failed (1)");
 		return -1;
 	}
 
 	if ( !this->strListWin_->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( { "#", "Name" }))) ) {
-		errorf(errorfStream, "failed to set slv headers");
+		errorf(std::cerr, "failed to set slv headers");
 		return -1;
 	}
 
@@ -1434,14 +1512,16 @@ errorfStream << "getNumElems: " << ll << std::flush;
 	SetFocus(GetDlgItem(hwnd, 3));
 
 	SendMessage(hwnd, WM_U_LISTMAN, kListManRefresh, 0);
-errorf(errorfStream, "miman 6");
+errorf(std::cerr, "miman 6");
 
 	return ListManWindow::onCreate(procArgs);
 }
 
 
 LRESULT CALLBACK MainIndexManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
+	auto &dirManName = args.sharedWinData.winRegs.dirMan.winClassName;
+	auto &subDirManName = args.sharedWinData.winRegs.subDirMan.winClassName;
+	auto &textEditDialogName = args.sharedWinData.winRegs.textEditDialog.winClassName;
 
 	switch(msg) {
 		case WM_COMMAND: {
@@ -1449,13 +1529,13 @@ LRESULT CALLBACK MainIndexManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 			if (this->winOptions_ != 2) {
 				if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
 					//SendMessage(hwnd, WM_U_RET_SL, 3, LOWORD(wParam);
-					this->menuUse(hwnd, LOWORD(wParam));
+					this->menuUse(hwnd, LOWORD(wParam), args, dirManName, subDirManName);
 					break;
 				} else if (HIWORD(wParam) == BN_CLICKED) {
 					if (LOWORD(wParam) == 1) {	// add listing
 
 						HWND *arg = (HWND*) malloc(sizeof(HWND));
-						TextEditDialogWindow::createWindowInstance(WinInstancer(0, L"Enter Main Index Name", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 150, 150, 500, 500, hwnd, 0, nullptr, arg));
+						TextEditDialogWindow::createWindowInstance(WinInstancer(0, L"Enter Main Index Name", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 150, 150, 500, 500, hwnd, 0, nullptr, arg), textEditDialogName);
 						//SendMessage(thwnd, WM_USER, 0, (LPARAM) this->dnum);
 						free(arg);
 					}
@@ -1473,7 +1553,7 @@ LRESULT CALLBACK MainIndexManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 		case WM_SIZE: {
 			RECT rect = {0};
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			//# class specific child windows
 			if (this->winOptions_ != 2) {
@@ -1522,7 +1602,7 @@ LRESULT CALLBACK MainIndexManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 			if (list_ptr != nullptr && !list_ptr->empty()) {
 				auto workPtr = std::make_shared<std::vector<std::vector<std::string>>>();
 				if (workPtr == nullptr) {
-					errorf(errorfStream, "failed to allocate shared_ptr");
+					errorf(std::cerr, "failed to allocate shared_ptr");
 					return 1;
 				}
 				auto &workVector = *workPtr;
@@ -1540,10 +1620,10 @@ LRESULT CALLBACK MainIndexManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 				int64_t gotRows = uint - fNum;
 
 				if (gotRows <= 0) {
-					errorf(errorfStream, "list_ptr was somehow empty");
+					errorf(std::cerr, "list_ptr was somehow empty");
 					return 1;
 				} else if (gotRows > kMaxNRows) {
-					errorf(errorfStream, "returned too many entries");
+					errorf(std::cerr, "returned too many entries");
 					return 1;
 				} else {
 					this->strListWin_->assignRows(workPtr);
@@ -1566,7 +1646,7 @@ LRESULT CALLBACK MainIndexManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
 
 			if (!(InvalidateRect(hwnd, 0, 1))) {
-				errorf(errorfStream, "InvalidateRect failed");
+				errorf(std::cerr, "InvalidateRect failed");
 			}
 
 			break;
@@ -1582,19 +1662,11 @@ LRESULT CALLBACK MainIndexManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 
 //{ DirManWindow
 //public:
-// static
-const WindowHelper DirManWindow::helper = WindowHelper(std::wstring(L"DirManWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND DirManWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND DirManWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new DirManWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 int DirManWindow::menuCreate(HWND hwnd) {
@@ -1613,8 +1685,8 @@ int DirManWindow::menuCreate(HWND hwnd) {
 	return 0;
 };
 
-int DirManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorfStream) {
-	errorfStream << "menu_id is: " << menu_id << std::flush;
+int DirManWindow::menuUse(HWND hwnd, int32_t menu_id) {
+	std::cerr << "menu_id is: " << menu_id << std::flush;
 
 	// TODO: make menu_id values to enum
 	switch (menu_id) {
@@ -1633,18 +1705,19 @@ int DirManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorfStream
 	return 0;
 };
 
-uint64_t DirManWindow::getNumElems() {
+uint64_t DirManWindow::getNumElems(void) {
 	return getLastDNum(this->inum_);
 }
 
 LRESULT DirManWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
+	auto &pageListName = procArgs.sharedWinData.winRegs.pageList.winClassName;
+	auto &strListName = procArgs.sharedWinData.winRegs.strList.winClassName;
 
 	this->pageListWin_ = nullptr;
 	this->strListWin_ = nullptr;
 
-errorf(errorfStream, "DirManWindow onCreate spot 1");
+errorf(std::cerr, "DirManWindow onCreate spot 1");
 
 	//# divergence 1
 
@@ -1652,7 +1725,7 @@ errorf(errorfStream, "DirManWindow onCreate spot 1");
 
 	if (args) {
 		if (args->inum == 0) {
-			errorf(errorfStream, "args->inum is 0");
+			errorf(std::cerr, "args->inum is 0");
 			return -1;
 		} else {
 			this->inum_ = args->inum;
@@ -1661,7 +1734,7 @@ errorf(errorfStream, "DirManWindow onCreate spot 1");
 		this->winOptions_ = args->option;
 		this->parent_ = args->parent;
 	} else {
-		errorf(errorfStream, "args is nullptr");
+		errorf(std::cerr, "args is nullptr");
 		return -1;
 	}
 
@@ -1670,7 +1743,7 @@ errorf(errorfStream, "DirManWindow onCreate spot 1");
 	
 	RECT rect = {0};
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	//# divergence 2
@@ -1681,9 +1754,9 @@ errorf(errorfStream, "DirManWindow onCreate spot 1");
 		if (x < 5)
 			x = 5;
 		CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, nullptr, nullptr);
-		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 		CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, nullptr, nullptr);
-		SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+		SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 		CheckDlgButton(hwnd, 2, BST_UNCHECKED);
 	} else {
 		int32_t x = (rect.right-80) / 2;
@@ -1691,7 +1764,7 @@ errorf(errorfStream, "DirManWindow onCreate spot 1");
 			x = 5;
 		EnableWindow(this->parent_, 0);
 		CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, nullptr, nullptr);
-		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 	}
 
 	//# convergence 2
@@ -1700,58 +1773,58 @@ errorf(errorfStream, "DirManWindow onCreate spot 1");
 	uint64_t ll = 0;
 	int32_t i = 0;
 
-	thwnd = PageListWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, nullptr, nullptr));
+	thwnd = PageListWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, nullptr, nullptr), pageListName);
 	if (!thwnd) {
-		errorf(errorfStream, "failed to create PageListWindow");
+		errorf(std::cerr, "failed to create PageListWindow");
 		return -1;
 	}
 
-	this->pageListWin_ = std::dynamic_pointer_cast<PageListWindow>(args.getWindowPtr(thwnd));
+	this->pageListWin_ = std::dynamic_pointer_cast<PageListWindow>(procArgs.getWindowPtr(thwnd));
 	if (!this->pageListWin_) {
-		errorf(errorfStream, "failed to receive PageListWindow pointer");
+		errorf(std::cerr, "failed to receive PageListWindow pointer");
 		return -1;
 	}
 
 
-errorf(errorfStream, "DirManWindow before StrListWindow");
-	thwnd = StrListWindow::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, nullptr, nullptr));
+errorf(std::cerr, "DirManWindow before StrListWindow");
+	thwnd = StrListWindow::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, nullptr, nullptr), strListName);
 	if (!thwnd) {
-		errorf(errorfStream, "failed to create StrListWindow");
+		errorf(std::cerr, "failed to create StrListWindow");
 		return -1;
 	}
-errorf(errorfStream, "DirManWindow after StrListWindow");
+errorf(std::cerr, "DirManWindow after StrListWindow");
 
-	this->strListWin_ = std::dynamic_pointer_cast<StrListWindow>(args.getWindowPtr(thwnd));
+	this->strListWin_ = std::dynamic_pointer_cast<StrListWindow>(procArgs.getWindowPtr(thwnd));
 	if (!this->strListWin_) {
-		errorf(errorfStream, "failed to receive StrListWindow pointer");
+		errorf(std::cerr, "failed to receive StrListWindow pointer");
 		return -1;
 	}
 
-errorf(errorfStream, "DirManWindow onCreate spot 4.1");
+errorf(std::cerr, "DirManWindow onCreate spot 4.1");
 
 	//! TODO: move this to the createWindowInstance arguments
 	if (this->winOptions_ == 2) {
 		this->strListWin_->winOptions_ = 1;
 	}
-errorf(errorfStream, "DirManWindow onCreate spot 4.2");
+errorf(std::cerr, "DirManWindow onCreate spot 4.2");
 
 	this->pageListWin_->curPage_ = 1;
-errorf(errorfStream, "DirManWindow onCreate spot 4.2.1");
-	ll = this->getNumElems(errorfStream);
-errorf(errorfStream, "DirManWindow onCreate spot 4.2.2");
+errorf(std::cerr, "DirManWindow onCreate spot 4.2.1");
+	ll = this->getNumElems();
+errorf(std::cerr, "DirManWindow onCreate spot 4.2.2");
 	this->pageListWin_->lastPage_ = ll/kMaxNRows + !!(ll % kMaxNRows);
 	if (this->pageListWin_->lastPage_ == 0) {
 		this->pageListWin_->lastPage_ = 1;
 	}
-errorf(errorfStream, "DirManWindow onCreate spot 4.3");
+errorf(std::cerr, "DirManWindow onCreate spot 4.3");
 
 	this->pageListWin_->startPaint();
 
 	i = kMaxNRows/8 + !!(kMaxNRows%8);
 	if (!i) {
-		errorf(errorfStream, "no space row selections");
+		errorf(std::cerr, "no space row selections");
 	}
-errorf(errorfStream, "DirManWindow onCreate spot 4.4");
+errorf(std::cerr, "DirManWindow onCreate spot 4.4");
 
 	//# divergence 3
 	// initialize columns
@@ -1760,16 +1833,16 @@ errorf(errorfStream, "DirManWindow onCreate spot 4.4");
 	uint64_t fNum = (this->pageListWin_->curPage_-1)*kMaxNRows+1;
 	i = log10(fNum+kMaxNRows-1)+1;
 	if ( !this->strListWin_->setColumnWidth(0, kCharWidth*(i)+6) ) {
-		errorf(errorfStream, "setColumnWidth faiinProcArgs argsled (0)");
+		errorf(std::cerr, "setColumnWidth faiinProcArgs argsled (0)");
 		return -1;
 	}
 	if ( !this->strListWin_->setColumnWidth(1, 0) ) {
-		errorf(errorfStream, "setColumnWidth failed (1)");
+		errorf(std::cerr, "setColumnWidth failed (1)");
 		return -1;
 	}
 
 	if ( !this->strListWin_->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( {"#", "Path"}))) ) {
-		errorf(errorfStream, "failed to set slv headers");
+		errorf(std::cerr, "failed to set slv headers");
 		return -1;
 	}
 	//this->strListWin_->header = malloc(sizeof(char *)*this->strListWin_->nColumns);
@@ -1780,17 +1853,17 @@ errorf(errorfStream, "DirManWindow onCreate spot 4.4");
 
 	SetFocus(GetDlgItem(hwnd, 3));
 
-errorf(errorfStream, "DirManWindow onCreate spot 4.4");
+errorf(std::cerr, "DirManWindow onCreate spot 4.4");
 
 	SendMessage(hwnd, WM_U_LISTMAN, kListManRefresh, 0);
 
-errorf(errorfStream, "DirManWindow onCreate spot 9");
+errorf(std::cerr, "DirManWindow onCreate spot 9");
 
 	return ListManWindow::onCreate(procArgs);
 }
 
 LRESULT CALLBACK DirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
+	auto &prgDir = args.sharedWinData.prgDir;
 
 	switch(msg) {
 		case WM_COMMAND: {
@@ -1799,7 +1872,7 @@ LRESULT CALLBACK DirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 				bool checkedRelative = !!(IsDlgButtonChecked(hwnd, 2));
 
 				if (HIWORD(wParam) == 0 && lParam == 0) { // context menu
-					this->menuUse(hwnd, LOWORD(wParam), errorfStream);
+					this->menuUse(hwnd, LOWORD(wParam));
 					break;
 				} else if (HIWORD(wParam) == BN_CLICKED) {
 					// TODO: this should be a method in the first place (or function)
@@ -1810,27 +1883,27 @@ LRESULT CALLBACK DirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 
 							if (checkedRelative) {
 								//! TODO: add error return argument and print in window
-								retPath = makePathRelativeToProgDir(retPath, g_fsPrgDir);
+								retPath = makePathRelativeToProgDir(retPath, prgDir);
 
 								if (!retPath.empty()) {
-									if (!std::fs::is_directory(g_fsPrgDir / retPath)) {
-										errorf(errorfStream, "retPath was not directory (1)");
-										errorfStream << "retPath was: " << retPath << std::flush;
+									if (!std::fs::is_directory(prgDir / retPath)) {
+										errorf(std::cerr, "retPath was not directory (1)");
+										std::cerr << "retPath was: " << retPath << std::flush;
 
 										retPath.clear();
 									}
 								}
 							} else {
 								if (!std::fs::is_directory(retPath)) {
-									errorf(errorfStream, "retPath was not directory (2)");
-									errorfStream << "retPath was: " << retPath << std::flush;
+									errorf(std::cerr, "retPath was not directory (2)");
+									std::cerr << "retPath was: " << retPath << std::flush;
 
 									retPath.clear();
 								}
 							}
 
 							if (!retPath.empty()) {
-errorf(errorfStream, "calling dReg");
+errorf(std::cerr, "calling dReg");
 								dReg(this->inum_, retPath);
 
 								SendMessage(hwnd, WM_USER, 0, 0);
@@ -1857,7 +1930,7 @@ errorf(errorfStream, "calling dReg");
 		case WM_SIZE: {
 			RECT rect = {0};
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			//# class specific child windows
 			if (this->winOptions_ != 2) {
@@ -1904,7 +1977,7 @@ errorf(errorfStream, "calling dReg");
 			if (list_ptr != nullptr && !list_ptr->empty()) {
 				auto workPtr = std::make_shared<std::vector<std::vector<std::string>>>();
 				if (!workPtr) {
-					errorf(errorfStream, "failed to allocate shared_ptr");
+					errorf(std::cerr, "failed to allocate shared_ptr");
 					return 1;
 				}
 				auto &workVector = *workPtr;
@@ -1922,10 +1995,10 @@ errorf(errorfStream, "calling dReg");
 				int64_t gotRows = uint - fNum;
 
 				if (gotRows <= 0) {
-					errorf(errorfStream, "list_ptr was somehow empty");
+					errorf(std::cerr, "list_ptr was somehow empty");
 					return 1;
 				} else if (gotRows > kMaxNRows) {
-					errorf(errorfStream, "returned too many entries");
+					errorf(std::cerr, "returned too many entries");
 					return 1;
 				} else {
 					this->strListWin_->assignRows(workPtr);
@@ -1948,7 +2021,7 @@ errorf(errorfStream, "calling dReg");
 			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
 
 			if (!(InvalidateRect(hwnd, 0, 1))) {
-				errorf(errorfStream, "InvalidateRect failed");
+				errorf(std::cerr, "InvalidateRect failed");
 			}
 
 			break;
@@ -1965,22 +2038,14 @@ errorf(errorfStream, "calling dReg");
 
 //{ SubDirManWindow
 //public:
-// static
-const WindowHelper SubDirManWindow::helper = WindowHelper(std::wstring(L"SubDirManWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND SubDirManWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND SubDirManWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new SubDirManWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
-int SubDirManWindow::menuCreate(HWND hwnd, errorfStream) {
+int SubDirManWindow::menuCreate(HWND hwnd) {
 	HMENU hMenu;
 
 	if (this->winOptions_ != 2) {
@@ -1996,8 +2061,8 @@ int SubDirManWindow::menuCreate(HWND hwnd, errorfStream) {
 	return 0;
 };
 
-int SubDirManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorfStream) {
-	errorfStream << "menu_id is: " << menu_id << std::flush;
+int SubDirManWindow::menuUse(HWND hwnd, int32_t menu_id) {
+	std::cerr << "menu_id is: " << menu_id << std::flush;
 
 	switch (menu_id) {
 	case 1:
@@ -2015,13 +2080,14 @@ int SubDirManWindow::menuUse(HWND hwnd, int32_t menu_id, std::ostream &errorfStr
 	return 0;
 };
 
-uint64_t SubDirManWindow::getNumElems(errorfStream) {
+uint64_t SubDirManWindow::getNumElems(void) {
 	return getLastSubDirNum(this->inum_);
 }
 
 LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
+	auto &pageListName = procArgs.sharedWinData.winRegs.pageList.winClassName;
+	auto &strListName = procArgs.sharedWinData.winRegs.strList.winClassName;
 
 	this->pageListWin_ = nullptr;
 	this->strListWin_ = nullptr;
@@ -2032,7 +2098,7 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 	SDIRMANARGS *args = *(SDIRMANARGS **) procArgs.lParam;
 
 	if (args->inum == 0) {
-		errorf(errorfStream, "inum is 0");
+		errorf(std::cerr, "inum is 0");
 		DestroyWindow(hwnd);
 		return 0;
 	}
@@ -2042,7 +2108,7 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 		this->parent_ = args->parent;
 		this->inum_ = args->inum;
 	} else {
-		errorf(errorfStream, "args is nullptr");
+		errorf(std::cerr, "args is nullptr");
 		//DestroyWindow(hwnd);
 		//FreeWindowMem(hwnd);
 		return -1;
@@ -2055,7 +2121,7 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	//# divergence 2
@@ -2066,7 +2132,7 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 		if (x < 5)
 			x = 5;
 		CreateWindowW(L"Button", L"Add...", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, nullptr, nullptr);
-		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 		//CreateWindowW(L"Button", L"Relative path", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, x+90, 2, 110, 35, hwnd, (HMENU) 2, nullptr, nullptr);
 		//SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) g_shared_window_vars.hFont2, 1);
 		//CheckDlgButton(hwnd, 2, BST_UNCHECKED);
@@ -2076,7 +2142,7 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 			x = 5;
 		EnableWindow(this->parent_, 0);
 		CreateWindowW(L"Button", L"Select", WS_VISIBLE | WS_CHILD , x, 5, 80, 25, hwnd, (HMENU) 1, nullptr, nullptr);
-		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+		SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 	}
 
 	//# convergence 2
@@ -2085,27 +2151,27 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 	uint64_t ll = 0;
 	int32_t i = 0;
 
-	thwnd = PageListWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, nullptr, nullptr));
+	thwnd = PageListWindow::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 4, nullptr, nullptr), pageListName);
 	if (!thwnd) {
-		errorf(errorfStream, "failed to create PageListWindow");
+		errorf(std::cerr, "failed to create PageListWindow");
 		return -1;
 	}
 
-	this->pageListWin_ = std::dynamic_pointer_cast<PageListWindow>(args.getWindowPtr(thwnd));
+	this->pageListWin_ = std::dynamic_pointer_cast<PageListWindow>(procArgs.getWindowPtr(thwnd));
 	if (!this->pageListWin_) {
-		errorf(errorfStream, "failed to receive PageListWindow pointer");
+		errorf(std::cerr, "failed to receive PageListWindow pointer");
 		return -1;
 	}
 
-	thwnd = StrListWindow::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, nullptr, nullptr));
+	thwnd = StrListWindow::createWindowInstance(WinInstancer(0,  0, WS_VISIBLE | WS_CHILD, 0, 0, 0, 0, hwnd, (HMENU) 3, nullptr, nullptr), strListName);
 	if (!thwnd) {
-		errorf(errorfStream, "failed to create StrListWindow");
+		errorf(std::cerr, "failed to create StrListWindow");
 		return -1;
 	}
 
-	this->strListWin_ = std::dynamic_pointer_cast<StrListWindow>(args.getWindowPtr(thwnd));
+	this->strListWin_ = std::dynamic_pointer_cast<StrListWindow>(procArgs.getWindowPtr(thwnd));
 	if (!this->strListWin_) {
-		errorf(errorfStream, "failed to receive StrListWindow pointer");
+		errorf(std::cerr, "failed to receive StrListWindow pointer");
 		return -1;
 	}
 
@@ -2125,7 +2191,7 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 
 	i = kMaxNRows/8 + !!(kMaxNRows%8);
 	if (!i) {
-		errorf(errorfStream, "no space row selections");
+		errorf(std::cerr, "no space row selections");
 	}
 
 	//# divergence 3
@@ -2136,16 +2202,16 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 	uint64_t fNum = (this->pageListWin_->curPage_-1)*kMaxNRows+1;
 	i = log10(fNum+kMaxNRows-1)+1;
 	if ( !this->strListWin_->setColumnWidth(0, kCharWidth*(i)+6) ) {
-		errorf(errorfStream, "setColumnWidth failed (0)");
+		errorf(std::cerr, "setColumnWidth failed (0)");
 		return -1;
 	}
 	if ( !this->strListWin_->setColumnWidth(1, 0) ) {
-		errorf(errorfStream, "setColumnWidth failed (1)");
+		errorf(std::cerr, "setColumnWidth failed (1)");
 		return -1;
 	}
 
 	if ( !this->strListWin_->setHeaders(std::shared_ptr<std::vector<std::string>>(new std::vector<std::string>( {"#", "Path"} ))) ) {
-		errorf(errorfStream, "failed to set slv headers");
+		errorf(std::cerr, "failed to set slv headers");
 		return -1;
 	}
 	//# convergence 3
@@ -2157,8 +2223,8 @@ LRESULT SubDirManWindow::onCreate(WinProcArgs &procArgs) {
 	return ListManWindow::onCreate(procArgs);
 }
 
-LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
+LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &procArgs) {
+	auto &dirManName = procArgs.sharedWinData.winRegs.dirMan.winClassName;
 
 	/*
 	char *p;
@@ -2187,7 +2253,7 @@ LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 						args.inum = this->inum_;
 						args.parent = hwnd;
 
-						DirManWindow::createWindowInstance(WinInstancer(0, L"Select Superdirectory", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, g_SharedWindowVar->ghInstance, (LPVOID) &args));
+						DirManWindow::createWindowInstance(WinInstancer(0, L"Select Superdirectory", WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_POPUP, 100, 100, 500, 500, hwnd, nullptr, procArgs.sharedWinData.ghInstance, (LPVOID) &args), dirManName);
 					}
 				}
 			} else {
@@ -2203,7 +2269,7 @@ LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_SIZE: {
 			RECT rect = {0};
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			if (this->winOptions_ != 2) {
 				int32_t x = rect.right / 2 - 100;
@@ -2248,7 +2314,7 @@ LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			if (list_ptr != nullptr && !list_ptr->empty()) {
 				auto workPtr = std::make_shared<std::vector<std::vector<std::string>>>();
 				if (workPtr == nullptr) {
-					errorf(errorfStream, "failed to allocate shared_ptr");
+					errorf(std::cerr, "failed to allocate shared_ptr");
 					return 1;
 				}
 				auto &workVector = *workPtr;
@@ -2264,10 +2330,10 @@ LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				int64_t gotRows = uint - fNum;
 
 				if (gotRows <= 0) {
-					errorf(errorfStream, "list_ptr was somehow empty");
+					errorf(std::cerr, "list_ptr was somehow empty");
 					return 1;
 				} else if (gotRows > kMaxNRows) {
-					errorf(errorfStream, "returned too many entries");
+					errorf(std::cerr, "returned too many entries");
 					return 1;
 				} else {
 					this->strListWin_->assignRows(workPtr);
@@ -2290,14 +2356,14 @@ LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);
 
 			if (!(InvalidateRect(hwnd, 0, 1))) {
-				errorf(errorfStream, "InvalidateRect failed");
+				errorf(std::cerr, "InvalidateRect failed");
 			}
 
 			break;
 		}
 	}
 
-	return this->ListManWindow::winProc(hwnd, msg, wParam, lParam);
+	return this->ListManWindow::winProc(hwnd, msg, wParam, lParam, procArgs);
 
 	//return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
@@ -2307,19 +2373,11 @@ LRESULT CALLBACK SubDirManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 //{ ThumbManWindow
 //public:
-// static
-const WindowHelper ThumbManWindow::helper = WindowHelper(std::wstring(L"ThumbManWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW; // redraw on resize
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND ThumbManWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND ThumbManWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new ThumbManWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT ThumbManWindow::onCreate(WinProcArgs &procArgs) {
@@ -2354,14 +2412,14 @@ LRESULT ThumbManWindow::onCreate(WinProcArgs &procArgs) {
 
 	this->dname = dRead(this->dnum);
 	if (this->dname == 0) {
-		errorf(errorfStream, "dname came null");
+		errorf(std::cerr, "dname came null");
 		DestroyWindow(hwnd);
 		return 0;
 	}
 	this->tfstr = 0;
 
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	this->pageListWin_->curPage_ = 1;
@@ -2369,7 +2427,7 @@ LRESULT ThumbManWindow::onCreate(WinProcArgs &procArgs) {
 
 	i = MAX_NTHUMBS/8 + !!(MAX_NTHUMBS%8);
 	if (!i) {
-		errorf(errorfStream, "no space thumb selections");
+		errorf(std::cerr, "no space thumb selections");
 	}
 	this->tlv.ThumbSel = malloc(i);
 	while (--i >= 0) {
@@ -2417,7 +2475,6 @@ LRESULT ThumbManWindow::onCreate(WinProcArgs &procArgs) {
 }
 
 LRESULT CALLBACK ThumbManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 	/*
 	char *p;
 	int i, j, x;
@@ -2471,7 +2528,7 @@ LRESULT CALLBACK ThumbManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			break;
 		}
 		case WM_SETFOCUS: {
-errorf(errorfStream, "setting focus1");
+errorf(std::cerr, "setting focus1");
 			if (varp) {
 				if (!(this->winOptions_ & 1)) {
 					SetFocus(GetDlgItem(hwnd, 3));
@@ -2485,7 +2542,7 @@ errorf(errorfStream, "setting focus1");
 		case WM_USER: {	refresh pages
 
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			lastlastpage = this->pageListWin_->lastPage_;
@@ -2506,7 +2563,7 @@ errorf(errorfStream, "setting focus1");
 					SendMessage(hwnd, WM_USER+2, 1, this->pageListWin_->curPage_);
 				} else {
 					if (!(InvalidateRect(hwnd, 0, 1))) {
-						errorf(errorfStream, "InvalidateRect failed");
+						errorf(std::cerr, "InvalidateRect failed");
 					}
 				}
 				this->pageListWin_->hovered_ = 0;
@@ -2541,7 +2598,7 @@ errorf(errorfStream, "setting focus1");
 
 					for (link = this->tlv.strchn[0], i = 0; link != 0; link = link->next, i++);
 					if (fnum + i - 1 > this->nitems || (this->pageListWin_->curPage_ == this->pageListWin_->lastPage_ && fnum + i - 1 != this->nitems)) {
-						errorf(errorfStream, "thumbman item amount mismatch");
+						errorf(std::cerr, "thumbman item amount mismatch");
 					}
 
 					if (this->tlv.strchn[0]) {
@@ -2578,7 +2635,7 @@ errorf(errorfStream, "setting focus1");
 
 			SendDlgItemMessageW(hwnd, 3, WM_USER, 1, 0);	// update scroll in thmblist
 			if (!(InvalidateRect(hwnd, 0, 1))) {
-				errorf(errorfStream, "InvalidateRect failed");
+				errorf(std::cerr, "InvalidateRect failed");
 			}
 			break;
 		}
@@ -2614,11 +2671,11 @@ errorf(errorfStream, "setting focus1");
 				switch (LOWORD(wParam)) {
 				case 1:
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 					for (j = 0; !(this->tlv.ThumbSel[j/8] & (1 << j%8)) && j < this->tlv.nThumbs; j++);
 					if (j == this->tlv.nThumbs) {
-						errorf(errorfStream, "trying to view image with no selections");
+						errorf(std::cerr, "trying to view image with no selections");
 						break;
 					}
 					DestroyWindow(GetDlgItem(hwnd, 3)), DestroyWindow(GetDlgItem(hwnd, 4)), DestroyWindow(GetDlgItem(hwnd, 6));
@@ -2633,7 +2690,7 @@ errorf(errorfStream, "setting focus1");
 
 					for (i = 0, (link = this->tlv.strchn[1]) && link != 0; link && i < j; i++, link = link->next);
 					if (!link || !link->str) {
-						errorfStream << "no link or string in this->tlv.strchn[1], i: " << i << std::flush;
+						std::cerr << "no link or string in this->tlv.strchn[1], i: " << i << std::flush;
 						DestroyWindow(hwnd);
 					}
 					this->ivv.imgpath = malloc(strlen(this->dname)+1+strlen(link->str)+1);
@@ -2641,7 +2698,7 @@ errorf(errorfStream, "setting focus1");
 
 					for (i = 0, (link = this->tlv.strchn[0]) && link != 0; link && i < j; i++, link = link->next);
 					if (!link) {
-						errorfStream << "no link or string in this->tlv.strchn[0], j: " << j << std::flush;
+						std::cerr << "no link or string in this->tlv.strchn[0], j: " << j << std::flush;
 						DestroyWindow(hwnd);
 					}
 
@@ -2670,7 +2727,7 @@ errorf(errorfStream, "setting focus1");
 					}
 					link->next = 0;
 					if (j != this->tlv.nThumbs) {
-						errorf(errorfStream, "didn't go through all thumbs");
+						errorf(std::cerr, "didn't go through all thumbs");
 						killoneschn(link, 0);
 					}
 					link = flink->next;
@@ -2683,7 +2740,7 @@ errorf(errorfStream, "setting focus1");
 					SendMessage(thwnd, WM_USER, 0, (LPARAM) this->dnum);
 
 					if (SendMessage(thwnd, WM_USER, 1, (LPARAM) link) != 1) {
-						errorf(errorfStream, "didn't get filetagedit confirmation");
+						errorf(std::cerr, "didn't get filetagedit confirmation");
 						killoneschn(link, 1);
 					}
 					break;
@@ -2731,7 +2788,7 @@ errorf(errorfStream, "setting focus1");
 				return (LRESULT) &this->ivv;
 			case 1:
 				if (GetClientRect(hwnd, &rect) == 0) {	// all along it didn't draw because this was missing
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 				DestroyWindow(GetDlgItem(hwnd, (int) wParam));
 				if (this->ivv.imgpath) {
@@ -2776,7 +2833,7 @@ errorf(errorfStream, "setting focus1");
 					this->pageListWin_->lastPage_ = this->nitems/MAX_NTHUMBS + !!(this->nitems % MAX_NTHUMBS);
 				} else {
 					this->pageListWin_->lastPage_ = 1;
-errorf(errorfStream, "ffiReadTagExt no result");
+errorf(std::cerr, "ffiReadTagExt no result");
 				}
 
 				this->pageListWin_->curPage_ = 1;
@@ -2852,19 +2909,11 @@ errorf(errorfStream, "ffiReadTagExt no result");
 
 //{ PageListWindow
 //public:
-// static
-const WindowHelper PageListWindow::helper = WindowHelper(std::wstring(L"PageListWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = 0;
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND PageListWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND PageListWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new PageListWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 bool PageListWindow::isPainting() {
@@ -2880,7 +2929,7 @@ void PageListWindow::pausePaint() {
 }
 
 // TODO: separate writing the buttons vec from calculating the numbers
-void PageListWindow::getPages(int32_t edgeSpace, std::ostream &errorfStream) {
+void PageListWindow::getPages(int32_t edgeSpace) {
 	// the selected page's button is centered unless buttons for all pages fit or the buttons left of a centered button would reach the left edge (that is no left arrow buttons are required) or reach the right edge to the right (no right arrows)
 
 	// 2^64 has 19 decimals
@@ -3014,7 +3063,7 @@ void PageListWindow::getPages(int32_t edgeSpace, std::ostream &errorfStream) {
 		{
 			result = std::shared_ptr<std::vector<ListPage>>(new std::vector<ListPage>(lastPage_));
 			if (result == nullptr) {
-				errorf(errorfStream, "failed to allocate shared_ptr");
+				errorf(std::cerr, "failed to allocate shared_ptr");
 				return;
 			}
 			auto &vec = *result;
@@ -3228,14 +3277,13 @@ void PageListWindow::getPages(int32_t edgeSpace, std::ostream &errorfStream) {
 
 LRESULT PageListWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
 
 
 	//! TODO: maybe initialize in class instead
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	this->hovered_ = 0;
@@ -3251,11 +3299,11 @@ LRESULT PageListWindow::onCreate(WinProcArgs &procArgs) {
 }
 
 LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 
 	switch(msg) {
 		case WM_CREATE: {
-			return this->onCreate(WinProcArgs(hwnd, msg, wParam, lParam));
+			// return this->onCreate(WinProcArgs(hwnd, msg, wParam, lParam));
+			return this->onCreate(args);
 
 			break;
 		}
@@ -3264,7 +3312,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 		{
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			if (this->isPainting()) {
@@ -3276,7 +3324,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			HDC hdc;
@@ -3288,11 +3336,11 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			HBRUSH tempBrush, hOldBrush;
 			HFONT hOldFont;
 
-			hOldPen = (HPEN) SelectObject(hdc, g_SharedWindowVar->bgPen1);
-			hOldFont = (HFONT) SelectObject(hdc, g_SharedWindowVar->hFont);
-			hOldBrush = (HBRUSH) SelectObject(hdc, g_SharedWindowVar->bgBrush1);
+			hOldPen = (HPEN) SelectObject(hdc, args.sharedWinData.bgPen1);
+			hOldFont = (HFONT) SelectObject(hdc, args.sharedWinData.hFont);
+			hOldBrush = (HBRUSH) SelectObject(hdc, args.sharedWinData.bgBrush1);
 			Rectangle(hdc, 0, 0, rect.right, rect.bottom);
-			SelectObject(hdc, g_SharedWindowVar->hPen1);
+			SelectObject(hdc, args.sharedWinData.hPen1);
 			SetBkMode(hdc, TRANSPARENT);
 			tempBrush = CreateSolidBrush(DL_BORDER_COL);
 
@@ -3310,7 +3358,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					if (i == this->hovered_-1) {
 						SelectObject(hdc, tempBrush);
 						if (pageList[i].type & 1) {
-							SelectObject(hdc, g_SharedWindowVar->hFontUnderlined);
+							SelectObject(hdc, args.sharedWinData.hFontUnderlined);
 						}
 					}
 					if (!(pageList[i].type & 1)) {
@@ -3318,13 +3366,13 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 					}
 					TextOutA(hdc, pageList[i].left+kPagePad/2, rect.bottom-17, pageList[i].str, strlen(pageList[i].str));
 					if (i == this->hovered_-1) {
-						SelectObject(hdc, g_SharedWindowVar->bgBrush1);
-						SelectObject(hdc, g_SharedWindowVar->hFont);
+						SelectObject(hdc, args.sharedWinData.bgBrush1);
+						SelectObject(hdc, args.sharedWinData.hFont);
 					}
 					if (pageList[i].type & 2)
 						break;
 					if ( ((uint64_t) i ) > this->lastPage_+4) {
-						errorf(errorfStream, "too many PageList loops");
+						errorf(std::cerr, "too many PageList loops");
 						break;
 					}
 				}
@@ -3334,7 +3382,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			SelectObject(hdc, hOldFont);
 			SelectObject(hdc, hOldBrush);
 			if (!(DeleteObject(tempBrush))) {
-				errorf(errorfStream, "DeleteObject failed");
+				errorf(std::cerr, "DeleteObject failed");
 			}
 			EndPaint(hwnd, &ps);
 			break;
@@ -3343,7 +3391,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 			{
 				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 				int hvrdbefore = this->hovered_;
 				this->hovered_ = 0;
@@ -3369,14 +3417,14 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
 				if (this->hovered_ != hvrdbefore) {
 					if (!(InvalidateRect(hwnd, 0, 0))) {
-						errorf(errorfStream, "InvalidateRect failed");
+						errorf(std::cerr, "InvalidateRect failed");
 					}
 				}
 
 				if (this->hovered_) {
-					SetCursor(g_SharedWindowVar->hCrsHand);
+					SetCursor(args.sharedWinData.hCrsHand);
 				} else {
-					SetCursor(g_SharedWindowVar->hDefCrs);
+					SetCursor(args.sharedWinData.hDefCrs);
 				}
 			}
 			break;
@@ -3390,7 +3438,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			int32_t i2 = lParam/256/256;
@@ -3424,9 +3472,9 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 							}
 							this->getPages(rect.right);
 							this->hovered_ = 0;
-							SetCursor(g_SharedWindowVar->hDefCrs);
+							SetCursor(args.sharedWinData.hDefCrs);
 							if (!(InvalidateRect(hwnd, 0, 1))) {
-								errorf(errorfStream, "InvalidateRect failed");
+								errorf(std::cerr, "InvalidateRect failed");
 							}
 							SendMessage(GetParent(hwnd), WM_U_RET_PL, 1, 0);
 
@@ -3445,7 +3493,7 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 				case kPL_Refresh: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					this->getPages(rect.right);
@@ -3471,30 +3519,22 @@ LRESULT CALLBACK PageListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
 //{ StrListWindow
 //public:
-// static
-const WindowHelper StrListWindow::helper = WindowHelper(std::wstring(L"StrListWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = 0;
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND StrListWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND StrListWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new StrListWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
-int64_t StrListWindow::getSingleSelPos(std::ostream &errorfStream) const {
+int64_t StrListWindow::getSingleSelPos(void) const {
 	if (this->getNRows() <= 0) {
-		errorf(errorfStream, "getSingleSelPos getNRows <= 0");
+		errorf(std::cerr, "getSingleSelPos getNRows <= 0");
 		return -1;
 	}
 	int64_t gotNRows = this->getNRows();
 
 	if (this->rowSelsPtr_ == nullptr) {
-		errorf(errorfStream, "getSingleSelPos rowSelsPtr was null");
+		errorf(std::cerr, "getSingleSelPos rowSelsPtr was null");
 		return -1;
 	}
 	auto selsPtrHolder = this->rowSelsPtr_;
@@ -3508,14 +3548,14 @@ int64_t StrListWindow::getSingleSelPos(std::ostream &errorfStream) const {
 			if (i == -1) {
 				i = pos;
 			} else {
-				errorf(errorfStream, "getSingleSelPos had multiple selections");
+				errorf(std::cerr, "getSingleSelPos had multiple selections");
 				return -1;
 			}
 		}
 	}
 
 	if (pos != gotNRows) {
-		errorf(errorfStream, "didn't go through all rows");
+		errorf(std::cerr, "didn't go through all rows");
 		return -1;
 	}
 
@@ -3534,65 +3574,65 @@ std::shared_ptr<std::vector<std::string>> StrListWindow::getSingleSelRowCopy(voi
 	return rowCopyPtr;
 }
 
-std::string StrListWindow::getSingleSelRowCol(uint32_t argCol, ErrorObject *retError, std::ostream &errorfStream) const {
-errorf(errorfStream, "gssrc spot 0");
+std::string StrListWindow::getSingleSelRowCol(uint32_t argCol, ErrorObject *retError) const {
+errorf(std::cerr, "gssrc spot 0");
 	if ((int64_t) argCol >= this->getNColumns()) {
-errorf(errorfStream, "gssrc err1");
+errorf(std::cerr, "gssrc err1");
 		setErrorPtr(retError, 2);
 		return {};
 	}
 
 	int64_t pos = this->getSingleSelPos();
-errorfStream << "gssrc got singleselpos: " << pos << std::flush;
+std::cerr << "gssrc got singleselpos: " << pos << std::flush;
 
 	if (pos < 0) {
-errorf(errorfStream, "gssrc err2 ");
+errorf(std::cerr, "gssrc err2 ");
 		setErrorPtr(retError, 1);
 		return {};
 	}
 
 	uint64_t upos = pos;
 
-errorf(errorfStream, "gssrc spot 5");
-errorfStream << "argCol is: " << argCol << std::flush;
+errorf(std::cerr, "gssrc spot 5");
+std::cerr << "argCol is: " << argCol << std::flush;
 	if (rowsPtr_ == nullptr) {
-		errorf(errorfStream, "rowsPtr_ was null");
+		errorf(std::cerr, "rowsPtr_ was null");
 		setErrorPtr(retError, 1);
 		return {};
 	}
-errorf(errorfStream, "gssrc spot 5.1");
+errorf(std::cerr, "gssrc spot 5.1");
 
 	if (rowsPtr_->size() <= upos) {
-		errorfStream << "rowsVector too small: tried to access [" << upos << "] size is [" << rowsPtr_->size() << "]" << std::flush; 
+		std::cerr << "rowsVector too small: tried to access [" << upos << "] size is [" << rowsPtr_->size() << "]" << std::flush; 
 		setErrorPtr(retError, 1);
 		return {};
 	}
-errorf(errorfStream, "gssrc spot 5.2");
+errorf(std::cerr, "gssrc spot 5.2");
 
 	if ((*rowsPtr_)[upos].size() <= argCol) {
-		errorfStream << "column vector too small: tried to access [" << argCol << "] size is [" << (*rowsPtr_)[pos].size() << "]" << std::flush;
+		std::cerr << "column vector too small: tried to access [" << argCol << "] size is [" << (*rowsPtr_)[pos].size() << "]" << std::flush;
 		setErrorPtr(retError, 1);
 		return {};
 	}
-errorf(errorfStream, "gssrc spot 5.3");
+errorf(std::cerr, "gssrc spot 5.3");
 
-	errorfStream << "result string is: " << (*rowsPtr_)[upos][argCol] << std::flush;
+	std::cerr << "result string is: " << (*rowsPtr_)[upos][argCol] << std::flush;
 
-errorf(errorfStream, "gssrc spot 6");
+errorf(std::cerr, "gssrc spot 6");
 
 	return (*this->rowsPtr_)[upos][argCol];
 }
 
 
-std::shared_ptr<std::forward_list<int64_t>> StrListWindow::getSelPositions(std::ostream &errorfStream) const {
+std::shared_ptr<std::forward_list<int64_t>> StrListWindow::getSelPositions(void) const {
 	if (this->getNRows() <= 0) {
-		errorf(errorfStream, "getSelPositions getNRows <= 0");
+		errorf(std::cerr, "getSelPositions getNRows <= 0");
 		return {};
 	}
 	int64_t gotNRows = this->getNRows();
 
 	if (this->rowSelsPtr_ == nullptr) {
-		errorf(errorfStream, "getSelPositions rowSelsPtr was null");
+		errorf(std::cerr, "getSelPositions rowSelsPtr was null");
 		return {};
 	}
 	auto selsPtrHolder = this->rowSelsPtr_;
@@ -3600,7 +3640,7 @@ std::shared_ptr<std::forward_list<int64_t>> StrListWindow::getSelPositions(std::
 	auto &rowSels = *selsPtrHolder;
 
 	if (this->rowsPtr_ == nullptr) {
-		errorf(errorfStream, "getSelPositions rowsPtr was null");
+		errorf(std::cerr, "getSelPositions rowsPtr was null");
 		return {};
 	}
 	auto rowsPtrHolder = this->rowsPtr_;
@@ -3610,7 +3650,7 @@ std::shared_ptr<std::forward_list<int64_t>> StrListWindow::getSelPositions(std::
 	std::shared_ptr<std::forward_list<int64_t>> selListPtr( new std::forward_list<int64_t>() );
 
 	if (selListPtr == nullptr) {
-		errorf(errorfStream, "shared_ptr alloc fail");
+		errorf(std::cerr, "shared_ptr alloc fail");
 		return {};
 	}
 
@@ -3629,7 +3669,7 @@ std::shared_ptr<std::forward_list<int64_t>> StrListWindow::getSelPositions(std::
 	}
 
 	if (pos != gotNRows) {
-		errorf(errorfStream, "didn't go through all rows");
+		errorf(std::cerr, "didn't go through all rows");
 		return {};
 	}
 
@@ -3638,7 +3678,7 @@ std::shared_ptr<std::forward_list<int64_t>> StrListWindow::getSelPositions(std::
 
 bool StrListWindow::setNColumns(int32_t argI) {
 	if (argI < 0) {
-		errorf(errorfStream, "tried to set nColumns to less than 0");
+		errorf(std::cerr, "tried to set nColumns to less than 0");
 		return false;
 	}
 
@@ -3654,16 +3694,16 @@ bool StrListWindow::setNColumns(int32_t argI) {
 
 }
 
-bool StrListWindow::setHeaders(std::shared_ptr<std::vector<std::string>> argHeaderPtr, std::ostream &errorfStream) {
+bool StrListWindow::setHeaders(std::shared_ptr<std::vector<std::string>> argHeaderPtr) {
 	if (!argHeaderPtr) {
-		errorf(errorfStream, "setHeaders received nullptr");
+		errorf(std::cerr, "setHeaders received nullptr");
 		return false;
 	}
 
 	auto &headerVec = *argHeaderPtr;
 
 	if (headerVec.size() != (uint64_t) this->getNColumns()) {
-		errorf(errorfStream, "setHeaders vector size doesn't match nColumns");
+		errorf(std::cerr, "setHeaders vector size doesn't match nColumns");
 		return false;
 	} else {
 		this->sectionHeadersPtr_ = argHeaderPtr;
@@ -3671,10 +3711,10 @@ bool StrListWindow::setHeaders(std::shared_ptr<std::vector<std::string>> argHead
 	}
 }
 
-bool StrListWindow::setColumnWidth(int32_t colArg, int32_t width, std::ostream &errorfStream) {
+bool StrListWindow::setColumnWidth(int32_t colArg, int32_t width) {
 	auto columnWidthsHoldPtr = this->columnWidthsPtr_;
 	if (!columnWidthsHoldPtr) {
-		errorf(errorfStream, "columnWidthsPtr was null");
+		errorf(std::cerr, "columnWidthsPtr was null");
 		return false;
 	}
 	auto &colWidths = *columnWidthsHoldPtr;
@@ -3682,10 +3722,10 @@ bool StrListWindow::setColumnWidth(int32_t colArg, int32_t width, std::ostream &
 	int32_t gotNColumns = this->getNColumns();
 
 	if (colArg >= gotNColumns) {
-		errorf(errorfStream, "colArg >= gotNColumns");
+		errorf(std::cerr, "colArg >= gotNColumns");
 		return false;
 	} else if (colArg < 0) {
-		errorf(errorfStream, "colArg < 0");
+		errorf(std::cerr, "colArg < 0");
 		return false;
 	}
 
@@ -3743,7 +3783,7 @@ bool StrListWindow::assignRows(std::shared_ptr<std::vector<std::vector<std::stri
 
 		for (auto &row : inputVector) {
 			if (row.size() != (uint64_t) gotNColumns) {
-				errorf(errorfStream, "input row had mismatching columns");
+				errorf(std::cerr, "input row had mismatching columns");
 				this->assignRows(nullptr);
 				return false;
 			}
@@ -3769,13 +3809,12 @@ bool StrListWindow::clearSelections(void) {
 		rowSels.reset();
 		return true;
 	}
-	errorf(errorfStream, "StrListWindow::clearSelections no rowSelsPtr");
+	errorf(std::cerr, "StrListWindow::clearSelections no rowSelsPtr");
 	return false;
 }
 
 LRESULT StrListWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
 
 	this->yspos_ = this->xspos_ = 0;
 	this->hvrd_ = 0;
@@ -3789,7 +3828,7 @@ LRESULT StrListWindow::onCreate(WinProcArgs &procArgs) {
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	//! TODO: add a method to do this instead
@@ -3803,7 +3842,7 @@ LRESULT StrListWindow::onCreate(WinProcArgs &procArgs) {
 	SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
 
 	if (!(ShowScrollBar(hwnd, SB_VERT, 1))) {
-		errorf(errorfStream, "ShowScrollBar failed.");
+		errorf(std::cerr, "ShowScrollBar failed.");
 	}
 
 	int j = this->getTotalColumnsWidth();
@@ -3812,14 +3851,13 @@ LRESULT StrListWindow::onCreate(WinProcArgs &procArgs) {
 	sinfo.nPos = this->xspos_;
 	SetScrollInfo(hwnd, SB_HORZ, &sinfo, TRUE);
 
-errorf(errorfStream, "strlistclass create 9");
+errorf(std::cerr, "strlistclass create 9");
 
 
 	return WindowClass::onCreate(procArgs);
 }
 
-LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	auto &errorfStream = args.errorfStream;
+LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
 
 /*
 	RECT rect;
@@ -3842,7 +3880,7 @@ LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 
 	switch(msg) {
 		case WM_CREATE: {
-			return this->onCreate(WinProcArgs(hwnd, msg, wParam, lParam));
+			return this->onCreate(args);
 
 			break;
 		}
@@ -3850,7 +3888,7 @@ LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			HDC hdc;
@@ -3869,21 +3907,21 @@ LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 			hOldBrush = (HBRUSH) GetCurrentObject(hdc2, OBJ_BRUSH);
 
 			HFONT hOldFont;
-			hOldFont = (HFONT) SelectObject(hdc2, g_SharedWindowVar->hFont);
+			hOldFont = (HFONT) SelectObject(hdc2, args.sharedWinData.hFont);
 			SetBkMode(hdc2, TRANSPARENT);
 
 			int64_t firstRow = this->yspos_/kRowHeight;
 			// upOffset is the number of pixels outside the window in the first row; ROW_HEIGHT-upOffset is the number of pixels in the first row
 			int32_t upOffset = this->yspos_%kRowHeight;
 
-			if (!g_SharedWindowVar->hListSliceBM) {
+			if (!args.sharedWinData.hListSliceBM) {
 				int64_t j = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 				if (j == 0) {
 					j = 1920;
 				}
-				g_SharedWindowVar->hListSliceBM = CreateCompatibleBitmap(hdc, j, kRowHeight);
+				args.sharedWinData.hListSliceBM = CreateCompatibleBitmap(hdc, j, kRowHeight);
 			}
-			SelectObject(hdc2, g_SharedWindowVar->hListSliceBM);
+			SelectObject(hdc2, args.sharedWinData.hListSliceBM);
 
 			int64_t lastRow = firstRow + (!!upOffset) + (rect.bottom-kStrListTopMargin-(kRowHeight-upOffset)%kRowHeight)/kRowHeight + (((rect.bottom-kStrListTopMargin-(kRowHeight - upOffset) % kRowHeight)) > 0) - 1;
 			// (rect.bottom-STRLIST_TOP_MRG-(ROW_HEIGHT-upOffset)%ROW_HEIGHT)/ROW_HEIGHT
@@ -3907,7 +3945,7 @@ LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 
 			// if no columns, draw a single column with no rows
 			if (!columnWidthsHoldPtr || gotNColumns == 0) {
-errorf(errorfStream, "no columnWidthsHoldPtr");
+errorf(std::cerr, "no columnWidthsHoldPtr");
 				gotNColumns = 1;
 				gotNRows = 0;
 				columnWidthsHoldPtr = std::shared_ptr<std::vector<int16_t>>( new std::vector<int16_t>({1}) );
@@ -3950,31 +3988,31 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 					}
 					// row is selected
 					if (row < gotNRows && rowSels[row]) {
-						SelectObject(hdc2, g_SharedWindowVar->selPen);
-						SelectObject(hdc2, g_SharedWindowVar->selBrush);
+						SelectObject(hdc2, args.sharedWinData.selPen);
+						SelectObject(hdc2, args.sharedWinData.selBrush);
 						sel = true;
 					// row in uneven position
 					} else if (uneven) {
 						if (!(col % 2)) {
-							SelectObject(hdc2, g_SharedWindowVar->bgPen2);
-							SelectObject(hdc2, g_SharedWindowVar->bgBrush2);
+							SelectObject(hdc2, args.sharedWinData.bgPen2);
+							SelectObject(hdc2, args.sharedWinData.bgBrush2);
 						} else {
-							SelectObject(hdc2, g_SharedWindowVar->bgPen4);
-							SelectObject(hdc2, g_SharedWindowVar->bgBrush4);
+							SelectObject(hdc2, args.sharedWinData.bgPen4);
+							SelectObject(hdc2, args.sharedWinData.bgBrush4);
 						}
 					// row in even position
 					} else {
 						if (!(col % 2)) {
-							SelectObject(hdc2, g_SharedWindowVar->bgPen3);
-							SelectObject(hdc2, g_SharedWindowVar->bgBrush3);
+							SelectObject(hdc2, args.sharedWinData.bgPen3);
+							SelectObject(hdc2, args.sharedWinData.bgBrush3);
 						} else {
-							SelectObject(hdc2, g_SharedWindowVar->bgPen5);
-							SelectObject(hdc2, g_SharedWindowVar->bgBrush5);
+							SelectObject(hdc2, args.sharedWinData.bgPen5);
+							SelectObject(hdc2, args.sharedWinData.bgBrush5);
 						}
 					}
 					Rectangle(hdc2, w1, 0, w2 + (sel && !(col+1 == gotNColumns)), kRowHeight);
 					if (sel && col > 0) {
-						SelectObject(hdc2, g_SharedWindowVar->selPen2);
+						SelectObject(hdc2, args.sharedWinData.selPen2);
 						MoveToEx(hdc2, w1, 1, nullptr);
 						LineTo(hdc2, w1, kRowHeight-1);
 					}
@@ -3988,14 +4026,14 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 
 						if (this->strs[j][i] == 0) {
 							if ((MultiByteToWideChar(65001, 0, "<missing>", -1, wbuf, MAX_PATH)) == 0) {
-								errorf(errorfStream, "MultiByteToWideChar Failed");
+								errorf(std::cerr, "MultiByteToWideChar Failed");
 							}
 						} else if ((MultiByteToWideChar(65001, 0, this->strs[j][i], -1, wbuf, MAX_PATH)) == 0) {
-							errorf(errorfStream, "MultiByteToWideChar Failed");
+							errorf(std::cerr, "MultiByteToWideChar Failed");
 						}
 						for (len = 0; wbuf[len] != '\0' && len < MAX_PATH; len++);
 						if (len >= MAX_PATH) {
-							errorf(errorfStream, "strlist string too long");
+							errorf(std::cerr, "strlist string too long");
 						} else {
 							TextOutW(hdc2, w1 + 3, (ROW_HEIGHT)-(ROW_HEIGHT/2)-7, wbuf, len);
 						}
@@ -4013,20 +4051,20 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 			SelectObject(hdc2, hOldFont);
 			DeleteDC(hdc2);
 
-			hOldBrush = (HBRUSH) SelectObject(hdc, g_SharedWindowVar->bgBrush1);
-			hOldPen = (HPEN) SelectObject(hdc, g_SharedWindowVar->bgPen1);
-			hOldFont = (HFONT) SelectObject(hdc, g_SharedWindowVar->hFont);
+			hOldBrush = (HBRUSH) SelectObject(hdc, args.sharedWinData.bgBrush1);
+			hOldPen = (HPEN) SelectObject(hdc, args.sharedWinData.bgPen1);
+			hOldFont = (HFONT) SelectObject(hdc, args.sharedWinData.hFont);
 
 			Rectangle(hdc, 0, 0, rect.right, kStrListTopMargin);
 
-			SelectObject(hdc, g_SharedWindowVar->hPen1);
+			SelectObject(hdc, args.sharedWinData.hPen1);
 			MoveToEx(hdc, 0, kStrListTopMargin-1, nullptr);
 			LineTo(hdc, rect.right, kStrListTopMargin-1);
 
 			SetBkMode(hdc, TRANSPARENT);
 
 			if (!headersHoldPtr) {
-				errorf(errorfStream, "headersHoldPtr was null");
+				errorf(std::cerr, "headersHoldPtr was null");
 				break;
 			}
 
@@ -4065,14 +4103,14 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 				if (this->header) {
 					if (this->header[col] == 0) {
 						if ((MultiByteToWideChar(65001, 0, "<missing>", -1, wbuf, MAX_PATH)) == 0) {
-							errorf(errorfStream, "MultiByteToWideChar Failed");
+							errorf(std::cerr, "MultiByteToWideChar Failed");
 						}
 					} else if ((MultiByteToWideChar(65001, 0, this->header[col], -1, wbuf, MAX_PATH)) == 0) {
-						errorf(errorfStream, "MultiByteToWideChar Failed");
+						errorf(std::cerr, "MultiByteToWideChar Failed");
 					}
 					for (len = 0; wbuf[len] != '\0' && len < MAX_PATH; len++);
 					if (len >= MAX_PATH) {
-						errorf(errorfStream, "strlist header string too long");
+						errorf(std::cerr, "strlist header string too long");
 					} else {
 						TextOutW(hdc, w1 + 3, (STRLIST_TOP_MRG-14)/2, wbuf, len);
 					}
@@ -4092,7 +4130,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 			SCROLLINFO sinfo = {0};
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			auto widthsHoldPtr = this->columnWidthsPtr_;
@@ -4174,7 +4212,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 					this->hvrd_ = 0;
 					if (this->isDragged_) {
 						if (!ReleaseCapture()) {
-							errorf(errorfStream, "ReleaseCapture failed");
+							errorf(std::cerr, "ReleaseCapture failed");
 						}
 					}
 					this->isDragged_ = 0;
@@ -4183,7 +4221,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					//! TODO: add a method to do this instead
@@ -4197,7 +4235,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 					SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
 
 					if (!(ShowScrollBar(hwnd, SB_VERT, 1))) {
-						errorf(errorfStream, "ShowScrollBar failed.");
+						errorf(std::cerr, "ShowScrollBar failed.");
 					}
 
 					int j = this->getTotalColumnsWidth();
@@ -4215,7 +4253,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			auto widthsHoldPtr = this->columnWidthsPtr_;
@@ -4268,7 +4306,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 			bool doAbort = false;
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			switch(LOWORD(wParam)) {
@@ -4366,7 +4404,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 			bool doAbort = false;
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			switch(LOWORD(wParam)) {
@@ -4470,7 +4508,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 		case WM_MOUSEWHEEL: {
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			if (this->nRows_*kRowHeight <= rect.bottom-kStrListTopMargin)
@@ -4519,18 +4557,18 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 					w2 += widths[col1];
 					if ((lParam & (256*256-1)) >= w2 - 2 && (lParam & (256*256-1)) <= w2 + 2) {
 						this->hvrd_ = col1 + 1;
-						SetCursor(g_SharedWindowVar->hCrsSideWE);
+						SetCursor(args.sharedWinData.hCrsSideWE);
 						break;
 					}
 				} if (col1 == this->nColumns_-1) {
 					this->hvrd_ = 0;
-					SetCursor(g_SharedWindowVar->hDefCrs);
+					SetCursor(args.sharedWinData.hDefCrs);
 				}
 				break;
 			}
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			int32_t col2 = this->isDragged_-1;
 			widths[col2] = (((int16_t) (lParam)) - this->drgpos_);
@@ -4610,7 +4648,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 						}
 					}
 					if (!(InvalidateRect(hwnd, 0, 1))) {
-						errorf(errorfStream, "InvalidateRect failed");
+						errorf(std::cerr, "InvalidateRect failed");
 					}
 				}
 			} else {
@@ -4632,7 +4670,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 			if (!this->isDragged_)
 				break;
 			if (!ReleaseCapture())
-				errorf(errorfStream, "ReleaseCapture failed");
+				errorf(std::cerr, "ReleaseCapture failed");
 			this->isDragged_ = 0;
 			SendMessage(hwnd, WM_MOUSEMOVE, wParam, lParam);
 
@@ -4666,7 +4704,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 					this->lastSel_ = hoverRow;
 				}
 				if (!(InvalidateRect(hwnd, 0, 1))) {
-					errorf(errorfStream, "InvalidateRect failed");
+					errorf(std::cerr, "InvalidateRect failed");
 				}
 			}
 			SendMessage(GetParent(hwnd), WM_U_RET_SL, 4, (LPARAM) GetMenu(hwnd));
@@ -4685,7 +4723,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 				this->isTimed_ = 0;
 
 				if (!(InvalidateRect(hwnd, 0, 0))) {
-					errorf(errorfStream, "InvalidateRect failed");
+					errorf(std::cerr, "InvalidateRect failed");
 				}
 				break;
 
@@ -4709,7 +4747,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 
 				case 2:
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 					if (this->nRows_*kRowHeight <= rect.bottom-kStrListTopMargin || this->yspos_ == this->nRows_*kRowHeight-(rect.bottom-kStrListTopMargin)) {
 						doAbort = true;
@@ -4724,7 +4762,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 				case 3:
 
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					if (this->yspos_ == 0) {
@@ -4739,7 +4777,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 				case 4:
 
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					if (this->nRows_*kRowHeight <= rect.bottom-kStrListTopMargin || this->yspos_ == this->nRows_*kRowHeight-(rect.bottom-kStrListTopMargin)) {
@@ -4754,7 +4792,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 				case 5:
 
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					if (this->xspos_ <= kRowHeight) {
@@ -4771,7 +4809,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 				case 6: {
 
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					int32_t w1 = this->getTotalColumnsWidth();
@@ -4817,7 +4855,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 			bool doAbort = false;
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			if ((lParam & 0x40000000) != 0)
@@ -5036,7 +5074,7 @@ errorf(errorfStream, "no columnWidthsHoldPtr");
 			return 1;
 		}
 		case WM_NCDESTROY: {
-errorf(errorfStream, "destroyed strlist");
+errorf(std::cerr, "destroyed strlist");
 			return 0;
 		}
 	}
@@ -5049,24 +5087,15 @@ errorf(errorfStream, "destroyed strlist");
 
 //{ ThumbListWindow
 //public:
-// static
-const WindowHelper ThumbListWindow::helper = WindowHelper(std::wstring(L"ThumbListWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = 0;
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND ThumbListWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND ThumbListWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new ThumbListWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
-LRESULT ThumbListWindow::onCreate(WinProcArgs args) {
+LRESULT ThumbListWindow::onCreate(WinProcArgs &args) {
 	HWND &hwnd = args.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
 
 	this->yspos_ = 0;
 	this->hvrd_ = 0;
@@ -5074,7 +5103,7 @@ LRESULT ThumbListWindow::onCreate(WinProcArgs args) {
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	int rowlen, lastrow;
@@ -5098,15 +5127,14 @@ LRESULT ThumbListWindow::onCreate(WinProcArgs args) {
 	SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
 
 	if (!(ShowScrollBar(hwnd, SB_VERT, 1))) {
-		errorf(errorfStream, "ShowScrollBar failed.");
+		errorf(std::cerr, "ShowScrollBar failed.");
 	}
 
 
-	return WindowClass::onCreate(procArgs);
+	return WindowClass::onCreate(args);
 }
 
 LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 	int64_t i;
 	int j, k, l, pos;
 	SCROLLINFO sinfo = {0};
@@ -5116,7 +5144,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 	switch(msg) {
 		case WM_CREATE: {
-			return this->onCreate(WinProcArgs(hwnd, msg, wParam, lParam));
+			return this->onCreate(args);
 
 			break;
 		}
@@ -5133,7 +5161,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			rowlen = (rect.right-kThumbListLeftMargin+kDefThumbGapX) / (kDefThumbFW+kDefThumbGapX);
@@ -5168,7 +5196,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			hOldBrush = (HBRUSH) GetCurrentObject(hdc3, OBJ_BRUSH);
 //			hOldFont = (HFONT) SelectObject(hdc2, g_shared_window_vars.hFont);
 
-			if (!g_SharedWindowVar->hThumbListBM) {
+			if (!args.sharedWinData.hThumbListBM) {
 				i = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 				if (i == 0) {
 					i = 1920;
@@ -5176,15 +5204,15 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				if (j == 0) {
 					j = 1920;
 				}
-				g_SharedWindowVar->hThumbListBM = CreateCompatibleBitmap(hdc, i, j);
+				args.sharedWinData.hThumbListBM = CreateCompatibleBitmap(hdc, i, j);
 			}
-			hOldBM = (HBITMAP) SelectObject(hdc3, g_SharedWindowVar->hThumbListBM);
+			hOldBM = (HBITMAP) SelectObject(hdc3, args.sharedWinData.hThumbListBM);
 
-			SelectObject(hdc3, g_SharedWindowVar->bgBrush1);
-			SelectObject(hdc3, g_SharedWindowVar->bgPen1);
+			SelectObject(hdc3, args.sharedWinData.bgBrush1);
+			SelectObject(hdc3, args.sharedWinData.bgPen1);
 			Rectangle(hdc3, 0, 0, rect.right, rect.bottom);
-			SelectObject(hdc3, g_SharedWindowVar->bgPen2);
-			SelectObject(hdc3, g_SharedWindowVar->bgBrush2);
+			SelectObject(hdc3, args.sharedWinData.bgPen2);
+			SelectObject(hdc3, args.sharedWinData.bgBrush2);
 			
 			for (i = 0, lastrow = (!!diff)+(rect.bottom-(kDefThumbFH+kDefThumbGapY-diff)%(kDefThumbFH+kDefThumbGapY))/(kDefThumbFH+kDefThumbGapY)+(!!((rect.bottom-(kDefThumbFH+kDefThumbGapY-diff))%(kDefThumbFH+kDefThumbGapY))), sel = 0; i < lastrow; i++, pos++, sel = 0) {
 				if (firstrow+i < 0)
@@ -5192,14 +5220,14 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				for (j = 0; j < rowlen; j++) {
 					if ((k = (firstrow+i)*rowlen+j) >= this->nThumbs_)
 						break;
-					SelectObject(hdc3, g_SharedWindowVar->bgPen2);
-					SelectObject(hdc3, g_SharedWindowVar->bgBrush2);
+					SelectObject(hdc3, args.sharedWinData.bgPen2);
+					SelectObject(hdc3, args.sharedWinData.bgBrush2);
 					if (this->thumbSel_[k/8] & (1 << k%8)) {
-						SelectObject(hdc3, g_SharedWindowVar->selPen);
-						SelectObject(hdc3, g_SharedWindowVar->selBrush);
+						SelectObject(hdc3, args.sharedWinData.selPen);
+						SelectObject(hdc3, args.sharedWinData.selBrush);
 					} else if (k+1 == this->hvrd_) {
-						SelectObject(hdc3, g_SharedWindowVar->selPen2);
-						SelectObject(hdc3, g_SharedWindowVar->selBrush);
+						SelectObject(hdc3, args.sharedWinData.selPen2);
+						SelectObject(hdc3, args.sharedWinData.selBrush);
 					}
 					Rectangle(hdc3, kThumbListLeftMargin+j*(kDefThumbFW+kDefThumbGapX+sparep), i*(kDefThumbFH+kDefThumbGapY)-diff, kThumbListLeftMargin+j*(kDefThumbFW+kDefThumbGapX+sparep)+kDefThumbFW, i*(kDefThumbFH+kDefThumbGapY)-diff+kDefThumbFH);
 
@@ -5209,7 +5237,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 						if ((SetDIBitsToDevice(hdc3, kThumbListLeftMargin+j*(kDefThumbFW+kDefThumbGapX+sparep)+(kDefThumbFW-this->thumbs_[k]->x)/2, i*(kDefThumbFH+kDefThumbGapY)-diff+(kDefThumbFH - this->thumbs_[k]->y)/2, this->thumbs_[k]->x, this->thumbs_[k]->y,
 						0, 0, 0, this->thumbs_[k]->y, this->thumbs_[k]->img[0], &bminfo, DIB_RGB_COLORS)) == 0) {
-							errorfStream << "SetDIBitsToDevice failed, h: " << this->thumbs_[k]->y << ", w: " << this->thumbs_[k]->x << ", source: " << this->thumbs_[k]->img[0] << std::flush;
+							std::cerr << "SetDIBitsToDevice failed, h: " << this->thumbs_[k]->y << ", w: " << this->thumbs_[k]->x << ", source: " << this->thumbs_[k]->img[0] << std::flush;
 						}
 					}
 				}
@@ -5229,7 +5257,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_USER: {	// update scroll info
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			rowlen = (rect.right-kThumbListLeftMargin+kDefThumbGapX) / (kDefThumbFW+kDefThumbGapX);
 			if (rowlen < 1)
@@ -5270,7 +5298,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				SetScrollInfo(hwnd, SB_VERT, &sinfo, TRUE);
 
 				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 
 				break;
@@ -5282,7 +5310,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			RECT rect;
 
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			rowlen = (rect.right-kThumbListLeftMargin+kDefThumbGapX) / (kDefThumbFW+kDefThumbGapX);
 			if (rowlen < 1)
@@ -5342,7 +5370,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case SB_LINEDOWN: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5360,7 +5388,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					if (this->yspos_ <= rect.bottom) {
@@ -5377,7 +5405,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case SB_PAGEDOWN: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5403,7 +5431,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case SB_BOTTOM:	{
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5435,7 +5463,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_MOUSEWHEEL: {
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			sinfo.fMask = SIF_RANGE;
 			GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5471,7 +5499,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_MOUSEMOVE: {
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			l = this->hvrd_;
 			rowlen = (rect.right-kThumbListLeftMargin+kDefThumbGapX) / (kDefThumbFW+kDefThumbGapX);
@@ -5490,10 +5518,10 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 			if ((j = (int16_t)(lParam & (256*256-1))) < kThumbListLeftMargin || (k = (int16_t)((lParam/256/256) & (256*256-1))+this->yspos_-kThumbListTopMargin) < 0 || (j - kThumbListLeftMargin) % (kDefThumbFW+kDefThumbGapX+sparep) >= kDefThumbFW || (k+this->yspos_) % (kDefThumbFH+kDefThumbGapY) >= kDefThumbFH) {
 				this->hvrd_ = 0;
-				SetCursor(g_SharedWindowVar->hDefCrs);
+				SetCursor(args.sharedWinData.hDefCrs);
 				if (l > 0) {
 					if (!(InvalidateRect(hwnd, 0, 0))) {
-						errorf(errorfStream, "InvalidateRect failed");
+						errorf(std::cerr, "InvalidateRect failed");
 					}
 				} break;
 			}
@@ -5502,17 +5530,17 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 			if (this->hvrd_ > this->nThumbs_) {
 				this->hvrd_ = 0;
-				SetCursor(g_SharedWindowVar->hDefCrs);
+				SetCursor(args.sharedWinData.hDefCrs);
 				if (l > 0) {
 					if (!(InvalidateRect(hwnd, 0, 0))) {
-						errorf(errorfStream, "InvalidateRect failed");
+						errorf(std::cerr, "InvalidateRect failed");
 					}
 				} break;
 			}
-			SetCursor(g_SharedWindowVar->hDefCrs);
+			SetCursor(args.sharedWinData.hDefCrs);
 			if (l != this->hvrd_) {
 				if (!(InvalidateRect(hwnd, 0, 0))) {
-					errorf(errorfStream, "InvalidateRect failed");
+					errorf(std::cerr, "InvalidateRect failed");
 				}
 			}
 
@@ -5539,7 +5567,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 			}
 			if (!(InvalidateRect(hwnd, 0, 1))) {
-				errorf(errorfStream, "InvalidateRect failed");
+				errorf(std::cerr, "InvalidateRect failed");
 			}
 			SetFocus(hwnd);
 
@@ -5569,7 +5597,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					this->lastSel_ = pos;
 				}
 				if (!(InvalidateRect(hwnd, 0, 1))) {
-					errorf(errorfStream, "InvalidateRect failed");
+					errorf(std::cerr, "InvalidateRect failed");
 				}
 			}
 			SendMessage(GetParent(hwnd), WM_U_RET_TL, (WPARAM) GetMenu(hwnd), 4);
@@ -5588,7 +5616,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				this->isTimed_ = 0;
 
 				if (!(InvalidateRect(hwnd, 0, 0))) {
-					errorf(errorfStream, "InvalidateRect failed");
+					errorf(std::cerr, "InvalidateRect failed");
 				}
 				break;
 
@@ -5611,7 +5639,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case 2: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5628,7 +5656,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case 3: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					if (this->yspos_ == 0) {
@@ -5643,7 +5671,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case 4: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 					sinfo.fMask = SIF_RANGE;
 					GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5661,7 +5689,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case 5: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					break;
@@ -5669,7 +5697,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				case 6: {
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(errorfStream, "GetClientRect failed");
+						errorf(std::cerr, "GetClientRect failed");
 					}
 
 					break;
@@ -5716,7 +5744,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			case VK_END: {
 				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 				sinfo.fMask = SIF_RANGE;
 				GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5744,7 +5772,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			case VK_DOWN:{
 				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 				sinfo.fMask = SIF_RANGE;
 				GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5774,7 +5802,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			case VK_RIGHT: {
 				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 
 				if (1) {
@@ -5789,7 +5817,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			case VK_PRIOR: {
 				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {		// forgot this part
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 
 				if (this->yspos_ <= rect.bottom) {
@@ -5809,7 +5837,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			case VK_NEXT: {
 				RECT rect;
 				if (GetClientRect(hwnd, &rect) == 0) {
-					errorf(errorfStream, "GetClientRect failed");
+					errorf(std::cerr, "GetClientRect failed");
 				}
 				sinfo.fMask = SIF_RANGE;
 				GetScrollInfo(hwnd, SB_VERT, &sinfo);
@@ -5939,45 +5967,36 @@ ViewImageWindow::ViewImageWindow() :
 	{}
 
 //public:
-// static
-const WindowHelper ViewImageWindow::helper = WindowHelper(std::wstring(L"ViewImageWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = 0;
-		wc.hbrBackground = 0;
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND ViewImageWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND ViewImageWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new ViewImageWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT ViewImageWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = args.errorfStream;
 
 	IMGVIEWV *ev = 0;
 
 	if (!(ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0))) { // get mem from parent
 		DestroyWindow(GetParent(hwnd));
-		errorf(errorfStream, "No external variables returned");
+		errorf(std::cerr, "No external variables returned");
 		return 0;
 	}
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	if (ev->imgPath.empty()) {
-		errorf(errorfStream, "no imgPath");
+		errorf(std::cerr, "no imgPath");
 		DestroyWindow(GetParent(hwnd));
 		return 0;
 	}
 	if (!(ev->FullImage = ReadImage(ev->imgPath))) {	//! will leak if an image already existed
-		errorfStream << "couldn't load image: " << ev->imgPath << std::flush;
+		std::cerr << "couldn't load image: " << ev->imgPath << std::flush;
 		DestroyWindow(GetParent(hwnd));
 		return 0;
 	}
@@ -6018,19 +6037,18 @@ LRESULT ViewImageWindow::onCreate(WinProcArgs &procArgs) {
 	ev->xpos = ((int64_t)ev->DispImage->x - rect.right)/2;
 	ev->ypos = ((int64_t)ev->DispImage->y - rect.bottom)/2;
 	if (ev->DispImage == nullptr) {
-		errorf(errorfStream, "no DispImage");
+		errorf(std::cerr, "no DispImage");
 		DestroyWindow(GetParent(hwnd));
 		return 0;
 	}
 
-// errorfStream << "1: ev->midX: " << ev->midX << ", ev->midY: " << ev->midY << ", x: " << ev->FullImage->x << ", y: " << ev->FullImage->y << std::flush;
+// std::cerr << "1: ev->midX: " << ev->midX << ", ev->midY: " << ev->midY << ", x: " << ev->FullImage->x << ", y: " << ev->FullImage->y << std::flush;
 
 
-	return WindowClass::onCreate(args);
+	return WindowClass::onCreate(procArgs);
 }
 
 LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 
 	RECT rect;
 
@@ -6054,15 +6072,15 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_PAINT: {
 			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
-			std::string prgDir = g_SharedWindowVar->prgDir;
+			std::string prgDir = args.sharedWinData.prgDir;
 
 			bminfo.bmiHeader.biSize = sizeof(bminfo.bmiHeader);
 			bminfo.bmiHeader.biPlanes = 1;
@@ -6074,7 +6092,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			hdc2 = CreateCompatibleDC(hdc);
 			hOldPen = (HPEN) GetCurrentObject(hdc2, OBJ_PEN);
 			hOldBrush = (HBRUSH) GetCurrentObject(hdc2, OBJ_BRUSH);
-			hOldFont = (HFONT) SelectObject(hdc2, g_SharedWindowVar->hFont);
+			hOldFont = (HFONT) SelectObject(hdc2, args.sharedWinData.hFont);
 
 			SetBkMode(hdc2, TRANSPARENT);
 
@@ -6090,11 +6108,11 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			}
 			hOldBM = (HBITMAP) SelectObject(hdc2, hThumbListBitmap);
 
-			SelectObject(hdc2, g_SharedWindowVar->bgBrush1);
-			SelectObject(hdc2, g_SharedWindowVar->bgPen1);
+			SelectObject(hdc2, args.sharedWinData.bgBrush1);
+			SelectObject(hdc2, args.sharedWinData.bgPen1);
 			Rectangle(hdc2, 0, 0, rect.right, rect.bottom);
 
-// errorfStream << "ev->xpos: " << ev->xpos << ", ev->ypos: " << ev->ypos << std::flush; 
+// std::cerr << "ev->xpos: " << ev->xpos << ", ev->ypos: " << ev->ypos << std::flush; 
 			if (ev->DispImage) {
 				bminfo.bmiHeader.biWidth = ev->DispImage->x;
 				bminfo.bmiHeader.biHeight = -ev->DispImage->y;
@@ -6108,12 +6126,12 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					j = 0;
 				}
 				if ((SetDIBitsToDevice(hdc2, i, j, ev->DispImage->x, ev->DispImage->y, 0, 0, 0, ev->DispImage->y, ev->DispImage->img[ev->dispframe], &bminfo, DIB_RGB_COLORS)) == 0) {
-					errorfStream << "SetDIBitsToDevice failed, h: " << ev->DispImage->y << ", w: " << ev->DispImage->x << ", source: " << ev->DispImage->img[ev->dispframe] << std::flush;
+					std::cerr << "SetDIBitsToDevice failed, h: " << ev->DispImage->y << ", w: " << ev->DispImage->x << ", source: " << ev->DispImage->img[ev->dispframe] << std::flush;
 					
 				}
 			}
 			if (1 || ev->zoomp) { //! remove the "1 || " later
-				SelectObject(hdc2, g_SharedWindowVar->hPen1);
+				SelectObject(hdc2, args.sharedWinData.hPen1);
 				Rectangle(hdc2, 5, 5, 5+6+5*kCharWidth, 5+kRowHeight);
 				buf = utoc(ev->zoomp);
 				TextOutA(hdc2, 5+3, 5+(kRowHeight)-(kRowHeight/2)-7, buf, strlen(buf));
@@ -6138,11 +6156,11 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_SIZE: {
 /*			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 */
 			PostMessage(hwnd, WM_USER, 0, 0);	// so no black border for expanded area
@@ -6151,14 +6169,14 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_USER: {	// refresh image to window size
 			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
-			std::string prgDir = g_SharedWindowVar->prgDir;
+			std::string prgDir = args.sharedWinData.prgDir;
 
 			if (ev->fit & kBitVI_FitModeEnabled) {
 
@@ -6179,7 +6197,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				ev->xpos = ((int64_t)ev->DispImage->x - rect.right)/2;
 				ev->ypos = ((int64_t)ev->DispImage->y - rect.bottom)/2;
 				if (ev->DispImage == nullptr) {
-					errorf(errorfStream, "no DispImage");
+					errorf(std::cerr, "no DispImage");
 					DestroyWindow(GetParent(hwnd));
 					return 0;
 				}
@@ -6244,7 +6262,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 							ev->midY = (long double)(ev->ypos + (rect.bottom)/2.0)/(ev->zoomp/100.0);
 						}
 					}
-					errorf(errorfStream, "calling resizeimagechunk 1");
+					errorf(std::cerr, "calling resizeimagechunk 1");
 					ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, ev->xpos, ev->ypos, prgDir.c_str());
 
 					ev->fit &= ~(kBitVI_FitResizeFitsX | kBitVI_FitResizeFitsY);
@@ -6267,11 +6285,11 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_MOUSEWHEEL: {		//! have zooming refresh dragging
 			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			if ((i = (int16_t)(HIWORD(wParam))/WHEEL_DELTA) == 0) {
@@ -6409,9 +6427,9 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 				// l and m are the x and y of the retrieved image chunk
 
-				errorf(errorfStream, "calling resizeimagechunk 2");
+				errorf(std::cerr, "calling resizeimagechunk 2");
 
-				std::string prgDir = g_SharedWindowVar->prgDir;
+				std::string prgDir = args.sharedWinData.prgDir;
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, ev->xpos, ev->ypos, prgDir.c_str());
 			}
 			ev->fit &= ~(kBitVI_FitResizeFitsX | kBitVI_FitResizeFitsY);
@@ -6433,11 +6451,11 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_LBUTTONDOWN: {
 			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			if (ev->drag)
 				break;
@@ -6458,14 +6476,14 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_LBUTTONUP: {
 			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 
 			if (!ev->drag)
 				break;
 			if (!ReleaseCapture())
-				errorf(errorfStream, "ReleaseCapture failed");
+				errorf(std::cerr, "ReleaseCapture failed");
 			ev->drag = 0;
 			SendMessage(hwnd, WM_MOUSEMOVE, wParam, lParam);
 
@@ -6474,16 +6492,16 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_MOUSEMOVE: {
 			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 
-			SetCursor(g_SharedWindowVar->hDefCrs);
+			SetCursor(args.sharedWinData.hDefCrs);
 			if (!ev->drag) {
 				break;
 			}
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 			if (!(ev->fit & kBitVI_FitResizeFitsX)) {
 				l = rect.right;
@@ -6515,8 +6533,8 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				if (ev->DispImage) {
 					ev->DispImage = nullptr;
 				}
-				errorf(errorfStream, "calling resizeimagechunk 3");
-				std::string prgDir = g_SharedWindowVar->prgDir;
+				errorf(std::cerr, "calling resizeimagechunk 3");
+				std::string prgDir = args.sharedWinData.prgDir;
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, j, k, prgDir.c_str());
 /*
 				ev->fit &= ~(BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y);
@@ -6552,11 +6570,11 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 		case WM_TIMER: {	//! zooming and changing stretch mode in the future should kill the timer
 			ev = (IMGVIEWV*) SendMessage(GetParent(hwnd), WM_U_RET_VI, (WPARAM) GetMenu(hwnd), 0);
 			if (ev == nullptr) {
-				errorf(errorfStream, "ev is null");
+				errorf(std::cerr, "ev is null");
 				break;
 			}
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			if (wParam == 1) {
@@ -6579,15 +6597,15 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					ev->DispImage = nullptr;
 				}
 				if (ev->xpos < 0 && !(ev->fit & kBitVI_FitResizeFitsX)) {
-					errorfStream << "ev->xpos is less than 0 under WM:TIMER: " << ev->xpos << std::flush;
+					std::cerr << "ev->xpos is less than 0 under WM:TIMER: " << ev->xpos << std::flush;
 //					ev->xpos = 0;
 				}
 				if (ev->ypos < 0 && !(ev->fit & kBitVI_FitResizeFitsY)) {
-					errorfStream << "ev->ypos is less than 0 under WM_TIMER: " << ev->ypos << std::flush;
+					std::cerr << "ev->ypos is less than 0 under WM_TIMER: " << ev->ypos << std::flush;
 //					ev->ypos = 0;
 				}
-				errorf(errorfStream, "calling resizeimagechunk BIT_VI_FIT_RESIZE_FITS_X");
-				std::string prgDir = g_SharedWindowVar->prgDir;
+				errorf(std::cerr, "calling resizeimagechunk BIT_VI_FIT_RESIZE_FITS_X");
+				std::string prgDir = args.sharedWinData.prgDir;
 				ev->DispImage = ResizeImageChunk(ev->FullImage, (double) ev->zoomp / 100, l, m, j, k, prgDir.c_str());
 /*				ev->fit &= ~(BIT_VI_FIT_RESIZE_FITS_X | BIT_VI_FIT_RESIZE_FITS_Y);
 				if (ev->DispImage) {	//! this should probably be removed since the fit mode nor ev->xdisp shouldn't change when dragging
@@ -6642,33 +6660,25 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 //{ FileTagEditWindow
 //public:
-// static
-const WindowHelper FileTagEditWindow::helper = WindowHelper(std::wstring(L"FileTagEditWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = 0;
-		wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND FileTagEditWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND FileTagEditWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new FileTagEditWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT FileTagEditWindow::onCreate(WinProcArgs &procArgs) {
 
 /*
-	auto &errorfStream = procArgs.errorfStream;
+	auto &std::cerr = procArgs.std::cerr;
 
-errorf(errorfStream, "fte create1");
+errorf(std::cerr, "fte create1");
 	ev = AllocWindowMem(hwnd, sizeof(FTEV));
 	ev->dnum = 0, ev->fnumchn = ev->tagnumchn = ev->aliaschn = 0;
 	ev->rmnaliaschn = ev->regaliaschn = ev->remtagnumchn = ev->addtagnumchn = 0;
 
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
 	EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL, 5, 5, 350, 200, hwnd, (HMENU) 1, nullptr, nullptr));
@@ -6680,16 +6690,15 @@ errorf(errorfStream, "fte create1");
 
 	CreateWindowW(L"Button", L"Apply", WS_VISIBLE | WS_CHILD, 5, 225, 80, 25, hwnd, (HMENU) 2, nullptr, nullptr);
 	SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) g_shared_window_vars.hFont2, 1);
-errorf(errorfStream, "fte create9");
+errorf(std::cerr, "fte create9");
 */
 
 
 	return WindowClass::onCreate(procArgs);
 }
 
-LRESULT CALLBACK FileTagEditWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	auto &errorfStream = args.errorfStream;
-//errorf(errorfStream, "x");
+LRESULT CALLBACK FileTagEditWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
+//errorf(std::cerr, "x");
 /*
 	switch(msg) {
 		case WM_CREATE: {
@@ -6710,36 +6719,36 @@ LRESULT CALLBACK FileTagEditWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 			break;
 		}
 		case WM_USER: {	// input dnum or fnums
-errorf(errorfStream, "fte user 1");
+errorf(std::cerr, "fte user 1");
 			ev = GetWindowMem(hwnd);
-errorf(errorfStream, "fte user 2");
+errorf(std::cerr, "fte user 2");
 			if ((uint64_t) wParam == 0) {
 				ev->dnum = (uint64_t) lParam;
 			} else if ((uint64_t) wParam == 1) {
 				ev->fnumchn = (oneslnk*) lParam;
-errorf(errorfStream, "fte user 2.2");
+errorf(std::cerr, "fte user 2.2");
 
 				if (ev->fnumchn) {
-errorf(errorfStream, "fte user 2.3");
+errorf(std::cerr, "fte user 2.3");
 					sortoneschnull(ev->fnumchn, 0);
-errorf(errorfStream, "fte user 2.4");
+errorf(std::cerr, "fte user 2.4");
 					EnableWindow(GetDlgItem(hwnd, 1), 1);
-errorf(errorfStream, "fte user 2.5");
+errorf(std::cerr, "fte user 2.5");
 					PostMessage(hwnd, WM_USER+2, 0, 0);
-errorf(errorfStream, "fte user 2.6");
+errorf(std::cerr, "fte user 2.6");
 					return 1;
 				}
 			}
-errorf(errorfStream, "fte user 3");
+errorf(std::cerr, "fte user 3");
 			break;
 		}
 		case WM_USER+1: {	// apply changes
 			ev = GetWindowMem(hwnd);
 
-errorf(errorfStream, "applying changes");
+errorf(std::cerr, "applying changes");
 			if (ev->rmnaliaschn) {
 				if (!(CreateAliasWindow::createWindowInstance().create(0, L"", WS_VISIBLE | WS_POPUP, 5, 5, 200, 200, hwnd, 0, nullptr, nullptr))) {
-					errorf(errorfStream, "failed to create registeralias window");
+					errorf(std::cerr, "failed to create registeralias window");
 
 					killoneschn(ev->rmnaliaschn, 0), ev->rmnaliaschn = 0;
 					if (ev->regaliaschn) {
@@ -6757,7 +6766,7 @@ errorf(errorfStream, "applying changes");
 g_errrofStream << "addtagnumchn" << ev->addtagnumchn << ", regaliaschn" << ev->regaliashchn << ", remtagnumchn: " << ev->remtagnumchn << std::flush;
 link1 = ev->regaliaschn;
 while (link1) {
-	errorfStream << "regalias: " << ev->regaliaschn->str << std::flush;
+	std::cerr << "regalias: " << ev->regaliaschn->str << std::flush;
 	link1 = link1->next;
 }
 				twoWayTagChainRegAddRem(ev->dnum, ev->fnumchn, ev->addtagnumchn, ev->regaliaschn, ev->remtagnumchn, 1+2+4);
@@ -6791,11 +6800,11 @@ while (link1) {
 				}
 
 				if (chainFileReadTag(ev->dnum, ev->fnumchn, 0, &link1, 1)) {
-					errorf(errorfStream, "chainFileReadTag failed");
+					errorf(std::cerr, "chainFileReadTag failed");
 				}
 
 				if (link1) {
-errorf(errorfStream, "made it to combining tags");
+errorf(std::cerr, "made it to combining tags");
 					link2 = link1->next;
 					while (link2) {		// remove tagnums that don't appear in all files
 						link3 = link1->vp;
@@ -6833,17 +6842,17 @@ errorf(errorfStream, "made it to combining tags");
 				}
 
 				if (ev->tagnumchn) {
-errorf(errorfStream, "made it to retrieving aliases");
+errorf(std::cerr, "made it to retrieving aliases");
 
 					chainTagRead(ev->dnum, ev->tagnumchn, &ev->aliaschn, 0, 1);
-errorf(errorfStream, "made it after chainTagRead");
+errorf(std::cerr, "made it after chainTagRead");
 
 					if (!ev->aliaschn) {
-						errorf(errorfStream, "chainTagRead failed");
+						errorf(std::cerr, "chainTagRead failed");
 					} else {
 						sortoneschn(ev->aliaschn, (int(*)(void*,void*)) casestrcmp, 0);
 						if (!ev->aliaschn->str) {
-							errorf(errorfStream, "empty alias in aliaschn");
+							errorf(std::cerr, "empty alias in aliaschn");
 						}
 
 						for (i = 0, link1 = ev->aliaschn; link1; link1 = link1->next) {
@@ -6874,7 +6883,7 @@ errorf(errorfStream, "made it after chainTagRead");
 
 						wbuf = malloc(i*2);
 						if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf, i)) == 0) {
-							errorf(errorfStream, "MultiByteToWideChar Failed");
+							errorf(std::cerr, "MultiByteToWideChar Failed");
 						}
 						free(buf);
 						SetWindowTextW(GetDlgItem(hwnd, 1), wbuf);
@@ -6883,7 +6892,7 @@ errorf(errorfStream, "made it after chainTagRead");
 				}
 			}
 
-errorf(errorfStream, "fte9");
+errorf(std::cerr, "fte9");
 
 			break;
 		}
@@ -6892,7 +6901,7 @@ errorf(errorfStream, "fte9");
 			break;
 		}
 		case WM_COMMAND: {
-errorf(errorfStream, "fte comm");
+errorf(std::cerr, "fte comm");
 			ev = GetWindowMem(hwnd);
 
 			if (HIWORD(wParam) == EN_UPDATE && !ev->clean_flag) {
@@ -6909,7 +6918,7 @@ errorf(errorfStream, "fte comm");
 					} else {
 						len++;
 						if (!(wbuf = malloc(len*2))) {
-							errorf(errorfStream, "malloc failed");
+							errorf(std::cerr, "malloc failed");
 							return 1;
 						}
 						GetWindowTextW(thwnd, wbuf, len);
@@ -6917,38 +6926,38 @@ errorf(errorfStream, "fte comm");
 						buf = malloc(len*4);
 
 						if ((WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, buf, len*4, nullptr, nullptr)) == 0) {
-							errorf(errorfStream, "WideCharToMultiByte Failed");
+							errorf(std::cerr, "WideCharToMultiByte Failed");
 						}
 						free(wbuf);
 					}
 
 					keepremovedandadded(ev->aliaschn, buf, &addaliaschn, &remaliaschn, 0);	// also considering directly turning the parsed aliases into tag nums then keeping removed and added from them
-errorf(errorfStream, "made it past keepremovedandadded");
+errorf(std::cerr, "made it past keepremovedandadded");
 					if (buf) {
 						free(buf);
 					}
 // link1 = addaliaschn;
 // while (link1) {
-	// errorfStream << "added aliases: " << link1->str << std::flush;
+	// std::cerr << "added aliases: " << link1->str << std::flush;
 	// link1 = link1->next;
 // }
 // link1 = remaliaschn;
 // while (link1) {
-	// errorfStream << "removed aliases: " << link->str << std::flush;
+	// std::cerr << "removed aliases: " << link->str << std::flush;
 	// link1 = link1->next;
 // }
 
 					if (remaliaschn) {
-errorf(errorfStream, "aliases to be removed exist");
+errorf(std::cerr, "aliases to be removed exist");
 link1 = remaliaschn;
 while (link1) {
-	errorfStream << "removing tag with alias: " << link->str << std::flush;
+	std::cerr << "removing tag with alias: " << link->str << std::flush;
 	link1 = link1->next;
 }
 						ev->remtagnumchn = tagNumFromAlias(ev->dnum, remaliaschn, &ev->rmnaliaschn);	//! add option to limit to primary aliases
 						killoneschn(remaliaschn, 0);
 						if (ev->rmnaliaschn) {
-							errorf(errorfStream, "removing tag from alias that doesn't reference to itself");
+							errorf(std::cerr, "removing tag from alias that doesn't reference to itself");
 							ev->remtagnumchn? killoneschn(ev->remtagnumchn, 1):0, killoneschn(ev->rmnaliaschn, 0), addaliaschn? killoneschn(addaliaschn, 0):0;
 							ev->rmnaliaschn = 0;
 							break;
@@ -6956,7 +6965,7 @@ while (link1) {
 						ev->remtagnumchn ? sortoneschnull(ev->remtagnumchn, 0):0;
 link1 = ev->remtagnumchn;
 while (link1) {
-	errorfStream << "removing tag num: " << link1->ull << std::flush;
+	std::cerr << "removing tag num: " << link1->ull << std::flush;
 	link1 = link1->next;
 }
 					} else {
@@ -6975,19 +6984,19 @@ while (link1) {
 							}
 						}
 					} else {
-errorf(errorfStream, "no aliases to add");
+errorf(std::cerr, "no aliases to add");
 						ev->addtagnumchn = 0, ev->rmnaliaschn = 0;
 					}
 
-errorfStream << "ev->rmnaliaschn" << ev->rmnaliaschn << ", ev->addtagnumchn: " << ev->addtagnumchn << ", ev->remtagnumchn: " << ev->remtagnumchn << std::flush;
+std::cerr << "ev->rmnaliaschn" << ev->rmnaliaschn << ", ev->addtagnumchn: " << ev->addtagnumchn << ", ev->remtagnumchn: " << ev->remtagnumchn << std::flush;
 link1 = ev->rmnaliaschn;
 while (link1) {
-	errorfStream << "remaining aliases: " << link1->str << std::flush;
+	std::cerr << "remaining aliases: " << link1->str << std::flush;
 	link1 = link1->next;
 }
 link1 = ev->addtagnumchn;
 while (link1) {
-	errorfStream << "adding tag num: " << link1->ull << std::flush;
+	std::cerr << "adding tag num: " << link1->ull << std::flush;
 	link1 = link1->next;
 }
 
@@ -7086,37 +7095,37 @@ while (link1) {
 
 				}
 else if (LOWORD(wParam) == 2) {
-	errorfStream << "ev->rmnaliaschn" << ", ev->regaliaschn" << ev->regaliaschn << ", ev->remtagnumchn" << ev->remtagnumchn << ", ev->addtagnumchn: " << ev->addtagnumchn << std::flush;
+	std::cerr << "ev->rmnaliaschn" << ", ev->regaliaschn" << ev->regaliaschn << ", ev->remtagnumchn" << ev->remtagnumchn << ", ev->addtagnumchn: " << ev->addtagnumchn << std::flush;
 	
 
 }
 			}
-errorf(errorfStream, "fte comm 9");
+errorf(std::cerr, "fte comm 9");
 			break;
 		}
 		case WM_DESTROY: {
-errorf(errorfStream, "fte destroy1");
+errorf(std::cerr, "fte destroy1");
 			ev = GetWindowMem(hwnd);
-errorf(errorfStream, "fte destroy2");
+errorf(std::cerr, "fte destroy2");
 			if (ev->fnumchn) {
 				killoneschn(ev->fnumchn, 1);
 			}
-errorf(errorfStream, "fte destroy2.1");
-errorfStream << "ev->tagnumchn: " << ev->tagnumchn << std::flush;
+errorf(std::cerr, "fte destroy2.1");
+std::cerr << "ev->tagnumchn: " << ev->tagnumchn << std::flush;
 link1 = ev->tagnumchn;
 while (link1) {
-	errorfStream << "num: " << link1->ull << std::flush;
-	errorfStream << "link1->next: " << link1->next << std::flush;
+	std::cerr << "num: " << link1->ull << std::flush;
+	std::cerr << "link1->next: " << link1->next << std::flush;
 	link1 = link1->next;
 }
 			if (ev->tagnumchn) {
 				killoneschn(ev->tagnumchn, 1);
 			}
-errorf(errorfStream, "fte destroy2.2");
+errorf(std::cerr, "fte destroy2.2");
 			if (ev->aliaschn) {
 				killoneschn(ev->aliaschn, 0);
 			}
-errorf(errorfStream, "fte destroy2.5");
+errorf(std::cerr, "fte destroy2.5");
 			if (ev->rmnaliaschn) {
 				killoneschn(ev->rmnaliaschn, 0);
 			}
@@ -7129,12 +7138,12 @@ errorf(errorfStream, "fte destroy2.5");
 			if (ev->addtagnumchn) {
 				killoneschn(ev->addtagnumchn, 1);
 			}
-errorf(errorfStream, "fte destroy3");
+errorf(std::cerr, "fte destroy3");
 
 			//FreeWindowMem(hwnd);
-errorf(errorfStream, "fte destroy4");
+errorf(std::cerr, "fte destroy4");
 
-errorfStream << "parent: " << GetParent(hwnd) << std::flush;
+std::cerr << "parent: " << GetParent(hwnd) << std::flush;
 			SetFocus(GetParent(hwnd));
 
 			return 0;
@@ -7149,34 +7158,25 @@ errorfStream << "parent: " << GetParent(hwnd) << std::flush;
 
 //{ CreateAliasWindow
 //public:
-// static
-const WindowHelper CreateAliasWindow::helper = WindowHelper(std::wstring(L"CreateAliasWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = 0;
-		wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND CreateAliasWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND CreateAliasWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new CreateAliasWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT CreateAliasWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
 
 	ShowWindow(hwnd, 0);
 	HWND thwnd = GetParent(hwnd);
 	if(!(thwnd)) {
-		errorf(errorfStream, "couldn't get createalias parent");
+		errorf(std::cerr, "couldn't get createalias parent");
 		return -1;
 	}
 	//! TODO: make the casting safer
 	if (!(this->parent_ = std::dynamic_pointer_cast<FileTagEditWindow>(procArgs.getWindowPtr(thwnd)))) {
-		errorf(errorfStream, "couldn't get parent window memory for createalias");
+		errorf(std::cerr, "couldn't get parent window memory for createalias");
 		return -1;
 	}
 
@@ -7187,7 +7187,6 @@ LRESULT CreateAliasWindow::onCreate(WinProcArgs &procArgs) {
 }
 
 LRESULT CALLBACK CreateAliasWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 	
 	switch(msg) {
 		case WM_PAINT: {
@@ -7197,7 +7196,7 @@ LRESULT CALLBACK CreateAliasWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 		case WM_USER: {
 			HWND thwnd = GetParent(hwnd);
 			if(!(thwnd)) {
-				errorf(errorfStream, "couldn't get createalias parent");
+				errorf(std::cerr, "couldn't get createalias parent");
 				return -1;
 			}
 
@@ -7231,68 +7230,36 @@ LRESULT CALLBACK CreateAliasWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, 
 
 //{ EditWindowSuperClass
 //public:
-// static
-DeferredRegWindowHelper EditWindowSuperClass::helper(DeferredRegWindowHelper(std::wstring(L"EditWindowSuperClass"),
-	[](WNDCLASSW &wc) -> void {
-		WNDCLASSW t_wc = {0};
-errorf(errorfStream, "ESC helper 1");
-		int c = GetClassInfoW(nullptr, MSFTEDIT_CLASS, &t_wc);
-		if (!c) {
-			errorfStream << "GetClassInfoW failed" << "\n";
-		}
-		if (t_wc.lpfnWndProc == nullptr) {
-			errorf(errorfStream, "t_wc has no proc");
-		}
-
-		wc.style = t_wc.style;
-		wc.cbClsExtra = t_wc.cbClsExtra;
-		wc.cbWndExtra = t_wc.cbWndExtra;
-		wc.hIcon = t_wc.hIcon;
-		wc.hCursor = t_wc.hCursor;
-		wc.hbrBackground = t_wc.hbrBackground;
-		wc.lpszMenuName = t_wc.lpszMenuName;
-
-		g_SharedWindowVar->g_OldEditProc = t_wc.lpfnWndProc;
-errorf(errorfStream, "ESC helper 2");
-
-	}
-));
 
 // static
-HWND EditWindowSuperClass::createWindowInstance(WinInstancer wInstancer) {
+HWND EditWindowSuperClass::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	// has to be registered before window instance is created
-	if (!EditWindowSuperClass::helper.isRegistered()) {
-		errorf(errorfStream, "createWindowInstance: ESC not registered");
-		return nullptr;
-	}
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new EditWindowSuperClass(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT EditWindowSuperClass::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
 	LPARAM &lParam = procArgs.lParam;
 	WPARAM &wParam = procArgs.wParam;
-	auto &errorfStream = procArgs.errorfStream;
 
-errorf(errorfStream, "creating editsuperclass inner");
+errorf(std::cerr, "creating editsuperclass inner");
 	//ShowWindow(hwnd, 0);
 
 	//PostMessage(hwnd, WM_USER, 0, 0);
 
-	return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, procArgs.msg, wParam, lParam);
+	return CallWindowProcW(procArgs.sharedWinData.g_OldEditProc, hwnd, procArgs.msg, wParam, lParam);
 
 	// return WindowClass::onCreate(procArgs);
 }
 
 LRESULT CALLBACK EditWindowSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 
 	//return CallWindowProcW(g_shared_window_vars.g_OldEditProc, hwnd, msg, wParam, lParam);
 
 	switch(msg) {
 		case WM_CREATE: {
-			return this->onCreate(WinProcArgs(hwnd, msg, wParam, lParam));
+			return this->onCreate(args);
 
 			break;
 		}
@@ -7303,7 +7270,7 @@ LRESULT CALLBACK EditWindowSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wPara
 			case VK_RETURN:
 				break;
 			default:
-				return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
+				return CallWindowProcW(args.sharedWinData.g_OldEditProc, hwnd, msg, wParam, lParam);
 			}
 			break;
 		}
@@ -7320,12 +7287,12 @@ LRESULT CALLBACK EditWindowSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wPara
 			case '\r':
 //				break;
 			default:
-				return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
+				return CallWindowProcW(args.sharedWinData.g_OldEditProc, hwnd, msg, wParam, lParam);
 			}
 			break;
 		}
 	}
-	return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
+	return CallWindowProcW(args.sharedWinData.g_OldEditProc, hwnd, msg, wParam, lParam);
 }
 
 
@@ -7333,40 +7300,31 @@ LRESULT CALLBACK EditWindowSuperClass::winProc(HWND hwnd, UINT msg, WPARAM wPara
 
 //{ SearchBarWindow
 //public:
-// static
-const WindowHelper SearchBarWindow::helper = WindowHelper(std::wstring(L"SearchBarWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW;
-		wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
-		wc.hCursor = nullptr;
-	}
-);
 
 // static
-HWND SearchBarWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND SearchBarWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new SearchBarWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT SearchBarWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	std::string prgDir = procArgs.sharedWinData->prgDir;
-	auto &errorfStream = procArgs.errorfStream;
+	std::string prgDir = procArgs.sharedWinData.prgDir;
+	auto &editWindowSuperName = procArgs.sharedWinData.winRegs.editWindowSuper.winClassName;
 
 	// TODO: make enum instead
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
-	EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 5, rect.right - 5 - kSearchBarButtonX - 5 - 5, kSearchBarTextbH, hwnd, (HMENU) 1, nullptr, nullptr));
+	EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 5, rect.right - 5 - kSearchBarButtonX - 5 - 5, kSearchBarTextbH, hwnd, (HMENU) 1, nullptr, nullptr), editWindowSuperName);
 	CreateWindowW(L"Button", L"", WS_VISIBLE | WS_CHILD, rect.right - 5 - kSearchBarButtonX, 5, kSearchBarButtonX, kSearchBarButtonX, hwnd, (HMENU) 2, nullptr, nullptr);
 
 	return WindowClass::onCreate(procArgs);
 }
 
 LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 
 	RECT rect;
 	HWND thwnd;
@@ -7374,7 +7332,7 @@ LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 	switch(msg) {
 		case WM_SIZE: {
 			if (GetClientRect(hwnd, &rect) == 0) {
-				errorf(errorfStream, "GetClientRect failed");
+				errorf(std::cerr, "GetClientRect failed");
 			}
 
 			thwnd = GetDlgItem(hwnd, 1);
@@ -7399,7 +7357,7 @@ LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 					} else {
 						len++;
 						if (!(wbuf = (wchar_t *) malloc(len*2))) {
-							errorf(errorfStream, "malloc failed");
+							errorf(std::cerr, "malloc failed");
 							return 1;
 						}
 						GetWindowTextW(thwnd, wbuf, len);
@@ -7421,7 +7379,7 @@ LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			break;
 		}
 	}
-	return CallWindowProcW(g_SharedWindowVar->g_OldEditProc, hwnd, msg, wParam, lParam);
+	return CallWindowProcW(args.sharedWinData.g_OldEditProc, hwnd, msg, wParam, lParam);
 }
 
 
@@ -7429,31 +7387,23 @@ LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 
 //{ TextEditDialogWindow
 //public:
-// static
-const WindowHelper TextEditDialogWindow::helper = WindowHelper(std::wstring(L"TextEditDialogWindow"),
-	[](WNDCLASSW &wc) -> void {
-		wc.style = CS_HREDRAW | CS_VREDRAW;
-		wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
-		wc.hCursor = nullptr;
-	}
-);
 
 LRESULT TextEditDialogWindow::onCreate(WinProcArgs &procArgs) {
 	HWND &hwnd = procArgs.hwnd;
-	auto &errorfStream = procArgs.errorfStream;
+	auto &editWindowSuperName = procArgs.sharedWinData.winRegs.editWindowSuper.winClassName;
 
 	RECT rect;
 	if (GetClientRect(hwnd, &rect) == 0) {
-		errorf(errorfStream, "GetClientRect failed");
+		errorf(std::cerr, "GetClientRect failed");
 	}
 
-	EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"Default name", WS_VISIBLE | WS_CHILD | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL, 5, 5, 350, 200, hwnd, (HMENU) 1, nullptr, nullptr));
+	EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"Default name", WS_VISIBLE | WS_CHILD | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL, 5, 5, 350, 200, hwnd, (HMENU) 1, nullptr, nullptr), editWindowSuperName);
 
-	SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont, 1);
+	SendDlgItemMessageW(hwnd, 1, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont, 1);
 	SendDlgItemMessageW(hwnd, 1, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
 
 	CreateWindowW(L"Button", L"Apply", WS_VISIBLE | WS_CHILD, 5, 225, 80, 25, hwnd, (HMENU) 2, nullptr, nullptr);
-	SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) g_SharedWindowVar->hFont2, 1);
+	SendDlgItemMessageW(hwnd, 2, WM_SETFONT, (WPARAM) procArgs.sharedWinData.hFont2, 1);
 
 	//PostMessage(hwnd, WM_USER+1, 0, 0);
 
@@ -7461,13 +7411,12 @@ LRESULT TextEditDialogWindow::onCreate(WinProcArgs &procArgs) {
 }
 
 // static
-HWND TextEditDialogWindow::createWindowInstance(WinInstancer wInstancer) {
+HWND TextEditDialogWindow::createWindowInstance(WinInstancer wInstancer, std::wstring &winClassName) {
 	std::shared_ptr<WinCreateArgs> winArgs = std::shared_ptr<WinCreateArgs>(new WinCreateArgs([](void) -> WindowClass* { return new TextEditDialogWindow(); }));
-	return wInstancer.create(winArgs, helper.winClassName_);
+	return wInstancer.create(winArgs, winClassName);
 }
 
 LRESULT CALLBACK TextEditDialogWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	auto &errorfStream = args.errorfStream;
 	HWND thwnd;
 
 	int64_t len;
@@ -7482,7 +7431,7 @@ LRESULT CALLBACK TextEditDialogWindow::winProc(HWND hwnd, UINT msg, WPARAM wPara
 			break;
 		}
 		case WM_MOUSEMOVE: {
-			SetCursor(g_SharedWindowVar->hDefCrs);
+			SetCursor(args.sharedWinData.hDefCrs);
 
 			break;
 		}
@@ -7528,7 +7477,7 @@ LRESULT CALLBACK TextEditDialogWindow::winProc(HWND hwnd, UINT msg, WPARAM wPara
 						len++;
 						wchar_t *wbuf;
 						if (!(wbuf = (wchar_t *) malloc(len*2))) {
-							errorf(errorfStream, "malloc failed");
+							errorf(std::cerr, "malloc failed");
 							return 1;
 						}
 						GetWindowTextW(thwnd, wbuf, len);
@@ -7536,7 +7485,7 @@ LRESULT CALLBACK TextEditDialogWindow::winProc(HWND hwnd, UINT msg, WPARAM wPara
 						buf = (char *) malloc(len*4);
 
 						if ((WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, buf, len*4, nullptr, nullptr)) == 0) {
-							errorf(errorfStream, "WideCharToMultiByte Failed");
+							errorf(std::cerr, "WideCharToMultiByte Failed");
 						}
 						free(wbuf);
 					}
