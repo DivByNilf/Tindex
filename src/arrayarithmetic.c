@@ -10,8 +10,8 @@
 int DIVRNDNG = 0;
 int DIVFRCTN = 0;
 
-#include "errorf.h"
-#define errorf(...) g_errorf(__VA_ARGS__)
+#include <stdio.h>
+#define errorf(...) fprintf(stderr, __VA_ARGS__)
 
 char *subtract(char*, char*);			// most functions return allocated memory that must be freed
 

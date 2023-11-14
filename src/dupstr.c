@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include "errorf.h"
-#define errorf(...) g_errorf(__VA_ARGS__)
+#include <stdio.h>
+#define errorf(...) fprintf(stderr, __VA_ARGS__)
 
 char *dupstr(char *str, unsigned long long maxlen, int option) {	// option to truncate string if it doesn't fit maxlen -- maxlen includes space for null terminator
 	long long i;
