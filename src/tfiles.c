@@ -6,8 +6,8 @@
 #include "ioextras.h"
 #include "portables.h"
 
-#include "errorf.h"
-#define errorf(...) g_errorf(__VA_ARGS__)
+#include <stdio.h>
+#define errorf(...) fprintf(stderr, __VA_ARGS__)
 
 static char tempfolderfound;
 

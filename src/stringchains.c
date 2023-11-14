@@ -5,8 +5,8 @@
 
 #define COPYCHN_STRLIM 10000
 
-#include "errorf.h"
-#define errorf(...) g_errorf(__VA_ARGS__)
+#include <stdio.h>
+#define errorf(...) fprintf(stderr, __VA_ARGS__)
 
 char killoneschn(oneslnk *slink, unsigned char flag) { // 0 for string, 1 for ull
 	oneslnk *buf;

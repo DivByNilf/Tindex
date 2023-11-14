@@ -6,8 +6,8 @@
 #include "errorf.h"
 #include "portables.h"
 
-#include "errorf.h"
-#define errorf(...) g_errorf(__VA_ARGS__)
+#include <stdio.h>
+#define errorf(...) fprintf(stderr, __VA_ARGS__)
 
 cl_int report_and_mark_devices(cl_device_id *devices, cl_uint num_devices, int *a_cpu, int *a_gpu, int *an_accelerator);
 char *stringfromfile(char *filename);

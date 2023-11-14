@@ -9,8 +9,8 @@
 #include <windows.h>
 #include <shlobj.h>
 
-#include "errorf.h"
-#define errorf(...) g_errorf(__VA_ARGS__)
+#include <stdio.h>
+#define errorf(...) fprintf(stderr, __VA_ARGS__)
 
 int fseek64(FILE *file, long long offset, int origin) {
 	return _fseeki64(file, offset, origin);
