@@ -97,7 +97,7 @@ add_executable(tindex WIN32 $<TARGET_OBJECTS:main_src_objects> $<TARGET_OBJECTS:
 SET_TARGET_PROPERTIES(tindex PROPERTIES LINK_FLAGS "-municode -mwindows C:/Windows/System32/OpenCL.dll -lcomctl32 -lole32 -luuid")
 
 # target_compile_options(tindex PUBLIC -Werror -Wall -Wextra)
-target_compile_options(tindex PUBLIC -Wimplicit-fallthrough -Wdeprecated-copy -Winfinite-recursion)
+# target_compile_options(tindex PUBLIC -Wimplicit-fallthrough -Wdeprecated-copy -Winfinite-recursion)
 
 # TODO: later make the image libs only required as part of an image api
 target_link_libraries(tindex LIBPNG)

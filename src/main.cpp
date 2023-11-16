@@ -1,5 +1,4 @@
 #include "errorf.hpp"
-#define errorf(str) g_errorfStdStr(str)
 
 #include "userinterface.hpp"
 #include "window_procedures.hpp"
@@ -21,8 +20,6 @@ namespace std {
 
 /// private declarations
 
-// LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
 int CheckInitMutex(HANDLE &hMutex, std::string prgDir);
 int MainInit(MainInitStruct &ms, SharedWindowData &sharedWindowData, const std::fs::path &prgDir);
 int MainDeInit(MainInitStruct &ms, SharedWindowData &sharedWindowData);
@@ -39,30 +36,29 @@ enum MainInitReturnCodes : int32_t {
 };
 
 enum OtherOptionIntegers : int32_t {
-	kHWndBufSize = 256
+	kHWndBufSize = 256,
+	kDisableMutexCheck = false,
 };
 
 /// Initialization functions
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow) {
-	
 	auto winProcData = std::make_shared<WinProcData>();
 	winProcData->sharedWinData.ghInstance = hInstance;
-	// TODO: make remove g_std::cerr and initialize an std::cerr here
 	std::fs::path prgDir = GetPrgDir();
+
 	if (prgDir.empty()) {
 		ErrorfDialogStdStr("Preinit: GetPrgDir failed");
 		return kMainInitFail;
 	}
+
 	freopen((prgDir.string() + "/errorfile.log").c_str(), "a", stderr);
 	freopen((prgDir.string() + "/errorfile.log").c_str(), "a", stdout);
 	std::cerr << "\n---\n";
-	{
-		bool res = SetWinProcData(winProcData);
-		if (!res) {
-			std::cerr << "Preinit: SetSharedWindowData failed" << std::flush;
-			return 1;
-		}
+
+	if (SetWinProcData(winProcData)) {
+		std::cerr << "Preinit: SetSharedWindowData failed" << std::endl;
+		return 1;
 	}
 
 	MainInitStruct ms = {};
@@ -72,7 +68,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 			if (i == kMainInitMutexReserved) { // mutex already reserved
 				return 0;
 			} else {
-				std::cerr << "Preinit: MainInit failed: " << i << std::flush;
+				std::cerr << "Preinit: MainInit failed: " << i << std::endl;
 				return 1;
 			}
 		}
@@ -83,7 +79,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 
 	// try to prevent program opening and taking mutex with no real window
 	if (!hMsgHandler || !GetWindowPtr(hMsgHandler, winProcData->winMemMap)) {
-		std::cerr << "Failed to create MsgHandler (main)" << std::flush;
+		std::cerr << "Failed to create MsgHandler (main)" << std::endl;
 		return 1;
 	}
 
@@ -99,7 +95,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 	{
 		int32_t i = 0;
 		if ((i = MainDeInit(ms, winProcData->sharedWinData)) != 0) {
-			std::cerr << "MainDeInit failed: " << i << std::flush;
+			std::cerr << "MainDeInit failed: " << i << std::endl;
 			return 1;
 		}
 	}
@@ -108,13 +104,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 
 int MainInit(MainInitStruct &ms, SharedWindowData &sharedWindowData, const std::fs::path &prgDir) {
 	if (ms != MainInitStruct()) {
-		std::cerr << "Preinit: MainInitStruct was not empty" << std::flush;
+		std::cerr << "Preinit: MainInitStruct was not empty" << std::endl;
 		return kMainInitFail;
 	}
 	sharedWindowData.prgDir = prgDir.generic_string();
 
 	if (CheckInitMutex(ms.hMutex, prgDir.string()) != 0) { // requires PrgDir to be inited
-		std::cerr << "Preinit: CheckInitMutex failed" << std::flush;
+		std::cerr << "Preinit: CheckInitMutex failed" << std::endl;
 	}
 
 	if (ms.hMutex == nullptr) {
@@ -124,13 +120,12 @@ int MainInit(MainInitStruct &ms, SharedWindowData &sharedWindowData, const std::
 	{
 		HMODULE hModule = LoadLibraryW(L"Msftedit.dll");
 		if (hModule == nullptr) {
-			std::cerr << "failed to load Msftedit.dll" << std::flush;
+			std::cerr << "failed to load Msftedit.dll" << std::endl;
 			return kMainInitDllLoadFail;
 		}
 	}
 
 	MainInitHandles(sharedWindowData);
-
 	initSessionHandler(prgDir);
 
 	return 0;
@@ -145,16 +140,14 @@ int CheckInitMutex(HANDLE &hMutex, std::string prgDir) {
 	hMutex = CreateMutexW(nullptr, TRUE, u8_to_u16(mutexName).c_str());
 
 	if (hMutex == nullptr) {
-		std::cerr << "Preinit: CreateMutex" << "\n  error: " << GetLastError() << "\n  mutexName" << mutexName << std::flush;
+		std::cerr << "Preinit: CreateMutex" << "\n  error: " << GetLastError() << "\n  mutexName" << mutexName << std::endl;
 		return 1;
 	}
 
 	DWORD dwWaitResult = WaitForSingleObject(hMutex, 0);
 
-	bool disableMutexCheck = false;
-
  	// if mutex is already taken
-	if (!disableMutexCheck && dwWaitResult != WAIT_OBJECT_0 && dwWaitResult != WAIT_ABANDONED) {
+	if (!kDisableMutexCheck && dwWaitResult != WAIT_OBJECT_0 && dwWaitResult != WAIT_ABANDONED) {
 		CloseHandle(hMutex);
 		hMutex = nullptr;
 
@@ -173,11 +166,11 @@ int CheckInitMutex(HANDLE &hMutex, std::string prgDir) {
 		);
 		
 		if (hMapFile == nullptr) {
-			std::cerr << "Preinit: Could not open file mapping object (" << GetLastError() << ")." << std::flush;
+			std::cerr << "Preinit: Could not open file mapping object (" << GetLastError() << ")." << std::endl;
 			return 1;
 		}
 
-		std::shared_ptr<void> pBuf = std::shared_ptr<void>(
+		auto pBuf = std::shared_ptr<void>(
 			MapViewOfFile(
 				hMapFile.get(),
 				FILE_MAP_ALL_ACCESS,
@@ -189,7 +182,7 @@ int CheckInitMutex(HANDLE &hMutex, std::string prgDir) {
 		);
 
 		if (pBuf == nullptr) {
-			std::cerr << "Preinit: Could not map view of file (" << GetLastError() << ")." << std::flush;
+			std::cerr << "Preinit: Could not map view of file (" << GetLastError() << ")." << std::endl;
 			return 1;
 		}
 
