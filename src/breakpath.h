@@ -1,5 +1,5 @@
-int breakpath(char *path, char *edname, char *efname, char *eexname);
+int breakpath(const char *path, char *edname, char *efname, char *eexname);
 
-int breakpathdf(char *path, char *edname, char *efname);
+int breakpathdf(const char *path, char *edname, char *efname);
 
 int breakfname(char *ifname, char *efname, char *eexname);

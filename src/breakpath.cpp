@@ -14,17 +14,17 @@ std::string ExtractPathExtension(const std::string &path) {
 
 }
 
-int breakpath(char *path, char *edname, char *efname, char *eexname) {
-	char a[MAX_PATH*4], dname[MAX_PATH*4], fname[MAX_PATH*4], exname[MAX_PATH*4];
+int breakpath(char const *const_path, char *edname, char *efname, char *eexname) {
+	char path[MAX_PATH*4], dname[MAX_PATH*4], fname[MAX_PATH*4], exname[MAX_PATH*4];
 	int i, j, di, fi, exi, plen, mbl;
 	i = j = di = fi = exi = 0;
-	
-	if (path[1] == ':') {
-		if (strlen(path) > MAX_PATH*4-1) {
+
+	if (const_path[1] == ':') {
+		if (strlen(const_path) > MAX_PATH*4-1) {
 			errorf("Error: Path too long.\n");
 			return 1;
 		}
-		strcpy_s(a, MAX_PATH*4, path);
+		strcpy_s(path, MAX_PATH*4, const_path);
 //		errorf("Absolute path (no conversion): %s\n", a);
 	}
 	else {
@@ -40,17 +40,17 @@ int breakpath(char *path, char *edname, char *efname, char *eexname) {
 			path[plen+1] = '\0';
 		}
 		if (path[0] == '.' && path[1] == '\\') {
-			sprintf(a, "%s\\%s", temp, path+2);
+			sprintf(path, "%s\\%s", temp, path+2);
 //			errorf("Absolute path (converted): %s\n", a);
 		}
 		else {
-			sprintf(a, "%s\\%s", temp, path);
+			sprintf(path, "%s\\%s", temp, path);
 //			errorf("Absolute path (converted): %s\n", a);
 		}
 	}
-	for (i = 0; a[i] != '\0'; i++) {
-		
-		switch (a[i]) {
+	for (i = 0; path[i] != '\0'; i++) {
+
+		switch (path[i]) {
 			case '\\':
 				if (fi == 0) {
 					errorf("Error: two '\\' in a row.\n");
@@ -62,42 +62,42 @@ int breakpath(char *path, char *edname, char *efname, char *eexname) {
 				}
 				fname[fi] = '\0';
 				dname[di++] = '\\';
-				for (j = 0; fname[j] != '\0'; j++) 
+				for (j = 0; fname[j] != '\0'; j++)
 					dname[di++] = fname[j];
 				fi = 0;
 				break;
 			case '.':
 				if (fi == 0) {
-					if (a[i+1] == '\\') {
+					if (path[i+1] == '\\') {
 						i++;
 					} else {
 					fname[fi++] = '.';
 					break;
 					}
 				}
-				for (i++; !(a[i] == '\\' || a[i] == '\0'); i++) {
-					switch (a[i]) {
+				for (i++; !(path[i] == '\\' || path[i] == '\0'); i++) {
+					switch (path[i]) {
 						case '.':
 							fname[fi++] = '.';
 							if (exi == 0)
 								break;
 							exname[exi] = '\0';
-							for (j = 0; exname[j] != '\0'; j++) 
+							for (j = 0; exname[j] != '\0'; j++)
 								fname[fi++] = exname[j];
 							exi = 0;
 							break;
 						case '<': case '>': case '"': case '/': case '|': case '?': case '*': case ':':
-							errorf(std::string("Error: Illegal character '") + a[i] + "'.");
+							errorf(std::string("Error: Illegal character '") + path[i] + "'.");
 							return 1;
 						default:
-							exname[exi++] = a[i];
+							exname[exi++] = path[i];
 							break;
-					}				
+					}
 				}
-				if (a[i] == '\\') {
+				if (path[i] == '\\') {
 					fname[fi] = '\0';
 					dname[di++] = '\\';
-					for (j = 0; fname[j] != '\0'; j++) 
+					for (j = 0; fname[j] != '\0'; j++)
 						dname[di++] = fname[j];
 					fi = 0;
 					dname[di++] = '.';
@@ -116,7 +116,7 @@ int breakpath(char *path, char *edname, char *efname, char *eexname) {
 						exi = 0;
 					}
 				}
-				else if (a[i] == '\0') {
+				else if (path[i] == '\0') {
 					if (exi == 0) {
 						errorf("Error: file ending with dot\n");
 						return 1;
@@ -125,8 +125,8 @@ int breakpath(char *path, char *edname, char *efname, char *eexname) {
 				}
 				break;
 			case ':':
-				if (i == 1 && a[2] == '\\') {
-					dname[0] = a[0], dname[1] = a[1];
+				if (i == 1 && path[2] == '\\') {
+					dname[0] = path[0], dname[1] = path[1];
 					di = 2;
 					fi = 0;
 					i++;
@@ -137,10 +137,10 @@ int breakpath(char *path, char *edname, char *efname, char *eexname) {
 				}
 				break;
 			case '<': case '>': case '"': case '/': case '|': case '?': case '*':
-				errorf(std::string() + "Error: Illegal character '" + a[i] + "%c'.");
+				errorf(std::string() + "Error: Illegal character '" + path[i] + "%c'.");
 				return 1;
 			default:
-				fname[fi++] = a[i];
+				fname[fi++] = path[i];
 				break;
 		}
 	}
@@ -152,7 +152,7 @@ int breakpath(char *path, char *edname, char *efname, char *eexname) {
 	fname[fi] = '\0';
 	exname[exi] = '\0';
 	if (edname != NULL) {
-		strcpy_s(edname, MAX_PATH*4, dname); 
+		strcpy_s(edname, MAX_PATH*4, dname);
 	} if (efname != NULL) {
 		strcpy_s(efname, MAX_PATH*4, fname);
 	} if (eexname != NULL) {
@@ -161,11 +161,11 @@ int breakpath(char *path, char *edname, char *efname, char *eexname) {
 	return 0;
 }
 
-int breakpathdf(char *path, char *edname, char *efname) {
+int breakpathdf(const char *path, char *edname, char *efname) {
 	char a[MAX_PATH*4], dname[MAX_PATH*4], fname[MAX_PATH*4];
 	int i, j, di, fi, plen, mbl;
 	i = j = di = fi = 0;
-	
+
 	if (path[1] == ':') {
 		if (strlen(path) > MAX_PATH*4-1) {
 			errorf("Error: Path too long.\n");
@@ -195,7 +195,7 @@ int breakpathdf(char *path, char *edname, char *efname) {
 		}
 	}
 	for (i = 0; a[i] != '\0'; i++) {
-		
+
 		switch (a[i]) {
 			case '\\':
 				if (fi == 0) {
@@ -208,7 +208,7 @@ int breakpathdf(char *path, char *edname, char *efname) {
 				}
 				fname[fi] = '\0';
 				dname[di++] = '\\';
-				for (j = 0; fname[j] != '\0'; j++) 
+				for (j = 0; fname[j] != '\0'; j++)
 					dname[di++] = fname[j];
 				fi = 0;
 				break;
@@ -259,7 +259,7 @@ int breakpathdf(char *path, char *edname, char *efname) {
 	dname[di] = '\0';
 	fname[fi] = '\0';
 	if (edname != NULL) {
-		strcpy_s(edname, MAX_PATH*4, dname); 
+		strcpy_s(edname, MAX_PATH*4, dname);
 	} if (efname != NULL) {
 		strcpy_s(efname, MAX_PATH*4, fname);
 	}
@@ -270,14 +270,14 @@ int breakfname(char *ifname, char *efname, char *eexname) {
 	char a[MAX_PATH*4], fname[MAX_PATH*4], exname[MAX_PATH*4];
 	int i, j, fi, exi, plen, mbl;
 	i = j = fi = exi = 0;
-	
+
 	if (strlen(ifname) > MAX_PATH*4-1) {
 		errorf("Error: file name too long.\n");
 		return 1;
 	}
 	strcpy_s(a, MAX_PATH*4, ifname);
 //	errorf("Absolute path (no conversion): %s\n", a);
-	
+
 	for (i = 0; a[i] != '\0'; i++) {
 		switch (a[i]) {
 			case '.':
@@ -292,7 +292,7 @@ int breakfname(char *ifname, char *efname, char *eexname) {
 							if (exi == 0)
 								break;
 							exname[exi] = '\0';
-							for (j = 0; exname[j] != '\0'; j++) 
+							for (j = 0; exname[j] != '\0'; j++)
 								fname[fi++] = exname[j];
 							exi = 0;
 							break;
@@ -302,7 +302,7 @@ int breakfname(char *ifname, char *efname, char *eexname) {
 						default:
 							exname[exi++] = a[i];
 							break;
-					}				
+					}
 				}
 				if (a[i] == '\0') {
 					if (exi == 0) {

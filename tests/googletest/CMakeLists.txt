@@ -1,5 +1,8 @@
 ### GoogleTest
 
+cmake_minimum_required(3.28)
+
+
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -21,7 +24,7 @@ target_link_libraries(
     all_tests
     gtest_main
 )
-  
+
 include(GoogleTest)
 gtest_discover_tests(all_tests)
 
@@ -31,7 +34,7 @@ target_include_directories(all_tests PRIVATE ${TINDEX_SRC_DIR})
 
 set(OUT )
 
-get_target_property(OUT tindex LINK_LIBRARIES)
+get_target_property(OUT TinDex LINK_LIBRARIES)
 
 # get things such as libpng, libjpeg
 
@@ -39,4 +42,7 @@ target_link_libraries(all_tests ${OUT})
 
 # OpenCL references
 
-SET_TARGET_PROPERTIES(all_tests PROPERTIES LINK_FLAGS "C:/Windows/System32/OpenCL.dll -pthread")
+SET_TARGET_PROPERTIES(all_tests PROPERTIES
+  LINK_FLAGS "C:/Windows/System32/OpenCL.dll -pthread"
+  CXX_STANDARD 23
+)

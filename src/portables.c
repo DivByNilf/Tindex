@@ -23,27 +23,27 @@ long long ftell64(FILE *file) {
 char *mb_from_wide(wchar_t const *wbuf) {
 	unsigned long long len;
 	char *buf, *buf2;
-	
+
 	len = 0;
 	while (wbuf[len] != L'\0') len++;
-	
+
 	if (!(buf = malloc(len*4))) {
 		printf("malloc failed");
 		return 0;
 	}
-	
+
 	if ((WideCharToMultiByte(65001, 0, wbuf, -1, buf, len*4, NULL, NULL)) == 0) {
 		errorf("WideCharToMultiByte Failed");
 	}
-	
+
 	len = 0;
 	while (buf[len] != '\0') len++;
 	buf2 = malloc(len+1);
-	
+
 	len = 0;
 	while (buf[len] != '\0') buf2[len] = buf[len], len++;
 	buf2[len] = '\0';
-	
+
 	free(buf);
 	return buf2;
 }
@@ -51,27 +51,27 @@ char *mb_from_wide(wchar_t const *wbuf) {
 wchar_t *wide_from_mb(char const *buf) {
 	unsigned long long len;
 	wchar_t *wbuf, *wbuf2;
-	
+
 	len = 0;
 	while (buf[len] != '\0') len++;
-	
+
 	if (!(wbuf = malloc(len*2))) {
 		printf("malloc failed");
 		return 0;
 	}
-	
+
 	if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf, len*2)) == 0) {
 		errorf("MultiByteToWideChar Failed");
 	}
-	
+
 	len = 0;
 	while (wbuf[len] != L'\0') len++;
 	wbuf2 = malloc((len+1)*2);
-	
+
 	len = 0;
 	while (wbuf[len] != '\0') wbuf2[len] = wbuf[len], len++;
 	wbuf2[len] = '\0';
-	
+
 	free(wbuf);
 	return wbuf2;
 }
@@ -80,7 +80,7 @@ FILE *MBfopen(char const *buf, char const *mode) {
 	wchar_t wbuf[MAX_PATH*2], wmode[5];
 	FILE *f;
 	static int inside;
-	
+
 	if ((MultiByteToWideChar(65001, 0, buf, -1, wbuf, MAX_PATH*2)) == 0) {
 		return 0;
 	}
@@ -112,7 +112,7 @@ int MBrename(char const *oldname, char const *newname) {
 
 int MBremove(char const *path) {
 	wchar_t wpath[MAX_PATH*2];
-	
+
 	if ((MultiByteToWideChar(65001, 0, path, -1, wpath, MAX_PATH*2)) == 0) {
 		return 0;
 	}
@@ -129,14 +129,14 @@ int casestrcmp(char const *str1, char const *str2) {
 	if (U_FAILURE(error)) {
 		free(ustr1), free(ustr2);
 		errorf("u_strFromUTF8 failed 1: %d", error);
-		errorf("str1: %s", str1); 
+		errorf("str1: %s", str1);
 		return 0;
 	}
 	u_strFromUTF8(ustr2, len2, 0, str2, -1, &error);
 	if (U_FAILURE(error)) {
 		free(ustr1), free(ustr2);
 		errorf("u_strFromUTF8 failed 2: %d", error);
-		errorf("str2: %s", str2); 
+		errorf("str2: %s", str2);
 		return 0;
 	}
 	if (len2 > len1)
@@ -148,7 +148,7 @@ int casestrcmp(char const *str1, char const *str2) {
 
 char make_directory(char const *path) {
 	wchar_t wpath[MAX_PATH*2];
-	
+
 errorf("making dir %s", path);
 	if ((MultiByteToWideChar(65001, 0, path, -1, wpath, MAX_PATH*2)) == 0) {
 		return 1;
@@ -157,19 +157,19 @@ errorf("making dir %s", path);
 		return 0;
 	} else {
 		return 2;
-	}	
+	}
 }
 
 char checkfiletype(char const *fname) {
 	wchar_t wpath[MAX_PATH*2];
 	struct _stat ws_stat;
-	
+
 	if ((MultiByteToWideChar(65001, 0, fname, -1, wpath, MAX_PATH*2)) == 0) {
 		return 1;
 	}
-	
+
 	_wstat(wpath, &ws_stat);
-	
+
 	if (_S_IFDIR & ws_stat.st_mode)
 		return 1;
 	else if (_S_IFREG & ws_stat.st_mode)
@@ -185,7 +185,7 @@ unsigned long long getfilemodified(char const *fname) {
 	if ((MultiByteToWideChar(65001, 0, fname, -1, wpath, MAX_PATH*2)) == 0) {
 		return 1;
 	}
-	
+
 	if (_wstat(wpath, &ws_stat) == 0) {
 		return ws_stat.st_mtime;
 	} else {
@@ -196,15 +196,15 @@ unsigned long long getfilemodified(char const *fname) {
 char existsdir(char const *fname) {
 	wchar_t wpath[MAX_PATH*2];
 	struct _stat ws_stat;
-	
+
 	if (fname == NULL) {
 		return 0;
 	}
-	
+
 	if ((MultiByteToWideChar(65001, 0, fname, -1, wpath, MAX_PATH*2)) == 0) {
 		return 1;
 	}
-	
+
 	if (_wstat(wpath, &ws_stat) == 0) {
 		if (_S_IFDIR & ws_stat.st_mode)
 			return 1;
@@ -227,22 +227,22 @@ char *timetostr(unsigned long long ulltime) {
 
 DIRSTRUCT *diropen(char const *dir) {
 	wchar_t wdir[MAX_PATH+2];
-	
+
 	char buf[MAX_PATH*4+2];
 	sprintf(buf, "%s\\*", dir);
 	if ((MultiByteToWideChar(65001, 0, buf, -1, wdir, MAX_PATH)) == 0) {
 		errorf("MultiByteToWideChar Failed");
 	}
-	
+
 	DIRSTRUCT *ds = malloc(sizeof(DIRSTRUCT));
 	ds->firstread = 1;
-	
+
 	if ((ds->search = FindFirstFileW(wdir, &ds->data)) == INVALID_HANDLE_VALUE) {
 		errorf("FindFirstFileW - INVALID_HANDLE_VALUE");
 		free(ds);
 		return NULL;
 	}
-	
+
 	return ds;
 }
 
@@ -257,7 +257,7 @@ char dirread(DIRSTRUCT *dirp, char const *buf) {
 	if ((WideCharToMultiByte(65001, 0, dirp->data.cFileName, -1, buf, MAX_PATH*4, NULL, NULL)) == 0) {
 		errorf("WideCharToMultiByte Failed");
 	}
-	
+
 	return 1;
 }
 

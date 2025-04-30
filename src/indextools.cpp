@@ -29,6 +29,9 @@ extern "C" {
 
 #include "errorf.hpp"
 
+using std::string, std::shared_ptr;
+
+// This shouldn't really exist - the PrgDir should be passed to the first window constructor if it needs it #todo
 extern std::string g_prgDir;
 
 enum : int32_t {
@@ -63,7 +66,7 @@ enum : int32_t {
 };
 
 //! TODO: make references to sessionhandler atomic and thread safe
-std::shared_ptr<TopIndexSessionHandler> g_indexSessionHandlerPtr;
+shared_ptr<TopIndexSessionHandler> g_indexSessionHandlerPtr;
 
 bool initSessionHandler(const std::fs::path &prgDir) {
 	g_indexSessionHandlerPtr = std::make_shared<TopIndexSessionHandler>(prgDir);
@@ -73,9 +76,9 @@ bool initSessionHandler(const std::fs::path &prgDir) {
 //{ main index
 
 uint64_t getLastMINum(void) {
-errorf(std::cerr, "getLastMINum before openSession");
-	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
-errorf(std::cerr, "getLastMINum after openSession");
+	errorf(std::cerr, "getLastMINum before openSession"); // #trace
+	shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
+	errorf(std::cerr, "getLastMINum after openSession");  // #trace
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "getLastMINum could not open session");
@@ -83,9 +86,11 @@ errorf(std::cerr, "getLastMINum after openSession");
 	}
 
 	int32_t error = 0;
-errorf(std::cerr, "getLastMINum before getNofVirtualEntries");
+	errorf(std::cerr, "getLastMINum before getNofVirtualEntries"); // #trace
 	return indexSession->getNofVirtualEntries(error);
-errorf(std::cerr, "getLastMINum after getNofVirtualEntries");
+	errorf(std::cerr, "getLastMINum after getNofVirtualEntries"); // #trace
+
+	return 0;
 }
 
 uint64_t miReg(char *miName) {
@@ -93,7 +98,7 @@ uint64_t miReg(char *miName) {
 		errorf(std::cerr, "miName was nullptr");
 		return 0;
 	}
-	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
+	shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "(miReg) could not open session");
 		return 0;
@@ -142,7 +147,7 @@ int chainMiReroute(twoslnk *rerouteChain) {		//! untested
 /*
 oneslnk *intervalMiRead(uint64_t start, uint64_t interval) {	// returns malloc memory (the whole chain)
 
-	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
+	shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "intervalMiRead could not open session");
@@ -194,16 +199,16 @@ oneslnk *intervalMiRead(uint64_t start, uint64_t interval) {	// returns malloc m
 }
 */
 
-std::shared_ptr<std::forward_list<std::string>> intervalMiRead(uint64_t start, uint64_t interval) {
+shared_ptr<std::forward_list<std::string>> intervalMiRead(uint64_t start, uint64_t interval) {
 
-	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
+	shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "intervalMiRead could not open session");
 		return {};
 	}
 
-	std::shared_ptr<std::forward_list<std::string>> retListPtr = indexSession->readIntervalEntries(start, interval);
+	shared_ptr<std::forward_list<std::string>> retListPtr = indexSession->readIntervalEntries(start, interval);
 
 	if (retListPtr == nullptr) {
 		return {};
@@ -229,7 +234,7 @@ void verDI(void) { // check for order, duplicates, gaps, 0 character strings
 }
 
 bool existsMI(const uint64_t &miNum, int32_t &error) {
-	std::shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
+	shared_ptr<MainIndexIndex> indexSession = g_indexSessionHandlerPtr->openSession<MainIndexIndex>();
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "intervalMiRead could not open session");
@@ -250,7 +255,7 @@ bool existsMI(const uint64_t &miNum) {
 //{ directory
 
 uint64_t getLastDNum(uint64_t miNum) {
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
+	shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "getLastDNum could not open session");
@@ -268,7 +273,7 @@ uint64_t dReg(uint64_t miNum, char *dPath) {
 		errorf(std::cerr, "dPath was nullptr");
 		return 0;
 	}
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
+	shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "(dReg) could not open session");
 		return 0;
@@ -289,7 +294,7 @@ uint64_t dReg(const uint64_t &miNum, const std::fs::path &dPath) {
 		errorf(std::cerr, "dPath was empty");
 		return 0;
 	}
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
+	shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "(dReg) could not open session");
 		return 0;
@@ -304,7 +309,7 @@ uint64_t dReg(const uint64_t &miNum, const std::fs::path &dPath) {
 }
 
 std::fs::path dRead(const uint64_t &miNum, const uint64_t &dNum) {	// returns malloc memory
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
+	shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "getLastMINum could not open session");
@@ -332,7 +337,7 @@ int cDReg(uint64_t miNum, oneslnk *dPathChain) {
 }
 
 int cDReg(const uint64_t &miNum, const std::forward_list<std::fs::path> inputList) { //! untested
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
+	shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "getLastMINum could not open session");
@@ -367,7 +372,7 @@ int chainDReroute(uint64_t miNum, twoslnk *rerouteChain) {		//! untested
 /*
 oneslnk *intervalDRead(uint64_t miNum, uint64_t start, uint64_t interval) {	// returns malloc memory (the whole chain)
 
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
+	shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "intervalMiRead could not open session");
@@ -420,16 +425,16 @@ oneslnk *intervalDRead(uint64_t miNum, uint64_t start, uint64_t interval) {	// r
 }
 */
 
-std::shared_ptr<std::forward_list<std::fs::path>> intervalDRead(uint64_t miNum, uint64_t start, uint64_t interval) {
+shared_ptr<std::forward_list<std::fs::path>> intervalDRead(uint64_t miNum, uint64_t start, uint64_t interval) {
 
-	std::shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
+	shared_ptr<DirIndex> indexSession = g_indexSessionHandlerPtr->openSession<DirIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "intervalDRead could not open session");
 		return {};
 	}
 
-	std::shared_ptr<std::forward_list<std::fs::path>> retListPtr = indexSession->readIntervalEntries(start, interval);
+	shared_ptr<std::forward_list<std::fs::path>> retListPtr = indexSession->readIntervalEntries(start, interval);
 
 	if (retListPtr == nullptr) {
 		return {};
@@ -463,7 +468,7 @@ int readSubdirEntryTo(FILE *sourceFile, struct SubDirEntry *dest) {
 }
 
 uint64_t getLastSubDirNum(uint64_t miNum) {
-	std::shared_ptr<SubDirIndex> indexSession = g_indexSessionHandlerPtr->openSession<SubDirIndex>(miNum);
+	shared_ptr<SubDirIndex> indexSession = g_indexSessionHandlerPtr->openSession<SubDirIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "getLastSubDirNum could not open session");
@@ -485,7 +490,7 @@ oneslnk *intervalSubDirRead(uint64_t miNum, uint64_t start, uint64_t interval) {
 /*
 
 uint64_t getlastfnum(uint64_t miNum) {
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
+	shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "getLastMINum could not open session");
@@ -504,7 +509,7 @@ uint64_t fileReg(uint64_t dNum, char *fname) {
 		errorf(std::cerr, "fname was nullptr");
 		return 0;
 	}
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
+	shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "(dReg) could not open session");
 		return 0;
@@ -523,7 +528,7 @@ uint64_t fileReg(uint64_t dNum, char *fname) {
 
 uint64_t fileReg(const uint64_t &miNum, const std::string &fname) {
 	/*
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
+	shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "(dReg) could not open session");
 		return 0;
@@ -735,14 +740,14 @@ int cfireg(uint64_t dNum, oneslnk *fileNameChain) {
 /*
 oneslnk *ifiread(uint64_t miNum, uint64_t start, uint64_t interval) {	// returns malloc memory (the whole chain)
 
-	std::shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
+	shared_ptr<FileIndex> indexSession = g_indexSessionHandlerPtr->openSession<FileIndex>(miNum);
 
 	if (indexSession == nullptr) {
 		errorf(std::cerr, "intervalMiRead could not open session");
 		return 0;
 	}
 
-	std::shared_ptr<std::forward_list<std::string>> retList = indexSession->readIntervalEntries(start, interval);
+	shared_ptr<std::forward_list<std::string>> retList = indexSession->readIntervalEntries(start, interval);
 
 	oneslnk *flnk, *lastlnk;
 	if ((flnk = malloc(sizeof(oneslnk))) == 0) {

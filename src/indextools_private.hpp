@@ -1360,6 +1360,7 @@ std::forward_list<KeyT> StandardAutoKeyIndex<KeyT, EntryT>::addEntries(const std
 template <class U, class ... Ts>
 std::shared_ptr<U> TopIndexSessionHandler::openSession(Ts&& ... args) {
 	if constexpr (std::is_base_of<TopIndex, U>::value == true) {
+		std::cerr << "inside openSession" << std::endl;
 		return this->openTopIndexSession<U>(args...);
 	} else if constexpr (std::is_base_of<SubIndex, U>::value == true) {
 		return this->openSubIndexSession<U>(args...);
@@ -1370,6 +1371,8 @@ std::shared_ptr<U> TopIndexSessionHandler::openSession(Ts&& ... args) {
 template <class U, class ... Ts>
 std::shared_ptr<U> TopIndexSessionHandler::openTopIndexSession(Ts&& ... args) {
 	static_assert(std::is_base_of<TopIndex, U>::value == true);
+
+	std::cerr << "inside openTopIndexSession" << std::endl;
 	
 	auto findIt = openSessions_.find(U::indexID);
 	if (findIt != openSessions_.end()) {
@@ -1377,7 +1380,9 @@ std::shared_ptr<U> TopIndexSessionHandler::openTopIndexSession(Ts&& ... args) {
 		return std::static_pointer_cast<U>(findIt->second.lock());
 	} else {
 		//! probably could just construct to shared without the assistant function
+		std::cerr << "(1) inside openTopIndexSession" << std::endl;
 		std::shared_ptr<U> sessionPtr = g_MakeSharedIndexSession<U>(*this, args...);
+		std::cerr << "(2) inside openTopIndexSession" << std::endl;
 		if (sessionPtr != nullptr) {
 			auto inputPair = std::pair<IndexID, std::weak_ptr<TopIndex>>(U::indexID, sessionPtr);
 			if (inputPair.second.lock() != nullptr) {

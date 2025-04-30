@@ -1,5 +1,4 @@
 #include "errorf.hpp"
-// #define errorf(str) g_errorfStdStr(str)
 
 #include "userinterface.hpp"
 #include "uiutils.hpp"
@@ -126,14 +125,14 @@ enum ImageViewOptions : int32_t {
 };
 
 enum MainInitReturnCodes : int32_t {
-	kMainInitFail = 1, 
+	kMainInitFail = 1,
 	kMainInitMutexReserved = 2,
 	kMainInitDllLoadFail = 3,
 	kMainInitRegisterClassFail = 4,
 };
 
 enum PageListButtonTypes : uint8_t {
-	kPlbTypeCurrent = 1, 
+	kPlbTypeCurrent = 1,
 	kPlbTypeLast = 2,
 };
 
@@ -557,7 +556,7 @@ LRESULT CALLBACK GeneralWinProc(
 		g_winProcData->sharedWinData,
 		getWinPtr
 	);
-	
+
 	switch(msg) {
 		case WM_CREATE: {
 			WinCreateArgs *winArgs = *(WinCreateArgs **) lParam;
@@ -785,7 +784,7 @@ LRESULT CALLBACK TabContainerWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam,
 			HBRUSH hOldBrush;
 			HDC hdc;
 			PAINTSTRUCT ps;
-			
+
 			RECT rect;
 			if (GetClientRect(hwnd, &rect) == 0) {
 				errorf(std::cerr, "GetClientRect failed");
@@ -870,8 +869,6 @@ LRESULT TabWindow::onCreate(WinProcArgs &procArgs) {
 
 	{
 		int y1 = 20;
-
-		//thwnd = CreateWindowExW(0, MSFTEDIT_CLASS, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 35, 380, y1, hwnd, (HMENU) 2, nullptr, nullptr);
 errorf(std::cerr, "creating editsuperclass outer");
 		thwnd = EditWindowSuperClass::createWindowInstance(WinInstancer(0, L"", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 5, 35, 380, y1, hwnd, (HMENU) 2, nullptr, nullptr), editWindowSuperName);
 		if (!thwnd) {
@@ -897,7 +894,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			HBRUSH hOldBrush;
 			HDC hdc;
 			PAINTSTRUCT ps;
-			
+
 			RECT rect;
 
 			if (GetClientRect(hwnd, &rect) == 0) {
@@ -959,61 +956,7 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			}
 			break;
 		}
-		case WM_U_RET_DMAN: {
-		//!
-		/*
-
-			switch(wParam) {
-			case 0: // dman termination, lParam is hwnd
-				for (i = 0; i < ndirman_; i++) {
-					if ((HWND) lParam == wHandle_[i]) {
-						wHandle_[i] = 0;
-						break;
-					}
-				} if (i == ndirman_) {
-					errorf(std::cerr, "didn't zero wHandle_");
-				}
-				break;
-			case 3: // selected directory
-//				std::cerr << "returned: " << ((int) lParam) << std::flush;
-				if ((int) lParam == 0)
-					break;
-				lastDirNum_ = (int) lParam;
-				lastOption_ = 0;
-				buf = dRead(lastDirNum_);
-				if (buf != nullptr && existsdir(buf)) {
-					THMBMANARGS args = {};
-					args.parent = hwnd;
-					args.option = 0;
-					args.dnum = lastDirNum_;
-
-//					thwnd = ThumbManWindow::createWindowInstance(WinInstancer(0, L"Thumbnail View", WS_VISIBLE | WS_SYSMENU | WS_CAPTION | WS_SIZEBOX | WS_POPUP, 200, 200, 300, 300, hwnd, 0, g_shared_window_vars.ghInstance, &args));
-
-					if (GetClientRect(hwnd, &rect) == 0) {
-						errorf(std::cerr, "GetClientRect failed");
-					}
-					thwnd = ThumbManWindow::createWindowInstance(WinInstancer(0, L"Thumbnail View", WS_VISIBLE | WS_CHILD, 0, 0, rect.right, rect.bottom, hwnd, 0, g_shared_window_vars.ghInstance, &args));
-					ShowWindow(GetDlgItem(hwnd, 1), 0);
-					ShowWindow(GetDlgItem(hwnd, 2), 0);
-					ShowWindow(GetDlgItem(hwnd, 3), 0);
-					this->dispWindow_ = thwnd;
-				} else {
-					if (buf != nullptr) {
-						dialogf(hwnd, "Couldn't find directory: %s.", buf);
-						free(buf);
-					} else {
-						dialogf(hwnd, "Directory is null.");
-					}
-				}
-
-				break;
-			}
-
-			break;
-		*/
-		}
 		case WM_U_RET_TMAN: {
-
 			switch(wParam) {
 			case 0: {
 					uint32_t i = 0;
@@ -1034,8 +977,6 @@ LRESULT CALLBACK TabWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 			return 1;
 		}
 		case WM_NCDESTROY: {
-			//FreeWindowMem(hwnd);
-
 			PostQuitMessage(0);
 
 			return 0;
@@ -1137,7 +1078,7 @@ LRESULT CALLBACK ListManWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 					int32_t j = 0;
 
 					uint64_t ll = this->getNumElems();
-std::cerr << "got getNumElems: " << ll << std::flush;
+					std::cerr << "got getNumElems: " << ll << std::flush; // debug
 					this->pageListWin_->lastPage_ = ll/kMaxNRows + !!(ll % kMaxNRows);
 					if (this->pageListWin_->lastPage_ == 0) {
 						this->pageListWin_->lastPage_ = 1;
@@ -1149,7 +1090,7 @@ std::cerr << "got getNumElems: " << ll << std::flush;
 					}
 
 					if (this->pageListWin_->lastPage_ != lastlastpage) {
-std::cerr << "set lastpage to " << this->pageListWin_->lastPage_ << std::flush;
+						std::cerr << "set lastpage to " << this->pageListWin_->lastPage_ << std::flush; // debug
 						if (j == 1) {
 							SendMessage(hwnd, WM_U_LISTMAN, kListmanChPageNoRef, this->pageListWin_->curPage_);
 						}
@@ -1740,7 +1681,7 @@ errorf(std::cerr, "DirManWindow onCreate spot 1");
 
 	//# convergence 1
 	// read args
-	
+
 	RECT rect = {0};
 	if (GetClientRect(hwnd, &rect) == 0) {
 		errorf(std::cerr, "GetClientRect failed");
@@ -2972,7 +2913,7 @@ void PageListWindow::getPages(int32_t edgeSpace) {
 		boolean statusPastCurPage = false;
 
 		uint16_t decimals, decimals2;
-	
+
 		do {
 			decimals = (uint16_t) log10(pos)+1;
 			// values: 9, 99, 999, 9999, ...
@@ -3001,7 +2942,7 @@ void PageListWindow::getPages(int32_t edgeSpace) {
 							int32_t totalCharWidth2 = decimals2*kCharWidth;
 							int32_t totalButtonWidth2 = totalCharWidth2 + kPagePad + kPagesSpace;
 							int64_t widthToPos2 = (lastNum2 - pos2 + 1) * totalButtonWidth2;
-							
+
 							if ( widthToPos2 >= midRemainder) {
 								// the last page that fits -- pos-1 to account for the space the first page take
 								uint64_t nPages2 = midRemainder / totalButtonWidth2;
@@ -3022,7 +2963,7 @@ void PageListWindow::getPages(int32_t edgeSpace) {
 					}
 				}
 			}
-												
+
 			if (lastNum1 >= lastPage_) {
 				uint64_t nEndPages = endRemainder / totalButtonWidth1;
 				uint64_t endPos = pos + nEndPages;
@@ -3054,7 +2995,7 @@ void PageListWindow::getPages(int32_t edgeSpace) {
 
 		} while (decimals < kMaxDecimals);
 	}
-	
+
 	// if buttons for all pages fit (no arrow buttons)
 	if (statusFitRight) {
 		int32_t xPos = endRemainder/2 + kPagesSideBuf;	// starting coordinate
@@ -3603,7 +3544,7 @@ std::cerr << "argCol is: " << argCol << std::flush;
 errorf(std::cerr, "gssrc spot 5.1");
 
 	if (rowsPtr_->size() <= upos) {
-		std::cerr << "rowsVector too small: tried to access [" << upos << "] size is [" << rowsPtr_->size() << "]" << std::flush; 
+		std::cerr << "rowsVector too small: tried to access [" << upos << "] size is [" << rowsPtr_->size() << "]" << std::flush;
 		setErrorPtr(retError, 1);
 		return {};
 	}
@@ -3902,7 +3843,7 @@ LRESULT CALLBACK StrListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
 
 			HPEN hOldPen;
 			hOldPen = (HPEN) GetCurrentObject(hdc2, OBJ_PEN);
-			
+
 			HBRUSH hOldBrush;
 			hOldBrush = (HBRUSH) GetCurrentObject(hdc2, OBJ_BRUSH);
 
@@ -5213,7 +5154,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			Rectangle(hdc3, 0, 0, rect.right, rect.bottom);
 			SelectObject(hdc3, args.sharedWinData.bgPen2);
 			SelectObject(hdc3, args.sharedWinData.bgBrush2);
-			
+
 			for (i = 0, lastrow = (!!diff)+(rect.bottom-(kDefThumbFH+kDefThumbGapY-diff)%(kDefThumbFH+kDefThumbGapY))/(kDefThumbFH+kDefThumbGapY)+(!!((rect.bottom-(kDefThumbFH+kDefThumbGapY-diff))%(kDefThumbFH+kDefThumbGapY))), sel = 0; i < lastrow; i++, pos++, sel = 0) {
 				if (firstrow+i < 0)
 					continue;
@@ -5385,7 +5326,7 @@ LRESULT CALLBACK ThumbListWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 
 				case SB_PAGEUP: {
-					
+
 					RECT rect;
 					if (GetClientRect(hwnd, &rect) == 0) {
 						errorf(std::cerr, "GetClientRect failed");
@@ -6112,7 +6053,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 			SelectObject(hdc2, args.sharedWinData.bgPen1);
 			Rectangle(hdc2, 0, 0, rect.right, rect.bottom);
 
-// std::cerr << "ev->xpos: " << ev->xpos << ", ev->ypos: " << ev->ypos << std::flush; 
+// std::cerr << "ev->xpos: " << ev->xpos << ", ev->ypos: " << ev->ypos << std::flush;
 			if (ev->DispImage) {
 				bminfo.bmiHeader.biWidth = ev->DispImage->x;
 				bminfo.bmiHeader.biHeight = -ev->DispImage->y;
@@ -6127,7 +6068,7 @@ LRESULT CALLBACK ViewImageWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 				}
 				if ((SetDIBitsToDevice(hdc2, i, j, ev->DispImage->x, ev->DispImage->y, 0, 0, 0, ev->DispImage->y, ev->DispImage->img[ev->dispframe], &bminfo, DIB_RGB_COLORS)) == 0) {
 					std::cerr << "SetDIBitsToDevice failed, h: " << ev->DispImage->y << ", w: " << ev->DispImage->x << ", source: " << ev->DispImage->img[ev->dispframe] << std::flush;
-					
+
 				}
 			}
 			if (1 || ev->zoomp) { //! remove the "1 || " later
@@ -7096,7 +7037,7 @@ while (link1) {
 				}
 else if (LOWORD(wParam) == 2) {
 	std::cerr << "ev->rmnaliaschn" << ", ev->regaliaschn" << ev->regaliaschn << ", ev->remtagnumchn" << ev->remtagnumchn << ", ev->addtagnumchn: " << ev->addtagnumchn << std::flush;
-	
+
 
 }
 			}
@@ -7187,7 +7128,7 @@ LRESULT CreateAliasWindow::onCreate(WinProcArgs &procArgs) {
 }
 
 LRESULT CALLBACK CreateAliasWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WinProcArgs &args) {
-	
+
 	switch(msg) {
 		case WM_PAINT: {
 
@@ -7383,7 +7324,7 @@ LRESULT CALLBACK SearchBarWindow::winProc(HWND hwnd, UINT msg, WPARAM wParam, LP
 }
 
 
-//} 
+//}
 
 //{ TextEditDialogWindow
 //public:

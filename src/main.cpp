@@ -12,15 +12,14 @@ extern "C" {
 }
 
 #include <windows.h>
-
-#include <filesystem>
 namespace std {
 	namespace fs = std::filesystem;
 }
 
+
 /// private declarations
 
-int CheckInitMutex(HANDLE &hMutex, std::string prgDir);
+int CheckInitMutex(HANDLE &hMutex, const std::string & prgDir);
 int MainInit(MainInitStruct &ms, SharedWindowData &sharedWindowData, const std::fs::path &prgDir);
 int MainDeInit(MainInitStruct &ms, SharedWindowData &sharedWindowData);
 
@@ -29,7 +28,7 @@ void MainDeInitHandles(SharedWindowData &);
 
 /// enums
 enum MainInitReturnCodes : int32_t {
-	kMainInitFail = 1, 
+	kMainInitFail = 1,
 	kMainInitMutexReserved = 2,
 	kMainInitDllLoadFail = 3,
 	kMainInitRegisterClassFail = 4,
@@ -56,7 +55,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLin
 	freopen((prgDir.string() + "/errorfile.log").c_str(), "a", stdout);
 	std::cerr << "\n---\n";
 
-	if (SetWinProcData(winProcData)) {
+	if (!SetWinProcData(winProcData)) {
 		std::cerr << "Preinit: SetSharedWindowData failed" << std::endl;
 		return 1;
 	}
@@ -132,13 +131,12 @@ int MainInit(MainInitStruct &ms, SharedWindowData &sharedWindowData, const std::
 
 }
 
-int CheckInitMutex(HANDLE &hMutex, std::string prgDir) {
+int CheckInitMutex(HANDLE &hMutex, const std::string &prgDir) {
 	std::string mutexName = prgDir;
 	std::replace(mutexName.begin(), mutexName.end(), '\\', '/');
 	mutexName = "Global\\" + mutexName;
 
 	hMutex = CreateMutexW(nullptr, TRUE, u8_to_u16(mutexName).c_str());
-
 	if (hMutex == nullptr) {
 		std::cerr << "Preinit: CreateMutex" << "\n  error: " << GetLastError() << "\n  mutexName" << mutexName << std::endl;
 		return 1;
@@ -164,7 +162,7 @@ int CheckInitMutex(HANDLE &hMutex, std::string prgDir) {
 				fileMapName.c_str()),
 			 CloseHandle
 		);
-		
+
 		if (hMapFile == nullptr) {
 			std::cerr << "Preinit: Could not open file mapping object (" << GetLastError() << ")." << std::endl;
 			return 1;
